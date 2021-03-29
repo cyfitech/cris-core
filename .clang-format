@@ -19,6 +19,7 @@ IndentCaseLabels: 'true'
 IndentWidth: '4'
 SortIncludes: 'true'
 SortUsingDeclarations: 'true'
+SpaceAfterTemplateKeyword: 'false'
 SpacesBeforeTrailingComments: '2'
 Standard: Cpp11
 UseTab: Never
