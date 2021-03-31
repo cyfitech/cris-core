@@ -20,7 +20,7 @@ class CRSingleQueueNode : public CRNodeBase {
 
     CRMessageQueue *MessageQueueMapper(const CRMessageBasePtr &message) override { return &mQueue; }
 
-   private:
+   protected:
     size_t  mQueueCapacity;
     queue_t mQueue;
 };

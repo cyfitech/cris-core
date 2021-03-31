@@ -12,7 +12,7 @@ std::map<std::string, CRMessageBase::subscription_list_t> subscription_map{};
 }  // namespace impl
 
 void CRMessageBase::Dispatch(const CRMessageBasePtr& message) {
-    auto* subscription_list = GetSubscriptionListImpl(message->GetMessageTypeName());
+    auto* subscription_list = GetSubscriptionList(message->GetMessageTypeName());
     if (!subscription_list) {
         return;
     }
@@ -27,11 +27,28 @@ void CRMessageBase::Dispatch(const CRMessageBasePtr& message) {
     }
 }
 
-void CRMessageBase::SubscribeImpl(const std::string& message_type, CRNodeBase* node) {
+void CRMessageBase::Subscribe(const std::string& message_type, CRNodeBase* node) {
     impl::subscription_map[message_type].emplace_back(node);
 }
 
-const CRMessageBase::subscription_list_t* CRMessageBase::GetSubscriptionListImpl(
+void CRMessageBase::Unsubscribe(const std::string& message_type, CRNodeBase* node) {
+    auto subscription_map_search = impl::subscription_map.find(message_type);
+    if (subscription_map_search == impl::subscription_map.end()) {
+        // TODO WARNING: not subscribed
+        return;
+    }
+    auto& subscription_list = subscription_map_search->second;
+    auto  subscription_list_search =
+        std::find(subscription_list.begin(), subscription_list.end(), node);
+    if (subscription_list_search == subscription_list.end()) {
+        // TODO WARNING: not subscribed
+        return;
+    }
+    std::swap(*subscription_list_search, subscription_list.back());
+    subscription_list.pop_back();
+}
+
+const CRMessageBase::subscription_list_t* CRMessageBase::GetSubscriptionList(
     const std::string& message_type) {
     auto subscription_find = impl::subscription_map.find(message_type);
     if (subscription_find == impl::subscription_map.end()) {
