@@ -7,7 +7,12 @@ void CRMessageQueue::Process(const CRMessageBasePtr &message) {
 }
 
 void CRMessageQueue::PopAndProcess(bool only_latest) {
-    Process(PopMessage(only_latest));
+    auto message = PopMessage(only_latest);
+    if (!message) {
+        // TODO WARNING
+        return;
+    }
+    Process(message);
 }
 
 }  // namespace cris::core

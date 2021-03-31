@@ -26,7 +26,7 @@ class CRNodeBase {
     template<class message_t, class callback_t>
     void Subscribe(callback_t &&callback);
 
-    virtual CRMessageQueue *MessageQueueMapper(const CRMessageBasePtr &Message) = 0;
+    virtual CRMessageQueue *MessageQueueMapper(const CRMessageBasePtr &message) = 0;
 
    private:
     virtual void SubscribeImpl(std::string &&                                  message_name,

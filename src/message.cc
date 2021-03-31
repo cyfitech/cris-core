@@ -13,8 +13,15 @@ std::map<std::string, CRMessageBase::subscription_list_t> subscription_map{};
 
 void CRMessageBase::Dispatch(const CRMessageBasePtr& message) {
     auto* subscription_list = GetSubscriptionListImpl(message->GetMessageTypeName());
+    if (!subscription_list) {
+        return;
+    }
     for (auto&& node : *subscription_list) {
         auto* queue = node->MessageQueueMapper(message);
+        if (!queue) {
+            // TODO WARNING
+            continue;
+        }
         queue->AddMessage(CRMessageBasePtr(message));
         node->Kick();
     }
