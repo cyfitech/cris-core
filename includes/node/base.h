@@ -10,6 +10,8 @@ namespace cris::core {
 
 class CRNodeBase {
    public:
+    CRNodeBase() = default;
+
     CRNodeBase(const CRNodeBase &) = delete;
 
     CRNodeBase(CRNodeBase &&) = delete;
@@ -42,7 +44,7 @@ void CRNodeBase::WaitForMessage(duration_t &&timeout) {
     mWaitMessageCV.wait_for(timeout);
 }
 
-void CRNodeBase::Kick() {
+inline void CRNodeBase::Kick() {
     mWaitMessageCV.notify_all();
 }
 
