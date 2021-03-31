@@ -18,11 +18,11 @@ class CRMessageLockQueue : public CRMessageQueue {
 
     CRMessageBasePtr PopMessage(bool only_latest) override;
 
-    size_t Size();
+    size_t Size() override;
 
-    bool IsEmpty();
+    bool IsEmpty() override;
 
-    bool IsFull();
+    bool IsFull() override;
 
    private:
     const size_t                  mCapacity;

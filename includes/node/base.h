@@ -39,8 +39,8 @@ class CRNodeBase {
                                std::function<void(const CRMessageBasePtr &)> &&callback) = 0;
 
     std::vector<std::string> mSubscribed{};
-    std::mutex              mWaitMessageMutex{};
-    std::condition_variable mWaitMessageCV{};
+    std::mutex               mWaitMessageMutex{};
+    std::condition_variable  mWaitMessageCV{};
 };
 
 inline CRNodeBase::~CRNodeBase() {
