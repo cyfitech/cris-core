@@ -52,7 +52,7 @@ inline CRNodeBase::~CRNodeBase() {
 template<class duration_t>
 void CRNodeBase::WaitForMessage(duration_t &&timeout) {
     std::unique_lock<std::mutex> lock(mWaitMessageMutex);
-    mWaitMessageCV.wait_for(timeout);
+    mWaitMessageCV.wait_for(lock, timeout);
 }
 
 inline void CRNodeBase::Kick() {
