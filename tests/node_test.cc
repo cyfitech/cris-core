@@ -2,6 +2,7 @@
 
 #include "gtest/gtest.h"
 #include "node/base.h"
+#include "node/multi_queue_node.h"
 
 namespace cris::core {
 
@@ -57,6 +58,56 @@ TEST(NodeTest, WaitAndTimeout) {
     ASSERT_EQ(unblocked.load(), kThreadNum);
     for (auto &&thread : threads) {
         thread.join();
+    }
+}
+
+template<int idx>
+struct TestMessage : public CRMessage<TestMessage<idx>> {};
+
+TEST(NodeTest, MultiQueueNode) {
+    CRMultiQueueNode              node(1);
+    constexpr size_t              kNumOfTopics = 4;
+    std::array<int, kNumOfTopics> received{0};
+
+    node.Subscribe<TestMessage<0>>([&received](const CRMessageBasePtr &) { ++received[0]; });
+    node.Subscribe<TestMessage<1>>([&received](const CRMessageBasePtr &) { ++received[1]; });
+    node.Subscribe<TestMessage<2>>([&received](const CRMessageBasePtr &) { ++received[2]; });
+    node.Subscribe<TestMessage<3>>([&received](const CRMessageBasePtr &) { ++received[3]; });
+
+    {
+        constexpr int message_type_idx = 0;
+        auto          message          = std::make_shared<TestMessage<message_type_idx>>();
+        CRMessageBase::Dispatch(message);
+        node.MessageQueueMapper(message)->PopAndProcess(false);
+
+        EXPECT_EQ(received[message_type_idx], 1);
+    }
+
+    {
+        constexpr int message_type_idx = 1;
+        auto          message          = std::make_shared<TestMessage<message_type_idx>>();
+        CRMessageBase::Dispatch(message);
+        node.MessageQueueMapper(message)->PopAndProcess(false);
+
+        EXPECT_EQ(received[message_type_idx], 1);
+    }
+
+    {
+        constexpr int message_type_idx = 2;
+        auto          message          = std::make_shared<TestMessage<message_type_idx>>();
+        CRMessageBase::Dispatch(message);
+        node.MessageQueueMapper(message)->PopAndProcess(false);
+
+        EXPECT_EQ(received[message_type_idx], 1);
+    }
+
+    {
+        constexpr int message_type_idx = 3;
+        auto          message          = std::make_shared<TestMessage<message_type_idx>>();
+        CRMessageBase::Dispatch(message);
+        node.MessageQueueMapper(message)->PopAndProcess(false);
+
+        EXPECT_EQ(received[message_type_idx], 1);
     }
 }
 
