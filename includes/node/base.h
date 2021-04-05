@@ -28,7 +28,8 @@ class CRNodeBase {
     void Kick();
 
     // Not thread-safe, do not call concurrently nor call it
-    // when messages are coming
+    // when messages are coming, nor call it after Node Runner
+    // is Running
     template<class message_t, class callback_t>
     void Subscribe(callback_t &&callback);
 
@@ -41,6 +42,8 @@ class CRNodeBase {
                                std::function<void(const CRMessageBasePtr &)> &&callback) = 0;
 
     virtual std::vector<CRMessageQueue *> GetNodeQueues() = 0;
+
+    friend class CRNodeRunner;
 
     std::vector<std::string> mSubscribed{};
     std::mutex               mWaitMessageMutex{};

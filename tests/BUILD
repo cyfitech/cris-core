@@ -43,3 +43,13 @@ cc_test (
     ],
     linkopts = cc_test_sanitizers,
 )
+
+cc_test (
+    name = "rr_runner_test",
+    srcs = ["rr_runner_test.cc"],
+    deps = [
+        "//:corelib",
+        "@gtest//:gtest_main",
+    ],
+    linkopts = cc_test_sanitizers,
+)
