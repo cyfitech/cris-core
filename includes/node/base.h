@@ -34,6 +34,8 @@ class CRNodeBase {
 
     virtual CRMessageQueue *MessageQueueMapper(const CRMessageBasePtr &message) = 0;
 
+    static CRNodeBase *GetMessageManager();
+
    private:
     virtual void SubscribeImpl(std::string &&                                  message_name,
                                std::function<void(const CRMessageBasePtr &)> &&callback) = 0;
