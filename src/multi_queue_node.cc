@@ -20,4 +20,12 @@ void CRMultiQueueNode::SubscribeImpl(std::string &&                             
     }
 }
 
+std::vector<CRMessageQueue *> CRMultiQueueNode::GetNodeQueues() {
+    std::vector<CRMessageQueue *> queues;
+    for (auto &&queue_entry : mQueues) {
+        queues.emplace_back(queue_entry.second.get());
+    }
+    return queues;
+}
+
 }  // namespace cris::core

@@ -12,6 +12,8 @@ class TrivialNodeForTest : public CRNodeBase {
    private:
     void SubscribeImpl(std::string &&                                  message_name,
                        std::function<void(const CRMessageBasePtr &)> &&callback) override {}
+
+    std::vector<CRMessageQueue *> GetNodeQueues() override { return {}; }
 };
 
 TEST(NodeTest, WaitAndUnblock) {

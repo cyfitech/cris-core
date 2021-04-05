@@ -38,6 +38,8 @@ class CRNodeBase {
     virtual void SubscribeImpl(std::string &&                                  message_name,
                                std::function<void(const CRMessageBasePtr &)> &&callback) = 0;
 
+    virtual std::vector<CRMessageQueue *> GetNodeQueues() = 0;
+
     std::vector<std::string> mSubscribed{};
     std::mutex               mWaitMessageMutex{};
     std::condition_variable  mWaitMessageCV{};

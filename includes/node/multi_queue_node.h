@@ -21,6 +21,8 @@ class CRMultiQueueNode : public CRNodeBase {
     void SubscribeImpl(std::string &&                                  message_name,
                        std::function<void(const CRMessageBasePtr &)> &&callback) override;
 
+    std::vector<CRMessageQueue *> GetNodeQueues() override;
+
     size_t                                          mQueueCapacity;
     std::map<std::string, std::unique_ptr<queue_t>> mQueues{};
 };
