@@ -33,6 +33,8 @@ class CRNodeBase {
     template<class message_t, class callback_t>
     void Subscribe(callback_t &&callback);
 
+    void Publish(CRMessageBasePtr &&message);
+
     virtual CRMessageQueue *MessageQueueMapper(const CRMessageBasePtr &message) = 0;
 
     static CRNodeBase *GetMessageManager();
@@ -50,20 +52,10 @@ class CRNodeBase {
     std::condition_variable  mWaitMessageCV{};
 };
 
-inline CRNodeBase::~CRNodeBase() {
-    for (auto &&subscribed : mSubscribed) {
-        CRMessageBase::Unsubscribe(subscribed, this);
-    }
-}
-
 template<class duration_t>
 void CRNodeBase::WaitForMessage(duration_t &&timeout) {
     std::unique_lock<std::mutex> lock(mWaitMessageMutex);
     mWaitMessageCV.wait_for(lock, timeout);
-}
-
-inline void CRNodeBase::Kick() {
-    mWaitMessageCV.notify_all();
 }
 
 template<class message_t, class callback_t>
