@@ -30,7 +30,7 @@ class CRNodeBase {
     // Not thread-safe, do not call concurrently nor call it
     // when messages are coming, nor call it after Node Runner
     // is Running
-    template<class message_t, class callback_t>
+    template<CRMessageType message_t, CRMessageCallbackType callback_t>
     void Subscribe(callback_t &&callback);
 
     void Publish(CRMessageBasePtr &&message);
@@ -58,11 +58,8 @@ void CRNodeBase::WaitForMessage(duration_t &&timeout) {
     mWaitMessageCV.wait_for(lock, timeout);
 }
 
-template<class message_t, class callback_t>
+template<CRMessageType message_t, CRMessageCallbackType callback_t>
 void CRNodeBase::Subscribe(callback_t &&callback) {
-    static_assert(std::is_base_of_v<CRMessageBase, message_t>);
-    static_assert(
-        std::is_void_v<decltype(callback(std::declval<const std::shared_ptr<message_t> &>()))>);
     auto message_name = CRMessageBase::GetMessageTypeName<message_t>();
     if (std::find(mSubscribed.begin(), mSubscribed.end(), message_name) != mSubscribed.end()) {
         // TODO WARNING: subscribed
