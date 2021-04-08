@@ -21,7 +21,7 @@ SortIncludes: 'true'
 SortUsingDeclarations: 'true'
 SpaceAfterTemplateKeyword: 'false'
 SpacesBeforeTrailingComments: '2'
-Standard: Cpp11
+Standard: c++20
 UseTab: Never
 
 ...
