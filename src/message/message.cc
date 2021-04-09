@@ -2,8 +2,8 @@
 
 #include <map>
 
-#include "message/base.h"
-#include "node/base.h"
+#include "cris/core/message/base.h"
+#include "cris/core/node/base.h"
 
 namespace cris::core {
 

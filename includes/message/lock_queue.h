@@ -2,7 +2,7 @@
 
 #include <mutex>
 
-#include "message/queue.h"
+#include "cris/core/message/queue.h"
 
 namespace cris::core {
 

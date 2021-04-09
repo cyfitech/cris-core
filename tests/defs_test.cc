@@ -1,4 +1,4 @@
-#include "defs.h"
+#include "cris/core/defs.h"
 
 #include "gtest/gtest.h"
 

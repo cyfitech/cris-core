@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "message/base.h"
+#include "cris/core/message/base.h"
 
 namespace cris::core {
 
@@ -36,7 +36,7 @@ class CRMessageQueue {
 
     virtual bool IsFull() = 0;
 
-   private:
+   protected:
     CRNodeBase *                                  mNode;
     std::function<void(const CRMessageBasePtr &)> mProcessor;
 };

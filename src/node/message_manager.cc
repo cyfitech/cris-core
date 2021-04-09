@@ -1,6 +1,6 @@
 #include <thread>
 
-#include "node/single_queue_node.h"
+#include "cris/core/node/single_queue_node.h"
 
 namespace cris::core {
 

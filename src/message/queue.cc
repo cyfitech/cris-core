@@ -1,4 +1,4 @@
-#include "message/queue.h"
+#include "cris/core/message/queue.h"
 
 #include <glog/logging.h>
 

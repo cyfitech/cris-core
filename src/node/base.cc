@@ -1,4 +1,4 @@
-#include "node/base.h"
+#include "cris/core/node/base.h"
 
 #include <glog/logging.h>
 

@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "defs.h"
+#include "cris/core/defs.h"
 
 namespace cris::core {
 

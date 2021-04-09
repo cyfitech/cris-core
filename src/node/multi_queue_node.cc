@@ -1,4 +1,4 @@
-#include "node/multi_queue_node.h"
+#include "cris/core/node/multi_queue_node.h"
 
 #include <glog/logging.h>
 

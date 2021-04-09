@@ -1,6 +1,6 @@
+#include "cris/core/message/base.h"
+#include "cris/core/node/single_queue_node.h"
 #include "gtest/gtest.h"
-#include "message/base.h"
-#include "node/single_queue_node.h"
 
 namespace cris::core {
 

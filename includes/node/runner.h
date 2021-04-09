@@ -4,7 +4,7 @@
 #include <mutex>
 #include <thread>
 
-#include "node/base.h"
+#include "cris/core/node/base.h"
 
 namespace cris::core {
 

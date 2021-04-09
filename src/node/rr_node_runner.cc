@@ -1,6 +1,6 @@
 #include <glog/logging.h>
 
-#include "node/runner.h"
+#include "cris/core/node/runner.h"
 
 namespace cris::core {
 
