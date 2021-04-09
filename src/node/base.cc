@@ -18,4 +18,16 @@ void CRNodeBase::Publish(CRMessageBasePtr&& message) {
     message_manager->Kick();
 }
 
+void CRNodeBase::SubscribeImpl(std::string&&                                  message_name,
+                               std::function<void(const CRMessageBasePtr&)>&& callback) {
+    if (std::find(mSubscribed.begin(), mSubscribed.end(), message_name) != mSubscribed.end()) {
+        // TODO WARNING: subscribed
+        return;
+    }
+    mSubscribed.push_back(message_name);
+
+    CRMessageBase::Subscribe(message_name, this);
+    return SubscribeHandler(std::move(message_name), std::move(callback));
+}
+
 }  // namespace cris::core

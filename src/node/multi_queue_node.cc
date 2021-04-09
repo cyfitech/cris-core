@@ -10,8 +10,8 @@ CRMessageQueue *CRMultiQueueNode::MessageQueueMapper(const CRMessageBasePtr &mes
     return queue_search->second.get();
 }
 
-void CRMultiQueueNode::SubscribeImpl(std::string &&                                  message_name,
-                                     std::function<void(const CRMessageBasePtr &)> &&callback) {
+void CRMultiQueueNode::SubscribeHandler(std::string &&message_name,
+                                        std::function<void(const CRMessageBasePtr &)> &&callback) {
     auto insert = mQueues.emplace(
         message_name, std::make_unique<queue_t>(mQueueCapacity, this, std::move(callback)));
     if (!insert.second) {

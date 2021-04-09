@@ -10,8 +10,8 @@ class CRMessageManager : public CRSingleQueueNode {
         : CRSingleQueueNode(queue_capacity, &CRMessageBase::Dispatch) {}
 
    private:
-    void SubscribeImpl(std::string &&                                  message_name,
-                       std::function<void(const CRMessageBasePtr &)> &&callback) override;
+    void SubscribeHandler(std::string &&                                  message_name,
+                          std::function<void(const CRMessageBasePtr &)> &&callback) override;
 };
 
 CRNodeBase *CRNodeBase::GetMessageManager() {
@@ -22,8 +22,8 @@ CRNodeBase *CRNodeBase::GetMessageManager() {
     return &manager;
 }
 
-void CRMessageManager::SubscribeImpl(std::string &&                                  message_name,
-                                     std::function<void(const CRMessageBasePtr &)> &&callback) {
+void CRMessageManager::SubscribeHandler(std::string &&message_name,
+                                        std::function<void(const CRMessageBasePtr &)> &&callback) {
     // Message Manager never subscribe to any message
 }
 

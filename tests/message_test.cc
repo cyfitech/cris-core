@@ -27,8 +27,8 @@ struct SimpleTestNode : public CRSingleQueueNode {
     }
 
    private:
-    void SubscribeImpl(std::string &&                                  message_name,
-                       std::function<void(const CRMessageBasePtr &)> &&callback) override {
+    void SubscribeHandler(std::string &&                                  message_name,
+                          std::function<void(const CRMessageBasePtr &)> &&callback) override {
         mCallbacks.emplace(message_name, std::move(callback));
     }
 

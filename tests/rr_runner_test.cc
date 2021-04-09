@@ -35,8 +35,8 @@ class RRRunnerTest : public testing::Test {
                                           std::placeholders::_1)) {}
 
        private:
-        void SubscribeImpl(std::string&&                                  message_name,
-                           std::function<void(const CRMessageBasePtr&)>&& callback) override {
+        void SubscribeHandler(std::string&&                                  message_name,
+                              std::function<void(const CRMessageBasePtr&)>&& callback) override {
             mSubscriptions.emplace(std::move(message_name), std::move(callback));
         }
 

@@ -40,8 +40,11 @@ class CRNodeBase {
     static CRNodeBase *GetMessageManager();
 
    private:
-    virtual void SubscribeImpl(std::string &&                                  message_name,
-                               std::function<void(const CRMessageBasePtr &)> &&callback) = 0;
+    void SubscribeImpl(std::string &&                                  message_name,
+                       std::function<void(const CRMessageBasePtr &)> &&callback);
+
+    virtual void SubscribeHandler(std::string &&                                  message_name,
+                                  std::function<void(const CRMessageBasePtr &)> &&callback) = 0;
 
     virtual std::vector<CRMessageQueue *> GetNodeQueues() = 0;
 
@@ -60,16 +63,9 @@ void CRNodeBase::WaitForMessage(duration_t &&timeout) {
 
 template<CRMessageType message_t, CRMessageCallbackType callback_t>
 void CRNodeBase::Subscribe(callback_t &&callback) {
-    auto message_name = CRMessageBase::GetMessageTypeName<message_t>();
-    if (std::find(mSubscribed.begin(), mSubscribed.end(), message_name) != mSubscribed.end()) {
-        // TODO WARNING: subscribed
-        return;
-    }
-    mSubscribed.push_back(message_name);
-
-    CRMessageBase::Subscribe(message_name, this);
     return SubscribeImpl(
-        std::move(message_name), [callback = std::move(callback)](const CRMessageBasePtr &message) {
+        CRMessageBase::GetMessageTypeName<message_t>(),
+        [callback = std::move(callback)](const CRMessageBasePtr &message) {
             return callback(reinterpret_cast<const std::shared_ptr<message_t> &>(message));
         });
 }
