@@ -1,3 +1,5 @@
+#include <glog/logging.h>
+
 #include "node/runner.h"
 
 namespace cris::core {
@@ -28,12 +30,13 @@ void CRNodeRoundRobinRunner::Run() {
     std::lock_guard<std::mutex>  state_lock(mRunStateMutex);
     std::unique_lock<std::mutex> threads_lock(mRunThreadsMutex, std::try_to_lock);
     if (!threads_lock.owns_lock()) {
-        // TODO Error: failed to Run, maybe others are running/joining
+        LOG(ERROR) << __func__
+                   << ": Failed to run, maybe others are running/joining. Runner: " << this;
         return;
     }
 
     if (mIsRunning) {
-        // TODO Warning: is running
+        LOG(WARNING) << __func__ << ": Runner " << this << " is currently running.";
         return;
     }
     mIsRunning = true;
@@ -47,7 +50,7 @@ void CRNodeRoundRobinRunner::Run() {
 void CRNodeRoundRobinRunner::Stop() {
     std::lock_guard<std::mutex> lock(mRunStateMutex);
     if (!mIsRunning) {
-        // TODO Warning: is not running
+        LOG(WARNING) << __func__ << ": Runner " << this << " is currently not running.";
         return;
     }
     mIsRunning = false;

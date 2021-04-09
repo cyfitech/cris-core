@@ -1,5 +1,7 @@
 #include "node/base.h"
 
+#include <glog/logging.h>
+
 namespace cris::core {
 
 CRNodeBase::~CRNodeBase() {
@@ -21,7 +23,8 @@ void CRNodeBase::Publish(CRMessageBasePtr&& message) {
 void CRNodeBase::SubscribeImpl(std::string&&                                  message_name,
                                std::function<void(const CRMessageBasePtr&)>&& callback) {
     if (std::find(mSubscribed.begin(), mSubscribed.end(), message_name) != mSubscribed.end()) {
-        // TODO WARNING: subscribed
+        LOG(WARNING) << __func__ << ": Message type '" << message_name
+                     << " is subscribed by the current node " << this << ", skipping subscription.";
         return;
     }
     mSubscribed.push_back(message_name);

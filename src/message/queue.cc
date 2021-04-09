@@ -1,5 +1,7 @@
 #include "message/queue.h"
 
+#include <glog/logging.h>
+
 namespace cris::core {
 
 void CRMessageQueue::Process(const CRMessageBasePtr &message) {
@@ -9,7 +11,7 @@ void CRMessageQueue::Process(const CRMessageBasePtr &message) {
 void CRMessageQueue::PopAndProcess(bool only_latest) {
     auto message = PopMessage(only_latest);
     if (!message) {
-        // TODO WARNING
+        DLOG(INFO) << __func__ << ": no message in queue " << this;
         return;
     }
     Process(message);

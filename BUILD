@@ -8,5 +8,8 @@ cc_library (
     copts = [
         "-Werror",
         "-Wall",
-    ]
+    ],
+    deps = [
+        "@com_github_google_glog//:glog",
+    ],
 )

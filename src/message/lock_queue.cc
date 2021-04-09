@@ -1,5 +1,7 @@
 #include "message/lock_queue.h"
 
+#include <glog/logging.h>
+
 namespace cris::core {
 
 size_t CRMessageLockQueue::Size() {
@@ -27,7 +29,10 @@ void CRMessageLockQueue::AddMessage(std::shared_ptr<CRMessageBase> &&message) {
     if (mSize < mCapacity) {
         ++mSize;
     } else {
-        // TODO: WARNING buffer full
+        LOG(WARNING) << __func__
+                     << ": message buffer is full, evicting the earliest message. "
+                        "Queue: "
+                     << this << ", buffer capacity: " << mCapacity;
         mSize  = mCapacity;
         mBegin = mEnd;
     }

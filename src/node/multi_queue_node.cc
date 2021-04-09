@@ -1,5 +1,7 @@
 #include "node/multi_queue_node.h"
 
+#include <glog/logging.h>
+
 namespace cris::core {
 
 CRMessageQueue *CRMultiQueueNode::MessageQueueMapper(const CRMessageBasePtr &message) {
@@ -15,8 +17,8 @@ void CRMultiQueueNode::SubscribeHandler(std::string &&message_name,
     auto insert = mQueues.emplace(
         message_name, std::make_unique<queue_t>(mQueueCapacity, this, std::move(callback)));
     if (!insert.second) {
-        // Insertion failure, topic subscribed
-        // TODO WARNING
+        LOG(ERROR) << __func__ << ": message '" << message_name
+                   << "' is subscribed. The new callback is ignored. Node: " << this;
     }
 }
 

@@ -1,3 +1,5 @@
+#include <glog/logging.h>
+
 #include <map>
 
 #include "message/base.h"
@@ -19,7 +21,8 @@ void CRMessageBase::Dispatch(const CRMessageBasePtr& message) {
     for (auto&& node : *subscription_list) {
         auto* queue = node->MessageQueueMapper(message);
         if (!queue) {
-            // TODO WARNING
+            LOG(ERROR) << __func__ << ": node: " << node << ", no queue for message "
+                       << message->GetMessageTypeName() << ", skipping";
             continue;
         }
         queue->AddMessage(CRMessageBasePtr(message));
@@ -34,14 +37,15 @@ void CRMessageBase::Subscribe(const std::string& message_type, CRNodeBase* node)
 void CRMessageBase::Unsubscribe(const std::string& message_type, CRNodeBase* node) {
     auto subscription_map_search = impl::subscription_map.find(message_type);
     if (subscription_map_search == impl::subscription_map.end()) {
-        // TODO WARNING: not subscribed
+        LOG(WARNING) << __func__ << ": message '" << message_type << "' is unknown.";
         return;
     }
     auto& subscription_list = subscription_map_search->second;
     auto  subscription_list_search =
         std::find(subscription_list.begin(), subscription_list.end(), node);
     if (subscription_list_search == subscription_list.end()) {
-        // TODO WARNING: not subscribed
+        LOG(WARNING) << __func__ << ": message '" << message_type << "' is not subscribed by node "
+                     << node;
         return;
     }
     std::swap(*subscription_list_search, subscription_list.back());
