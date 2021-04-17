@@ -22,6 +22,10 @@ class CRNodeBase {
 
     virtual ~CRNodeBase();
 
+    virtual void MainLoop(const size_t thread_idx, const size_t thread_num) {}
+
+    virtual void StopMainLoop() {}
+
     template<class duration_t>
     void WaitForMessage(duration_t &&timeout);
 
@@ -48,7 +52,7 @@ class CRNodeBase {
 
     virtual std::vector<CRMessageQueue *> GetNodeQueues() = 0;
 
-    friend class CRNodeRunner;
+    friend class CRNodeRunnerBase;
 
     std::vector<std::string> mSubscribed{};
     std::mutex               mWaitMessageMutex{};
