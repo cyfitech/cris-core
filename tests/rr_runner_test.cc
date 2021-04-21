@@ -19,7 +19,7 @@ class CRSingleQueueNodeForTest : public CRSingleQueueNode {
               std::bind(&CRSingleQueueNodeForTest::QueueProcessor, this, std::placeholders::_1))
         , mMainLoopisRun(kMainThreadNum, 0) {}
 
-    void MainLoop(const size_t thread_idx, const size_t thread_num) {
+    void MainLoop(const size_t thread_idx, const size_t thread_num) override {
         mMainLoopisRun[thread_idx] = true;
     }
 
