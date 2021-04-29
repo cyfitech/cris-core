@@ -327,7 +327,6 @@ void TimerSession::EndSession() {
     }
     mIsEnded      = true;
     auto duration = GetSystemTimestampNsec() - mStartedTimestamp;
-    (void)duration;
     TimerStatCollector::GetTimerStatsCollector()->Report(mCollectorIndex, duration);
 }
 
