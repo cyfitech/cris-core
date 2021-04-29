@@ -1,3 +1,5 @@
+#ifndef ENABLE_PROFILING
+
 #include <glog/logging.h>
 
 #include <mutex>
@@ -6,10 +8,8 @@
 
 namespace cris::core {
 
-#ifndef ENABLE_PROFILING
-
 TimerSection *TimerSection::GetMainSection() {
-    static TimerSection main_section("main", collector_index_count.fetch_add(1), {});
+    static TimerSection main_section("main", 0, {});
     return &main_section;
 }
 
@@ -39,6 +39,6 @@ TimerSection *TimerSection::SubSection(const std::string &name) {
 void TimerSection::ReportDurationNsec(cr_timestamp_nsec_t duration) {
 }
 
-#endif
-
 }  // namespace cris::core
+
+#endif
