@@ -17,20 +17,22 @@ class TimerReport {
    public:
     TimerReport() = default;
 
-    TimerReport(const std::string& name, uint64_t hits, cr_timestamp_nsec_t total_duration);
-
     void AddSubsection(std::unique_ptr<TimerReport>&& subsection);
 
     std::string GetSectionName() const;
 
     uint64_t GetHits() const;
 
+    double GetFreq() const;
+
     cr_dutration_nsec_t GetAverageDurationNsec() const;
 
-   private:
+    void PrintToLog(int indent_level = 0) const;
+
     std::string                                         mSectionName;
     uint64_t                                            mHits;
-    cr_dutration_nsec_t                                 mTotalDuration;
+    cr_dutration_nsec_t                                 mSessionDurationSum;
+    cr_dutration_nsec_t                                 mTimingDuration;
     std::map<std::string, std::unique_ptr<TimerReport>> mSubsections;
 };
 
@@ -76,16 +78,21 @@ class TimerSection {
 
     static TimerSection* GetMainSection();
 
+    // When profiling, some of the stats may be cached in a separate data structure
+    // to increase performance. This call flush those data so that they appear on the
+    // report.
+    static void FlushCollectedStats();
+
    private:
     std::string                                          mName;
-    size_t                                               mCollectorIndex;
+    [[maybe_unused]] size_t                              mCollectorIndex;
     std::map<std::string, std::unique_ptr<TimerSection>> mSubsections;
 
     static std::atomic<size_t> collector_index_count;
 };
 
 template<class duration_t>
-void ReportDuration(duration_t&& duration) {
+void TimerSection::ReportDuration(duration_t&& duration) {
     ReportDurationNsec(
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::forward<duration_t>(duration))
             .count());
