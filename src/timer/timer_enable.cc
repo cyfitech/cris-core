@@ -126,12 +126,18 @@ void TimerStatCollector::RotateCollector() {
     } while (
         !current_collector_id.compare_exchange_strong(expect_current_rotater_id, next_rotater_id));
 
-    next_rotater_id = (expect_current_rotater_id + 1) % kRotatingCollectorNum;
+    // After exiting the while loop, next_rotater_id become the current, and
+    // expect_current_rotater_id is the previous collector
+
+    auto previous_rotater_id  = expect_current_rotater_id;
+    expect_current_rotater_id = next_rotater_id;
+    next_rotater_id           = (next_rotater_id + 1) % kRotatingCollectorNum;
+
     rotating_collectors[next_rotater_id].Clear();
 
     // Make sure the data reported to the last collector are arrived
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    TimerStatTotal::GetTimerStatsTotal()->Merge(rotating_collectors[expect_current_rotater_id]);
+    TimerStatTotal::GetTimerStatsTotal()->Merge(rotating_collectors[previous_rotater_id]);
 }
 
 void TimerStatCollector::Report(size_t index, cr_dutration_nsec_t duration) {
