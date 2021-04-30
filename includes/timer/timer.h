@@ -65,7 +65,7 @@ class TimerSection {
     TimerSection(TimerSection&&)      = default;
     TimerSection& operator=(const TimerSection&) = delete;
 
-    TimerSession StartTimerSession();
+    [[nodiscard]] TimerSession StartTimerSession();
 
     std::unique_ptr<TimerReport> GetReport(bool recursive = true);
 
