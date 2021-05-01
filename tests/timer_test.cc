@@ -69,6 +69,9 @@ TEST(TimerTest, Basic) {
     EXPECT_EQ(report3->GetAverageDurationNsec(),
               std::chrono::duration_cast<std::chrono::nanoseconds>(kTestSessionDuration).count());
 #endif  // ENABLE_PROFILING
+
+    TimerSection::FlushCollectedStats();
+    TimerSection::GetMainSection()->GetReport()->PrintToLog();
 }
 
 }  // namespace cris::core

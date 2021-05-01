@@ -227,8 +227,6 @@ TimerStatRotater::~TimerStatRotater() {
     if (mThread.joinable()) {
         mThread.join();
     }
-    auto report = TimerSection::GetMainSection()->GetReport();
-    report->PrintToLog();
 }
 
 void TimerStatRotater::RotateWorker() {
@@ -237,10 +235,10 @@ void TimerStatRotater::RotateWorker() {
         std::unique_lock lock(mutex);
         auto             is_shutdown =
             mShutdownCV.wait_for(lock, kRotatePeriod, [this]() { return mShutdownFlag.load(); });
-        TimerSection::FlushCollectedStats();
         if (is_shutdown) {
             break;
         }
+        TimerSection::FlushCollectedStats();
     }
 }
 
