@@ -53,3 +53,13 @@ cc_test (
     ],
     linkopts = cc_test_sanitizers,
 )
+
+cc_test (
+    name = "timer_test",
+    srcs = ["timer_test.cc"],
+    deps = [
+        "//:corelib",
+        "@gtest//:gtest_main",
+    ],
+    linkopts = cc_test_sanitizers,
+)

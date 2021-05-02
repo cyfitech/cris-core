@@ -1,6 +1,9 @@
 build -c opt
+build --copt="-Wall"
+build --copt="-Werror"
 build --copt="-g3"
 build --cxxopt="-g3"
 build --cxxopt="-std=gnu++20"
 
 test -c dbg
+# test --cxxopt="-DENABLE_PROFILING"
