@@ -72,6 +72,7 @@ class TimerStatTotal {
 
     std::shared_lock<std::shared_mutex> LockForRead();
 
+    // call with LockForRead
     std::unique_ptr<TimerReport> GetReport(const std::string &section_name,
                                            size_t             entry_index) const;
 
