@@ -307,7 +307,13 @@ TimerSession::~TimerSession() {
 
 TimerSection *TimerSection::GetMainSection() {
     static TimerSection main_section("main", collector_index_count.fetch_add(1), {});
+
+    // Launching rotating before starting profiling
     static TimerStatRotater rotater;
+
+    // Initializing stat total to record the start time of profiling.
+    [[maybe_unused]] static TimerStatTotal *total = TimerStatTotal::GetTimerStatsTotal();
+
     return &main_section;
 }
 
