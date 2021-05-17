@@ -10,4 +10,12 @@ cr_timestamp_nsec_t GetSystemTimestampNsec() {
         duration_cast<nanoseconds>(steady_clock::now().time_since_epoch()).count());
 }
 
+cr_timestamp_nsec_t GetUnixTimestampNsec() {
+    using std::chrono::duration_cast;
+    using std::chrono::nanoseconds;
+    using std::chrono::system_clock;
+    return static_cast<cr_timestamp_nsec_t>(
+        duration_cast<nanoseconds>(system_clock::now().time_since_epoch()).count());
+}
+
 }  // namespace cris::core
