@@ -4,6 +4,7 @@
 
 #include <cstring>
 #include <functional>
+#include <iomanip>
 #include <mutex>
 #include <shared_mutex>
 #include <thread>
@@ -280,11 +281,11 @@ void TimerReport::PrintToLog(int indent_level) const {
     if (GetHits() > 0) {
         LOG(INFO) << indent << "    hits    : " << GetHits() << " times, freq: " << GetFreq()
                   << " Hz";
-        LOG(INFO) << indent << "    avg time: "
-                  << duration_cast<duration<double, std::milli>>(
+        LOG(INFO) << indent << "    avg time: " << std::fixed << std::setprecision(3)
+                  << duration_cast<duration<double, std::micro>>(
                          nanoseconds(GetAverageDurationNsec()))
                          .count()
-                  << " ms";
+                  << " us";
         LOG(INFO);
     }
     if (!mSubsections.empty()) {
