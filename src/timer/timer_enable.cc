@@ -277,20 +277,20 @@ void TimerReport::PrintToLog(int indent_level) const {
     using std::chrono::duration_cast;
     using std::chrono::nanoseconds;
     const std::string indent(4 * indent_level, ' ');
-    LOG(INFO) << indent << "Section '" << GetSectionName() << "':";
+    LOG(WARNING) << indent << "Section '" << GetSectionName() << "':";
     if (GetHits() > 0) {
-        LOG(INFO) << indent << "    hits    : " << GetHits() << " times, freq: " << GetFreq()
-                  << " Hz";
-        LOG(INFO) << indent << "    avg time: " << std::fixed << std::setprecision(3)
-                  << duration_cast<duration<double, std::micro>>(
-                         nanoseconds(GetAverageDurationNsec()))
-                         .count()
-                  << " us";
-        LOG(INFO);
+        LOG(WARNING) << indent << "    hits    : " << GetHits() << " times, freq: " << GetFreq()
+                     << " Hz";
+        LOG(WARNING) << indent << "    avg time: " << std::fixed << std::setprecision(3)
+                     << duration_cast<duration<double, std::micro>>(
+                            nanoseconds(GetAverageDurationNsec()))
+                            .count()
+                     << " us";
+        LOG(WARNING);
     }
     if (!mSubsections.empty()) {
-        LOG(INFO) << indent << "Subsections:";
-        LOG(INFO);
+        LOG(WARNING) << indent << "Subsections:";
+        LOG(WARNING);
         for (auto &&subsection : mSubsections) {
             subsection.second->PrintToLog(indent_level + 1);
         }
