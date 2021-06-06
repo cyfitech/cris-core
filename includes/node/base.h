@@ -26,6 +26,8 @@ class CRNodeBase {
 
     virtual void StopMainLoop() {}
 
+    virtual std::string GetName() const { return "noname"; }
+
     template<class duration_t>
     void WaitForMessage(duration_t &&timeout);
 

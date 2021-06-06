@@ -12,6 +12,9 @@ CRMultiThreadNodeRunner::CRMultiThreadNodeRunner(CRNodeBase* node, size_t thread
     : CRNodeRunnerBase()
     , mNode(node)
     , mThreadNum(thread_num) {
+    LOG(INFO) << __func__ << ": " << this << " initialized for " << mNode->GetName() << "(" << mNode
+              << "), "
+              << "thread number: " << mThreadNum;
 }
 
 CRMultiThreadNodeRunner::~CRMultiThreadNodeRunner() {
@@ -40,6 +43,9 @@ void CRMultiThreadNodeRunner::Run() {
         return;
     }
     mIsRunning = true;
+
+    LOG(INFO) << __func__ << ": runner " << this << " start running.";
+
     PrepareToRun();
     for (size_t i = 0; i < mThreadNum; ++i) {
         mWorkerThreads.emplace_back(GetWorker(i, mThreadNum));
@@ -54,6 +60,8 @@ void CRMultiThreadNodeRunner::Stop() {
     }
     mIsRunning = false;
     NotifyWorkersToStop();
+
+    LOG(INFO) << __func__ << ": runner " << this << " about to stop.";
 }
 
 void CRMultiThreadNodeRunner::Join() {

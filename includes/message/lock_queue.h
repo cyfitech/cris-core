@@ -8,11 +8,7 @@ namespace cris::core {
 
 class CRMessageLockQueue : public CRMessageQueue {
    public:
-    CRMessageLockQueue(size_t capacity, CRNodeBase *node, message_processor_t &&processor)
-        : CRMessageQueue(node, std::move(processor))
-        , mCapacity(capacity) {
-        mBuffer.resize(mCapacity, nullptr);
-    }
+    CRMessageLockQueue(size_t capacity, CRNodeBase *node, message_processor_t &&processor);
 
     void AddMessage(std::shared_ptr<CRMessageBase> &&message) override;
 

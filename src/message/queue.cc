@@ -2,7 +2,17 @@
 
 #include <glog/logging.h>
 
+#include "cris/core/node/base.h"
+
 namespace cris::core {
+
+CRMessageQueue::CRMessageQueue(CRNodeBase *node, message_processor_t &&processor)
+    : mNode(node)
+    , mProcessor(std::move(processor)) {
+    auto node_name = mNode ? mNode->GetName() : "null";
+    LOG(INFO) << __func__ << ": " << this << " initialized for node " << node_name << "(" << mNode
+              << ")";
+}
 
 void CRMessageQueue::Process(const CRMessageBasePtr &message) {
     mProcessor(message);

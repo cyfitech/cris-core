@@ -9,6 +9,10 @@ class CRMessageManager : public CRSingleQueueNode {
     CRMessageManager(size_t queue_capacity)
         : CRSingleQueueNode(queue_capacity, &CRMessageBase::Dispatch) {}
 
+    std::string GetName() const override {
+        return GetTypeName<std::remove_cvref_t<decltype(*this)>>();
+    }
+
    private:
     void SubscribeHandler(std::string &&                                  message_name,
                           std::function<void(const CRMessageBasePtr &)> &&callback) override;
