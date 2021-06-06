@@ -16,7 +16,7 @@ class CRMessageManager : public CRSingleQueueNode {
 
 CRNodeBase *CRNodeBase::GetMessageManager() {
     // TODO: make them configurable
-    static const size_t kMessageManagerQueueCapacity = 1024;
+    static const size_t kMessageManagerQueueCapacity = 8192;
 
     static CRMessageManager manager(kMessageManagerQueueCapacity);
     return &manager;
