@@ -17,6 +17,14 @@ cr_timestamp_nsec_t GetSystemTimestampNsec();
 // real-world timestamp
 cr_timestamp_nsec_t GetUnixTimestampNsec();
 
+// Clang has the unused check for private field,
+// while GCC does not allow [[maybe_unused]] attribute on private fields
+#ifdef __clang__
+#define PRIVATE_MAYBE_UNUSED [[maybe_unused]]
+#else
+#define PRIVATE_MAYBE_UNUSED
+#endif
+
 class TimerReport {
    public:
     TimerReport() = default;
@@ -51,9 +59,9 @@ class TimerSession {
     void EndSession();
 
    private:
-    [[maybe_unused]] bool                mIsEnded{false};
-    [[maybe_unused]] cr_timestamp_nsec_t mStartedTimestamp;
-    [[maybe_unused]] size_t              mCollectorIndex;
+    PRIVATE_MAYBE_UNUSED bool                mIsEnded{false};
+    PRIVATE_MAYBE_UNUSED cr_timestamp_nsec_t mStartedTimestamp;
+    PRIVATE_MAYBE_UNUSED size_t              mCollectorIndex;
 };
 
 class TimerSection {
@@ -89,11 +97,13 @@ class TimerSection {
 
    private:
     std::string                                          mName;
-    [[maybe_unused]] size_t                              mCollectorIndex;
+    PRIVATE_MAYBE_UNUSED size_t                          mCollectorIndex;
     std::map<std::string, std::unique_ptr<TimerSection>> mSubsections;
 
     static std::atomic<size_t> collector_index_count;
 };
+
+#undef PRIVATE_MAYBE_UNUSED
 
 template<class duration_t>
 void TimerSection::ReportDuration(duration_t&& duration) {
