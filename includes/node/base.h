@@ -36,7 +36,7 @@ class CRNodeBase {
     // Not thread-safe, do not call concurrently nor call it
     // when messages are coming, nor call it after Node Runner
     // is Running
-    template<CRMessageType message_t, CRMessageCallbackType callback_t>
+    template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
     void Subscribe(callback_t &&callback);
 
     void Publish(CRMessageBasePtr &&message);
@@ -67,7 +67,7 @@ void CRNodeBase::WaitForMessage(duration_t &&timeout) {
     mWaitMessageCV.wait_for(lock, timeout);
 }
 
-template<CRMessageType message_t, CRMessageCallbackType callback_t>
+template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
 void CRNodeBase::Subscribe(callback_t &&callback) {
     return SubscribeImpl(
         CRMessageBase::GetMessageTypeName<message_t>(),

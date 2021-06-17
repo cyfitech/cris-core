@@ -71,10 +71,14 @@ TEST(NodeTest, MultiQueueNode) {
     constexpr size_t              kNumOfTopics = 4;
     std::array<int, kNumOfTopics> received{0};
 
-    node.Subscribe<TestMessage<0>>([&received](const CRMessageBasePtr &) { ++received[0]; });
-    node.Subscribe<TestMessage<1>>([&received](const CRMessageBasePtr &) { ++received[1]; });
-    node.Subscribe<TestMessage<2>>([&received](const CRMessageBasePtr &) { ++received[2]; });
-    node.Subscribe<TestMessage<3>>([&received](const CRMessageBasePtr &) { ++received[3]; });
+    node.Subscribe<TestMessage<0>>(
+        [&received](const std::shared_ptr<TestMessage<0>> &) { ++received[0]; });
+    node.Subscribe<TestMessage<1>>(
+        [&received](const std::shared_ptr<TestMessage<1>> &) { ++received[1]; });
+    node.Subscribe<TestMessage<2>>(
+        [&received](const std::shared_ptr<TestMessage<2>> &) { ++received[2]; });
+    node.Subscribe<TestMessage<3>>(
+        [&received](const std::shared_ptr<TestMessage<3>> &) { ++received[3]; });
 
     {
         constexpr int message_type_idx = 0;

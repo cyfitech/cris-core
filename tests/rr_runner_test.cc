@@ -68,8 +68,8 @@ class RRRunnerTest : public testing::Test {
     };
 
     template<int idx>
-    static void MessageProcessorForTest(const CRMessageBasePtr& message) {
-        reinterpret_cast<MessageForTest<idx>*>(message.get())->Process();
+    static void MessageProcessorForTest(const std::shared_ptr<MessageForTest<idx>>& message) {
+        message->Process();
     }
 
     void TestImpl(CRNodeBase* node, CRNodeRunnerBase* node_runner);
