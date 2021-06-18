@@ -4,11 +4,11 @@
 #include <memory>
 
 #include "cris/core/message/lock_queue.h"
-#include "cris/core/node/base.h"
+#include "cris/core/node/node.h"
 
 namespace cris::core {
 
-class CRMultiQueueNodeBase : public CRNodeBase {
+class CRMultiQueueNodeBase : public CRNode {
    public:
     explicit CRMultiQueueNodeBase(size_t queue_capacity) : mQueueCapacity(queue_capacity) {}
 

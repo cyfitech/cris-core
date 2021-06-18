@@ -6,7 +6,7 @@
 
 namespace cris::core {
 
-class TrivialNodeForTest : public CRNodeBase {
+class TrivialNodeForTest : public CRNode {
     CRMessageQueue *MessageQueueMapper(const CRMessageBasePtr &message) override { return nullptr; }
 
    private:

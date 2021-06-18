@@ -4,12 +4,12 @@
 #include <memory>
 
 #include "cris/core/message/lock_queue.h"
-#include "cris/core/node/base.h"
+#include "cris/core/node/node.h"
 
 namespace cris::core {
 
 template<CRMessageQueueType queue_t = CRMessageLockQueue>
-class CRSingleQueueNode : public CRNodeBase {
+class CRSingleQueueNode : public CRNode {
    public:
     CRSingleQueueNode(size_t                                          queue_capacity,
                       std::function<void(const CRMessageBasePtr &)> &&callback)

@@ -51,7 +51,7 @@ class CRMessageBase {
 
     static const subscription_list_t* GetSubscriptionList(const std::string& message_type);
 
-    friend class CRNodeBase;
+    friend class CRNode;
 };
 
 using CRMessageBasePtr = std::shared_ptr<CRMessageBase>;

@@ -1,8 +1,6 @@
 #pragma once
 
 #include <chrono>
-#include <condition_variable>
-#include <mutex>
 
 #include "cris/core/message/queue.h"
 
@@ -20,7 +18,7 @@ class CRNodeBase {
 
     CRNodeBase &operator=(const CRNodeBase &) = delete;
 
-    virtual ~CRNodeBase();
+    virtual ~CRNodeBase() = default;
 
     virtual void MainLoop(const size_t thread_idx, const size_t thread_num) {}
 
@@ -31,7 +29,7 @@ class CRNodeBase {
     template<class duration_t>
     void WaitForMessage(duration_t &&timeout);
 
-    void Kick();
+    virtual void Kick() = 0;
 
     // Not thread-safe, do not call concurrently nor call it
     // when messages are coming, nor call it after Node Runner
@@ -45,9 +43,11 @@ class CRNodeBase {
 
     static CRNodeBase *GetMessageManager();
 
-   private:
-    void SubscribeImpl(std::string &&                                  message_name,
-                       std::function<void(const CRMessageBasePtr &)> &&callback);
+   protected:
+    virtual void WaitForMessageImpl(std::chrono::nanoseconds timeout) = 0;
+
+    virtual void SubscribeImpl(std::string &&                                  message_name,
+                               std::function<void(const CRMessageBasePtr &)> &&callback) = 0;
 
     virtual void SubscribeHandler(std::string &&                                  message_name,
                                   std::function<void(const CRMessageBasePtr &)> &&callback) = 0;
@@ -55,16 +55,12 @@ class CRNodeBase {
     virtual std::vector<CRMessageQueue *> GetNodeQueues() = 0;
 
     friend class CRNodeRunnerBase;
-
-    std::vector<std::string> mSubscribed{};
-    std::mutex               mWaitMessageMutex{};
-    std::condition_variable  mWaitMessageCV{};
 };
 
 template<class duration_t>
 void CRNodeBase::WaitForMessage(duration_t &&timeout) {
-    std::unique_lock<std::mutex> lock(mWaitMessageMutex);
-    mWaitMessageCV.wait_for(lock, timeout);
+    return WaitForMessageImpl(
+        std::chrono::duration_cast<std::chrono::nanoseconds>(std::forward<duration_t>(timeout)));
 }
 
 template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
