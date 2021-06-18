@@ -67,7 +67,7 @@ template<int idx>
 struct TestMessage : public CRMessage<TestMessage<idx>> {};
 
 TEST(NodeTest, MultiQueueNode) {
-    CRMultiQueueNode              node(1);
+    CRMultiQueueNode<>            node(1);
     constexpr size_t              kNumOfTopics = 4;
     std::array<int, kNumOfTopics> received{0};
 

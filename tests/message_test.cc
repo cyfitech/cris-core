@@ -10,9 +10,9 @@ struct TestMessageType1 : public CRMessage<TestMessageType1> {
     int mValue;
 };
 
-struct SimpleTestNode : public CRSingleQueueNode {
+struct SimpleTestNode : public CRSingleQueueNode<> {
     explicit SimpleTestNode(size_t queue_capacity)
-        : CRSingleQueueNode(
+        : CRSingleQueueNode<>(
               queue_capacity,
               std::bind(&SimpleTestNode::QueueCallback, this, std::placeholders::_1)) {}
 

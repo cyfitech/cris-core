@@ -11,10 +11,10 @@ static constexpr size_t kMessageTypeNum = 7;
 static constexpr size_t kMessageNum     = 100;
 static constexpr size_t kMainThreadNum  = 4;
 
-class CRSingleQueueNodeForTest : public CRSingleQueueNode {
+class CRSingleQueueNodeForTest : public CRSingleQueueNode<> {
    public:
     CRSingleQueueNodeForTest()
-        : CRSingleQueueNode(
+        : CRSingleQueueNode<>(
               kMessageTypeNum * kMessageNum,
               std::bind(&CRSingleQueueNodeForTest::QueueProcessor, this, std::placeholders::_1))
         , mMainLoopisRun(kMainThreadNum, 0) {}
@@ -39,9 +39,11 @@ class CRSingleQueueNodeForTest : public CRSingleQueueNode {
     std::map<std::string, std::function<void(const CRMessageBasePtr&)>> mSubscriptions;
 };
 
-class CRMultiQueueNodeForTest : public CRMultiQueueNode {
+class CRMultiQueueNodeForTest : public CRMultiQueueNode<> {
    public:
-    CRMultiQueueNodeForTest() : CRMultiQueueNode(kMessageNum), mMainLoopisRun(kMainThreadNum, 0) {}
+    CRMultiQueueNodeForTest()
+        : CRMultiQueueNode<>(kMessageNum)
+        , mMainLoopisRun(kMainThreadNum, 0) {}
 
     void MainLoop(const size_t thread_idx, const size_t thread_num) {
         mMainLoopisRun[thread_idx] = true;

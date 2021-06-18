@@ -39,4 +39,7 @@ class CRMessageQueue {
     std::function<void(const CRMessageBasePtr &)> mProcessor;
 };
 
+template<class queue_t>
+concept CRMessageQueueType = std::is_base_of_v<CRMessageQueue, queue_t>;
+
 }  // namespace cris::core
