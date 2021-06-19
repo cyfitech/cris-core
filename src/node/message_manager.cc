@@ -1,17 +1,15 @@
 #include <thread>
 
+#include "cris/core/node/named_node.h"
 #include "cris/core/node/single_queue_node.h"
 
 namespace cris::core {
 
-class CRMessageManager : public CRSingleQueueNode<> {
+class CRMessageManager : public CRNamedNode<CRMessageManager, CRSingleQueueNode<>> {
    public:
     CRMessageManager(size_t queue_capacity)
-        : CRSingleQueueNode<>(queue_capacity, &CRMessageBase::Dispatch) {}
-
-    std::string GetName() const override {
-        return GetTypeName<std::remove_cvref_t<decltype(*this)>>();
-    }
+        : CRNamedNode<CRMessageManager, CRSingleQueueNode<>>(queue_capacity,
+                                                             &CRMessageBase::Dispatch) {}
 
    private:
     void SubscribeHandler(std::string &&                                  message_name,

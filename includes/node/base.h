@@ -57,6 +57,9 @@ class CRNodeBase {
     friend class CRNodeRunnerBase;
 };
 
+template<class node_t>
+concept CRNodeType = std::is_base_of_v<CRNodeBase, node_t>;
+
 template<class duration_t>
 void CRNodeBase::WaitForMessage(duration_t &&timeout) {
     return WaitForMessageImpl(
