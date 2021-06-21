@@ -55,23 +55,72 @@ TEST(TimerTest, Basic) {
 
 #ifdef ENABLE_PROFILING
     auto &report2 = report1->mSubsections[section2_name];
-    EXPECT_EQ(report1->GetHits(), 1);
+    EXPECT_EQ(report1->GetTotalHits(), 1);
     ExpectNear(
         report1->GetAverageDurationNsec(),
         kTestHits *
             std::chrono::duration_cast<std::chrono::nanoseconds>(kTestSessionDuration).count());
 
-    EXPECT_EQ(report2->GetHits(), kTestHits);
+    EXPECT_EQ(report2->GetTotalHits(), kTestHits);
     ExpectNear(report2->GetAverageDurationNsec(),
                std::chrono::duration_cast<std::chrono::nanoseconds>(kTestSessionDuration).count());
 
-    EXPECT_EQ(report3->GetHits(), 1);
+    EXPECT_EQ(report3->GetTotalHits(), 1);
     EXPECT_EQ(report3->GetAverageDurationNsec(),
               std::chrono::duration_cast<std::chrono::nanoseconds>(kTestSessionDuration).count());
 #endif  // ENABLE_PROFILING
 
     TimerSection::FlushCollectedStats();
     TimerSection::GetMainSection()->GetReport()->PrintToLog();
+}
+
+TEST(TimerTest, PercentileTest) {
+    auto *section = TimerSection::GetMainSection()->SubSection("pecentile test");
+    ASSERT_NE(section, nullptr);
+
+    {
+        auto report = section->GetReport();
+        EXPECT_EQ(report->GetPercentileDurationNsec(-10), 0);
+        EXPECT_EQ(report->GetPercentileDurationNsec(0), 0);
+        EXPECT_EQ(report->GetPercentileDurationNsec(10), 0);
+        EXPECT_EQ(report->GetPercentileDurationNsec(50), 0);
+        EXPECT_EQ(report->GetPercentileDurationNsec(100), 0);
+        EXPECT_EQ(report->GetPercentileDurationNsec(200), 0);
+    }
+
+    // TODO (chenhao.yalier@gmail.com): This part depends on the specific bucketizing setting,
+    // which is not great. Needs to find a setting-indepedent way to test
+    //
+    // Insert 3 records for first 10 duration buckets
+    for (size_t i = 0; i < 10; ++i) {
+        section->ReportDuration(std::chrono::microseconds(10 * (1 << i) - 1));
+        section->ReportDuration(std::chrono::microseconds(10 * (1 << i) - 2));
+        section->ReportDuration(std::chrono::microseconds(10 * (1 << i) - 3));
+    }
+    TimerSection::FlushCollectedStats();
+
+    {
+        auto report = section->GetReport();
+        EXPECT_EQ(report->GetPercentileDurationNsec(-10), 0);
+        EXPECT_EQ(report->GetPercentileDurationNsec(0), 0);
+#ifdef ENABLE_PROFILING
+        // TODO (chenhao.yalier@gmail.com): This part depends on the specific bucketizing setting,
+        // which is not great. Needs to find a setting-indepedent way to test
+        //
+        // Expected value will be the average of a specific bucket
+        EXPECT_EQ(report->GetPercentileDurationNsec(10), (10 * (1 << 0) - 2) * 1000);
+        EXPECT_EQ(report->GetPercentileDurationNsec(20), (10 * (1 << 1) - 2) * 1000);
+        EXPECT_EQ(report->GetPercentileDurationNsec(30), (10 * (1 << 2) - 2) * 1000);
+        EXPECT_EQ(report->GetPercentileDurationNsec(40), (10 * (1 << 3) - 2) * 1000);
+        EXPECT_EQ(report->GetPercentileDurationNsec(50), (10 * (1 << 4) - 2) * 1000);
+        EXPECT_EQ(report->GetPercentileDurationNsec(60), (10 * (1 << 5) - 2) * 1000);
+        EXPECT_EQ(report->GetPercentileDurationNsec(70), (10 * (1 << 6) - 2) * 1000);
+        EXPECT_EQ(report->GetPercentileDurationNsec(80), (10 * (1 << 7) - 2) * 1000);
+        EXPECT_EQ(report->GetPercentileDurationNsec(90), (10 * (1 << 8) - 2) * 1000);
+        EXPECT_EQ(report->GetPercentileDurationNsec(100), (10 * (1 << 9) - 2) * 1000);
+#endif  // ENABLE_PROFILING
+        EXPECT_EQ(report->GetPercentileDurationNsec(200), report->GetPercentileDurationNsec(100));
+    }
 }
 
 }  // namespace cris::core

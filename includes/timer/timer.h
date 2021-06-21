@@ -5,6 +5,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace cris::core {
 
@@ -33,18 +34,24 @@ class TimerReport {
 
     std::string GetSectionName() const;
 
-    uint64_t GetHits() const;
+    uint64_t GetTotalHits() const;
 
     double GetFreq() const;
 
     cr_dutration_nsec_t GetAverageDurationNsec() const;
 
+    cr_dutration_nsec_t GetPercentileDurationNsec(int percent) const;
+
     void PrintToLog(int indent_level = 0) const;
 
+    struct TimerReportBucket {
+        uint64_t            mHits;
+        cr_dutration_nsec_t mSessionDurationSum;
+    };
+
     std::string                                         mSectionName;
-    uint64_t                                            mHits;
-    cr_dutration_nsec_t                                 mSessionDurationSum;
     cr_dutration_nsec_t                                 mTimingDuration;
+    std::vector<TimerReportBucket>                      mReportBuckets;
     std::map<std::string, std::unique_ptr<TimerReport>> mSubsections;
 };
 

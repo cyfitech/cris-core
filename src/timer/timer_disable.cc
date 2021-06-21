@@ -15,7 +15,7 @@ std::string TimerReport::GetSectionName() const {
     return "";
 }
 
-uint64_t TimerReport::GetHits() const {
+uint64_t TimerReport::GetTotalHits() const {
     return 0;
 }
 
@@ -24,6 +24,10 @@ double TimerReport::GetFreq() const {
 }
 
 cr_dutration_nsec_t TimerReport::GetAverageDurationNsec() const {
+    return 0;
+}
+
+cr_dutration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
     return 0;
 }
 
