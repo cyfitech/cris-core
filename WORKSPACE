@@ -1,6 +1,7 @@
 workspace(name = "criscore")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
 http_archive(
     name = "com_github_gflags_gflags",
@@ -22,3 +23,21 @@ http_archive(
     strip_prefix = "googletest-release-1.10.0",
     urls = ["https://github.com/google/googletest/archive/release-1.10.0.zip"],
 )
+
+http_archive(
+    name = "libunwind",
+    sha256 = "90337653d92d4a13de590781371c604f9031cdb50520366aa1e3a91e1efb1017",
+    strip_prefix = "libunwind-1.5.0",
+    urls = ["http://download.savannah.nongnu.org/releases/libunwind/libunwind-1.5.0.tar.gz"],
+    build_file = "libunwind.BUILD",
+)
+
+git_repository(
+    name = "rules_foreign_cc",
+	remote = "https://github.com/bazelbuild/rules_foreign_cc",
+	branch = "0.4.0",
+)
+
+load("@rules_foreign_cc//foreign_cc:repositories.bzl", "rules_foreign_cc_dependencies")
+
+rules_foreign_cc_dependencies()
