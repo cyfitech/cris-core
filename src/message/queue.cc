@@ -20,7 +20,7 @@ void CRMessageQueue::Process(const CRMessageBasePtr &message) {
 
 void CRMessageQueue::PopAndProcess(bool only_latest) {
     auto message = PopMessage(only_latest);
-    if (!message) {
+    if (!message) [[unlikely]] {
         DLOG(INFO) << __func__ << ": no message in queue " << this;
         return;
     }

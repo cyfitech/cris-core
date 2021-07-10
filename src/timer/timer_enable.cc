@@ -349,11 +349,11 @@ cr_dutration_nsec_t TimerReport::GetAverageDurationNsec() const {
 }
 
 cr_dutration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
-    if (percent < 0) {
+    if (percent < 0) [[unlikely]] {
         LOG(ERROR) << __func__ << ": percent less than 0: " << percent;
         percent = 0;
     }
-    if (percent > 100) {
+    if (percent > 100) [[unlikely]] {
         LOG(ERROR) << __func__ << ": percent greater than 100: " << percent;
         percent = 100;
     }

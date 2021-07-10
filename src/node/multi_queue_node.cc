@@ -6,7 +6,7 @@ namespace cris::core {
 
 CRMessageQueue *CRMultiQueueNodeBase::MessageQueueMapper(const CRMessageBasePtr &message) {
     auto queue_search = mQueues.find(message->GetMessageTypeName());
-    if (queue_search == mQueues.end()) {
+    if (queue_search == mQueues.end()) [[unlikely]] {
         return nullptr;
     }
     return queue_search->second.get();

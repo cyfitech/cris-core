@@ -20,7 +20,7 @@ void CRMessageBase::Dispatch(const CRMessageBasePtr& message) {
     }
     for (auto&& node : *subscription_list) {
         auto* queue = node->MessageQueueMapper(message);
-        if (!queue) {
+        if (!queue) [[unlikely]] {
             LOG(ERROR) << __func__ << ": node: " << node << ", no queue for message "
                        << message->GetMessageTypeName() << ", skipping";
             continue;
@@ -55,7 +55,7 @@ void CRMessageBase::Unsubscribe(const std::string& message_type, CRNodeBase* nod
 const CRMessageBase::subscription_list_t* CRMessageBase::GetSubscriptionList(
     const std::string& message_type) {
     auto subscription_find = impl::subscription_map.find(message_type);
-    if (subscription_find == impl::subscription_map.end()) {
+    if (subscription_find == impl::subscription_map.end()) [[unlikely]] {
         return nullptr;
     }
     return &subscription_find->second;

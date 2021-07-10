@@ -35,7 +35,7 @@ void CRMessageLockQueue::AddMessage(std::shared_ptr<CRMessageBase> &&message) {
     if (mEnd >= mCapacity) {
         mEnd = 0;
     }
-    if (mSize < mCapacity) {
+    if (mSize < mCapacity) [[likely]] {
         ++mSize;
     } else {
         LOG(WARNING) << __func__
@@ -54,7 +54,7 @@ CRMessageBasePtr CRMessageLockQueue::PopMessage(bool only_latest) {
     size_t                      read_pos;
     std::lock_guard<std::mutex> lock(mMutex);
 
-    if (mSize == 0) {
+    if (mSize == 0) [[unlikely]] {
         return nullptr;
     }
 
