@@ -11,8 +11,10 @@ cc_library (
         "-Werror",
         "-Wall",
     ],
+    linkopts = [
+        "-lunwind",
+    ],
     deps = [
         "@com_github_google_glog//:glog",
-        "@libunwind//:libunwind",
     ],
 )
