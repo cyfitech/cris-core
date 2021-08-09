@@ -24,14 +24,6 @@ http_archive(
     urls = ["https://github.com/google/googletest/archive/release-1.10.0.zip"],
 )
 
-http_archive(
-    name = "libunwind",
-    sha256 = "90337653d92d4a13de590781371c604f9031cdb50520366aa1e3a91e1efb1017",
-    strip_prefix = "libunwind-1.5.0",
-    urls = ["http://download.savannah.nongnu.org/releases/libunwind/libunwind-1.5.0.tar.gz"],
-    build_file = "libunwind.BUILD",
-)
-
 git_repository(
     name = "rules_foreign_cc",
 	remote = "https://github.com/bazelbuild/rules_foreign_cc",

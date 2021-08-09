@@ -1,9 +1,14 @@
 build -c opt
 build --copt="-Wall"
 build --copt="-Werror"
+build --copt="-Wextra"
+build --copt="-Wno-unused-parameter"
 build --copt="-g3"
 build --cxxopt="-g3"
-build --cxxopt="-std=gnu++20"
+build --cxxopt="-std=c++20"
 
 test -c dbg
-# test --cxxopt="-DENABLE_PROFILING"
+test --cxxopt="-DENABLE_PROFILING"
+test --linkopt="-fsanitize=address"
+test --linkopt="-fsanitize=leak"
+test --linkopt="-fsanitize=undefined"
