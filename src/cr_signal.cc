@@ -1,4 +1,5 @@
 #include <glog/logging.h>
+#include <cinttypes>
 
 extern "C" {
 
