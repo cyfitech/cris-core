@@ -9,6 +9,7 @@ extern "C" {
 #include <signal.h>
 
 #include <atomic>
+#include <cinttypes>
 #include <cstdio>
 #include <cstring>
 #include <string>
