@@ -1,5 +1,4 @@
 #include <glog/logging.h>
-#include <cinttypes>
 
 extern "C" {
 
@@ -10,6 +9,7 @@ extern "C" {
 #include <signal.h>
 
 #include <atomic>
+#include <cinttypes>
 #include <cstdio>
 #include <cstring>
 #include <string>
