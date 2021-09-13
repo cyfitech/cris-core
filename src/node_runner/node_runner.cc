@@ -10,10 +10,10 @@ std::vector<CRMessageQueue*> CRNodeRunnerBase::GetNodeQueues() {
 
 CRMultiThreadNodeRunner::CRMultiThreadNodeRunner(CRNodeBase* node, size_t thread_num)
     : CRNodeRunnerBase()
-    , mNode(node)
-    , mThreadNum(thread_num) {
-    LOG(INFO) << __func__ << ": " << this << " initialized for " << mNode->GetName() << "(" << mNode << "), "
-              << "thread number: " << mThreadNum;
+    , node_(node)
+    , thread_num_(thread_num) {
+    LOG(INFO) << __func__ << ": " << this << " initialized for " << node_->GetName() << "(" << node_ << "), "
+              << "thread number: " << thread_num_;
 }
 
 CRMultiThreadNodeRunner::~CRMultiThreadNodeRunner() {
@@ -21,55 +21,55 @@ CRMultiThreadNodeRunner::~CRMultiThreadNodeRunner() {
 }
 
 CRNodeBase* CRMultiThreadNodeRunner::GetNode() const {
-    return mNode;
+    return node_;
 }
 
 size_t CRMultiThreadNodeRunner::GetThreadNum() const {
-    return mThreadNum;
+    return thread_num_;
 }
 
 void CRMultiThreadNodeRunner::Run() {
-    std::lock_guard<std::mutex>  state_lock(mRunStateMutex);
-    std::unique_lock<std::mutex> threads_lock(mRunThreadsMutex, std::try_to_lock);
+    std::lock_guard<std::mutex>  state_lock(run_state_mutex_);
+    std::unique_lock<std::mutex> threads_lock(run_threads_mutex_, std::try_to_lock);
     if (!threads_lock.owns_lock()) {
         LOG(ERROR) << __func__ << ": Failed to run, maybe others are running/joining. Runner: " << this;
         return;
     }
 
-    if (mIsRunning) {
+    if (is_running_) {
         LOG(WARNING) << __func__ << ": Runner " << this << " is currently running.";
         return;
     }
-    mIsRunning = true;
+    is_running_ = true;
 
     LOG(INFO) << __func__ << ": runner " << this << " start running.";
 
     PrepareToRun();
-    for (size_t i = 0; i < mThreadNum; ++i) {
-        mWorkerThreads.emplace_back(GetWorker(i, mThreadNum));
+    for (size_t i = 0; i < thread_num_; ++i) {
+        worker_threads_.emplace_back(GetWorker(i, thread_num_));
     }
 }
 
 void CRMultiThreadNodeRunner::Stop() {
-    std::lock_guard<std::mutex> lock(mRunStateMutex);
-    if (!mIsRunning) {
+    std::lock_guard<std::mutex> lock(run_state_mutex_);
+    if (!is_running_) {
         LOG(WARNING) << __func__ << ": Runner " << this << " is currently not running.";
         return;
     }
-    mIsRunning = false;
+    is_running_ = false;
     NotifyWorkersToStop();
 
     LOG(INFO) << __func__ << ": runner " << this << " about to stop.";
 }
 
 void CRMultiThreadNodeRunner::Join() {
-    std::lock_guard<std::mutex> lock(mRunThreadsMutex);
-    for (auto&& thread : mWorkerThreads) {
+    std::lock_guard<std::mutex> lock(run_threads_mutex_);
+    for (auto&& thread : worker_threads_) {
         if (thread.joinable()) {
             thread.join();
         }
     }
-    mWorkerThreads.clear();
+    worker_threads_.clear();
 }
 
 }  // namespace cris::core

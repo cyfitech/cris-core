@@ -40,8 +40,8 @@ TimerSection *TimerSection::GetMainSection() {
 }
 
 TimerSection::TimerSection(const std::string &name, size_t collector_index, CtorPermission)
-    : mName(name)
-    , mCollectorIndex(collector_index) {
+    : name_(name)
+    , collector_index_(collector_index) {
 }
 
 TimerSession::TimerSession(cr_timestamp_nsec_t, size_t) {

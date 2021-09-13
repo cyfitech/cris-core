@@ -5,9 +5,9 @@
 namespace cris::core {
 
 struct TestMessageType1 : public CRMessage<TestMessageType1> {
-    explicit TestMessageType1(int value) : mValue(value) {}
+    explicit TestMessageType1(int value) : value_(value) {}
 
-    int mValue;
+    int value_;
 };
 
 struct TestQueue {
@@ -18,10 +18,10 @@ struct TestQueue {
     virtual ~TestQueue() = default;
 
     void Processor(const CRMessageBasePtr &message) {
-        mLastValue = static_pointer_cast<TestMessageType1>(message)->mValue;
+        last_value_ = static_pointer_cast<TestMessageType1>(message)->value_;
     };
 
-    int mLastValue{kNoLastValue};
+    int last_value_{kNoLastValue};
 
     static constexpr size_t kQueueSize   = 10;
     static constexpr int    kNoLastValue = -1;
@@ -29,11 +29,11 @@ struct TestQueue {
 };
 
 struct TestLockQueue : public TestQueue {
-    TestLockQueue() : mQueue(kQueueSize, nullptr, std::bind(&TestQueue::Processor, this, std::placeholders::_1)) {}
+    TestLockQueue() : queue_(kQueueSize, nullptr, std::bind(&TestQueue::Processor, this, std::placeholders::_1)) {}
 
-    CRMessageQueue *GetQueue() override { return &mQueue; }
+    CRMessageQueue *GetQueue() override { return &queue_; }
 
-    CRMessageLockQueue mQueue;
+    CRMessageLockQueue queue_;
 };
 
 TEST(LockQueueTest, Basics) {
@@ -47,9 +47,9 @@ void TestQueue::Test() {
 
     // Empty pop and process
     GetQueue()->PopAndProcess(false);
-    EXPECT_EQ(mLastValue, kNoLastValue);
+    EXPECT_EQ(last_value_, kNoLastValue);
     GetQueue()->PopAndProcess(true);
-    EXPECT_EQ(mLastValue, kNoLastValue);
+    EXPECT_EQ(last_value_, kNoLastValue);
     EXPECT_TRUE(GetQueue()->IsEmpty());
     EXPECT_FALSE(GetQueue()->IsFull());
 
@@ -60,23 +60,23 @@ void TestQueue::Test() {
         EXPECT_FALSE(GetQueue()->IsEmpty());
         GetQueue()->PopAndProcess(false);
         EXPECT_TRUE(GetQueue()->IsEmpty());
-        EXPECT_EQ(mLastValue, i);
-        mLastValue = kNoLastValue;
+        EXPECT_EQ(last_value_, i);
+        last_value_ = kNoLastValue;
     }
     EXPECT_TRUE(GetQueue()->IsEmpty());
     GetQueue()->PopAndProcess(false);
-    EXPECT_EQ(mLastValue, kNoLastValue);
+    EXPECT_EQ(last_value_, kNoLastValue);
 
     // Add and then pop latest for each value
     for (size_t i = 0; i < kTestBatch; ++i) {
         GetQueue()->AddMessage(std::make_shared<TestMessageType1>(i));
         GetQueue()->PopAndProcess(true);
-        EXPECT_EQ(mLastValue, i);
-        mLastValue = kNoLastValue;
+        EXPECT_EQ(last_value_, i);
+        last_value_ = kNoLastValue;
     }
     EXPECT_TRUE(GetQueue()->IsEmpty());
     GetQueue()->PopAndProcess(true);
-    EXPECT_EQ(mLastValue, kNoLastValue);
+    EXPECT_EQ(last_value_, kNoLastValue);
 
     // Add all and then pop for each value
     for (size_t i = 0; i < kTestBatch; ++i) {
@@ -91,12 +91,12 @@ void TestQueue::Test() {
         GetQueue()->PopAndProcess(false);
         EXPECT_EQ(GetQueue()->Size(), kQueueSize - i - 1);
         EXPECT_FALSE(GetQueue()->IsFull());
-        EXPECT_EQ(mLastValue, kTestBatch - kQueueSize + i);
-        mLastValue = kNoLastValue;
+        EXPECT_EQ(last_value_, kTestBatch - kQueueSize + i);
+        last_value_ = kNoLastValue;
     }
     EXPECT_TRUE(GetQueue()->IsEmpty());
     GetQueue()->PopAndProcess(false);
-    EXPECT_EQ(mLastValue, kNoLastValue);
+    EXPECT_EQ(last_value_, kNoLastValue);
 
     // Add all and then pop the latest
     for (size_t i = 0; i < kTestBatch; ++i) {
@@ -108,10 +108,10 @@ void TestQueue::Test() {
     EXPECT_FALSE(GetQueue()->IsFull());
     EXPECT_TRUE(GetQueue()->IsEmpty());
     EXPECT_EQ(GetQueue()->Size(), 0);
-    EXPECT_EQ(mLastValue, kTestBatch - 1);
-    mLastValue = kNoLastValue;
+    EXPECT_EQ(last_value_, kTestBatch - 1);
+    last_value_ = kNoLastValue;
     GetQueue()->PopAndProcess(true);
-    EXPECT_EQ(mLastValue, kNoLastValue);
+    EXPECT_EQ(last_value_, kNoLastValue);
 }
 
 }  // namespace cris::core

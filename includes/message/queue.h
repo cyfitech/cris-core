@@ -35,8 +35,8 @@ class CRMessageQueue {
     virtual bool IsFull() = 0;
 
    protected:
-    CRNodeBase *                                  mNode;
-    std::function<void(const CRMessageBasePtr &)> mProcessor;
+    CRNodeBase *                                  node_;
+    std::function<void(const CRMessageBasePtr &)> processor_;
 };
 
 template<class queue_t>

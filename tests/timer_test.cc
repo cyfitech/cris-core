@@ -54,7 +54,7 @@ TEST(TimerTest, Basic) {
     auto report3 = section3->GetReport(false);
 
 #ifdef ENABLE_PROFILING
-    auto &report2 = report1->mSubsections[section2_name];
+    auto &report2 = report1->subsections_[section2_name];
     EXPECT_EQ(report1->GetTotalHits(), 1);
     ExpectNear(
         report1->GetAverageDurationNsec(),

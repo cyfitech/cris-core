@@ -6,70 +6,70 @@ namespace cris::core {
 
 CRMessageLockQueue::CRMessageLockQueue(size_t capacity, CRNodeBase *node, message_processor_t &&processor)
     : CRMessageQueue(node, std::move(processor))
-    , mCapacity(capacity) {
-    mBuffer.resize(mCapacity, nullptr);
+    , capacity_(capacity) {
+    buffer_.resize(capacity_, nullptr);
     LOG(INFO) << __func__ << ": " << this << " initialized. Capacity: " << capacity;
 }
 
 size_t CRMessageLockQueue::Size() {
-    std::lock_guard<std::mutex> lock(mMutex);
-    return mSize;
+    std::lock_guard<std::mutex> lock(mutex_);
+    return size_;
 }
 
 bool CRMessageLockQueue::IsEmpty() {
-    std::lock_guard<std::mutex> lock(mMutex);
-    return mSize == 0;
+    std::lock_guard<std::mutex> lock(mutex_);
+    return size_ == 0;
 }
 
 bool CRMessageLockQueue::IsFull() {
-    std::lock_guard<std::mutex> lock(mMutex);
-    return mSize >= mCapacity;
+    std::lock_guard<std::mutex> lock(mutex_);
+    return size_ >= capacity_;
 }
 
 void CRMessageLockQueue::AddMessage(std::shared_ptr<CRMessageBase> &&message) {
-    std::lock_guard<std::mutex> lock(mMutex);
-    size_t                      write_pos = mEnd;
-    ++mEnd;
-    if (mEnd >= mCapacity) {
-        mEnd = 0;
+    std::lock_guard<std::mutex> lock(mutex_);
+    size_t                      write_pos = end_;
+    ++end_;
+    if (end_ >= capacity_) {
+        end_ = 0;
     }
-    if (mSize < mCapacity) [[likely]] {
-        ++mSize;
+    if (size_ < capacity_) [[likely]] {
+        ++size_;
     } else {
         LOG(WARNING) << __func__
                      << ": message buffer is full, evicting the earliest message. "
                         "Queue: "
-                     << this << ", buffer capacity: " << mCapacity;
-        mSize  = mCapacity;
-        mBegin = mEnd;
+                     << this << ", buffer capacity: " << capacity_;
+        size_  = capacity_;
+        begin_ = end_;
     }
 
-    mBuffer[write_pos] = std::move(message);
+    buffer_[write_pos] = std::move(message);
 }
 
 CRMessageBasePtr CRMessageLockQueue::PopMessage(bool only_latest) {
     CRMessageBasePtr            message;
     size_t                      read_pos;
-    std::lock_guard<std::mutex> lock(mMutex);
+    std::lock_guard<std::mutex> lock(mutex_);
 
-    if (mSize == 0) [[unlikely]] {
+    if (size_ == 0) [[unlikely]] {
         return nullptr;
     }
 
     if (only_latest) {
-        read_pos = mEnd ? (mEnd - 1) : mCapacity;
-        mSize    = 0;
-        mBegin   = 0;
-        mEnd     = 0;
+        read_pos = end_ ? (end_ - 1) : capacity_;
+        size_    = 0;
+        begin_   = 0;
+        end_     = 0;
     } else {
-        read_pos = mBegin;
-        --mSize;
-        ++mBegin;
-        if (mBegin >= mCapacity) {
-            mBegin = 0;
+        read_pos = begin_;
+        --size_;
+        ++begin_;
+        if (begin_ >= capacity_) {
+            begin_ = 0;
         }
     }
-    message = std::move(mBuffer[read_pos]);
+    message = std::move(buffer_[read_pos]);
     return message;
 }
 

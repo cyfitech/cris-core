@@ -19,9 +19,9 @@ class CRNode : public CRNodeBase {
 
     void SubscribeImpl(std::string &&message_name, std::function<void(const CRMessageBasePtr &)> &&callback) override;
 
-    std::vector<std::string> mSubscribed{};
-    std::mutex               mWaitMessageMutex{};
-    std::condition_variable  mWaitMessageCV{};
+    std::vector<std::string> subscribed_{};
+    std::mutex               wait_message_mutex_{};
+    std::condition_variable  wait_message_cv_{};
 };
 
 }  // namespace cris::core

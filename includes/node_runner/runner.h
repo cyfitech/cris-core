@@ -54,12 +54,12 @@ class CRMultiThreadNodeRunner : public CRNodeRunnerBase {
     virtual void NotifyWorkersToStop() = 0;
 
    private:
-    CRNodeBase*              mNode;
-    size_t                   mThreadNum;
-    std::vector<std::thread> mWorkerThreads;
-    bool                     mIsRunning{false};
-    std::mutex               mRunStateMutex;
-    std::mutex               mRunThreadsMutex;
+    CRNodeBase*              node_;
+    size_t                   thread_num_;
+    std::vector<std::thread> worker_threads_;
+    bool                     is_running_{false};
+    std::mutex               run_state_mutex_;
+    std::mutex               run_threads_mutex_;
 };
 
 class CRNodeMainThreadRunner : public CRMultiThreadNodeRunner {
@@ -90,8 +90,8 @@ class CRNodeRoundRobinQueueProcessor : public CRMultiThreadNodeRunner {
    private:
     void WorkerLoop(const size_t thread_idx, const size_t thread_num);
 
-    std::vector<CRMessageQueue*> mNodeQueues;
-    std::atomic<bool>            mShutdownFlag{false};
+    std::vector<CRMessageQueue*> node_queues_;
+    std::atomic<bool>            shutdown_flag_{false};
 };
 
 template<class runner_t>
@@ -101,31 +101,31 @@ template<CRNodeRunnerType queue_processor_t, CRNodeRunnerType main_thread_runner
 class CRNodeRunner : public CRNodeRunnerBase {
    public:
     CRNodeRunner(CRNodeBase* node, size_t queue_processor_thread_num, size_t main_thread_num = 1, bool auto_run = false)
-        : mNode(node)
-        , mQueueProcessor(node, queue_processor_thread_num, auto_run)
-        , mMainThreadRunner(node, main_thread_num, auto_run) {}
+        : node_(node)
+        , queue_processor_(node, queue_processor_thread_num, auto_run)
+        , main_thread_runner_(node, main_thread_num, auto_run) {}
 
     void Run() override {
-        mQueueProcessor.Run();
-        mMainThreadRunner.Run();
+        queue_processor_.Run();
+        main_thread_runner_.Run();
     }
 
     void Stop() override {
-        mQueueProcessor.Stop();
-        mMainThreadRunner.Stop();
+        queue_processor_.Stop();
+        main_thread_runner_.Stop();
     }
 
     void Join() override {
-        mQueueProcessor.Join();
-        mMainThreadRunner.Join();
+        queue_processor_.Join();
+        main_thread_runner_.Join();
     }
 
-    CRNodeBase* GetNode() const override { return mNode; }
+    CRNodeBase* GetNode() const override { return node_; }
 
    private:
-    CRNodeBase*          mNode;
-    queue_processor_t    mQueueProcessor;
-    main_thread_runner_t mMainThreadRunner;
+    CRNodeBase*          node_;
+    queue_processor_t    queue_processor_;
+    main_thread_runner_t main_thread_runner_;
 };
 
 using CRNodeRoundRobinRunner = CRNodeRunner<CRNodeRoundRobinQueueProcessor, CRNodeMainThreadRunner>;

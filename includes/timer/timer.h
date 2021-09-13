@@ -45,14 +45,14 @@ class TimerReport {
     void PrintToLog(int indent_level = 0) const;
 
     struct TimerReportBucket {
-        uint64_t            mHits;
-        cr_dutration_nsec_t mSessionDurationSum;
+        uint64_t            hits_;
+        cr_dutration_nsec_t session_duration_sum_;
     };
 
-    std::string                                         mSectionName;
-    cr_dutration_nsec_t                                 mTimingDuration;
-    std::vector<TimerReportBucket>                      mReportBuckets;
-    std::map<std::string, std::unique_ptr<TimerReport>> mSubsections;
+    std::string                                         section_name_;
+    cr_dutration_nsec_t                                 timing_duration_;
+    std::vector<TimerReportBucket>                      report_buckets_;
+    std::map<std::string, std::unique_ptr<TimerReport>> subsections_;
 };
 
 class TimerSession {
@@ -66,9 +66,9 @@ class TimerSession {
     void EndSession();
 
    private:
-    PRIVATE_MAYBE_UNUSED bool                mIsEnded{false};
-    PRIVATE_MAYBE_UNUSED cr_timestamp_nsec_t mStartedTimestamp;
-    PRIVATE_MAYBE_UNUSED size_t              mCollectorIndex;
+    PRIVATE_MAYBE_UNUSED bool                is_ended_{false};
+    PRIVATE_MAYBE_UNUSED cr_timestamp_nsec_t started_timestamp_;
+    PRIVATE_MAYBE_UNUSED size_t              collector_index_;
 };
 
 class TimerSection {
@@ -103,9 +103,9 @@ class TimerSection {
     static void FlushCollectedStats();
 
    private:
-    std::string                                          mName;
-    PRIVATE_MAYBE_UNUSED size_t                          mCollectorIndex;
-    std::map<std::string, std::unique_ptr<TimerSection>> mSubsections;
+    std::string                                          name_;
+    PRIVATE_MAYBE_UNUSED size_t                          collector_index_;
+    std::map<std::string, std::unique_ptr<TimerSection>> subsections_;
 
     static std::atomic<size_t> collector_index_count;
 };
