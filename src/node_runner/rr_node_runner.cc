@@ -22,10 +22,10 @@ CRNodeRoundRobinQueueProcessor::~CRNodeRoundRobinQueueProcessor() {
 }
 
 void CRNodeRoundRobinQueueProcessor::WorkerLoop(const size_t thread_idx, const size_t thread_num) {
-    while (!mShutdownFlag.load()) {
+    while (!shutdown_flag_.load()) {
         bool hasMessage = false;
-        for (size_t i = thread_idx; i < mNodeQueues.size(); i += thread_num) {
-            auto queue = mNodeQueues[i];
+        for (size_t i = thread_idx; i < node_queues_.size(); i += thread_num) {
+            auto queue = node_queues_[i];
             if (queue->IsEmpty()) {
                 continue;
             }
@@ -39,8 +39,8 @@ void CRNodeRoundRobinQueueProcessor::WorkerLoop(const size_t thread_idx, const s
 }
 
 void CRNodeRoundRobinQueueProcessor::PrepareToRun() {
-    mShutdownFlag.store(false);
-    mNodeQueues = GetNodeQueues();
+    shutdown_flag_.store(false);
+    node_queues_ = GetNodeQueues();
 }
 
 std::function<void()> CRNodeRoundRobinQueueProcessor::GetWorker(size_t thread_idx, size_t thread_num) {
@@ -48,7 +48,7 @@ std::function<void()> CRNodeRoundRobinQueueProcessor::GetWorker(size_t thread_id
 }
 
 void CRNodeRoundRobinQueueProcessor::NotifyWorkersToStop() {
-    mShutdownFlag.store(true);
+    shutdown_flag_.store(true);
 }
 
 }  // namespace cris::core

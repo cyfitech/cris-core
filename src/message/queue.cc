@@ -7,14 +7,14 @@
 namespace cris::core {
 
 CRMessageQueue::CRMessageQueue(CRNodeBase *node, message_processor_t &&processor)
-    : mNode(node)
-    , mProcessor(std::move(processor)) {
-    auto node_name = mNode ? mNode->GetName() : "null";
-    LOG(INFO) << __func__ << ": " << this << " initialized for node " << node_name << "(" << mNode << ")";
+    : node_(node)
+    , processor_(std::move(processor)) {
+    auto node_name = node_ ? node_->GetName() : "null";
+    LOG(INFO) << __func__ << ": " << this << " initialized for node " << node_name << "(" << node_ << ")";
 }
 
 void CRMessageQueue::Process(const CRMessageBasePtr &message) {
-    mProcessor(message);
+    processor_(message);
 }
 
 void CRMessageQueue::PopAndProcess(bool only_latest) {

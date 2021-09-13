@@ -17,50 +17,50 @@ class CRSingleQueueNodeForTest : public CRSingleQueueNode<> {
         : CRSingleQueueNode<>(
               kMessageTypeNum * kMessageNum,
               std::bind(&CRSingleQueueNodeForTest::QueueProcessor, this, std::placeholders::_1))
-        , mMainLoopisRun(kMainThreadNum, 0) {}
+        , main_loopis_run_(kMainThreadNum, 0) {}
 
-    void MainLoop(const size_t thread_idx, const size_t thread_num) override { mMainLoopisRun[thread_idx] = true; }
+    void MainLoop(const size_t thread_idx, const size_t thread_num) override { main_loopis_run_[thread_idx] = true; }
 
-    bool IsMainLoopRun(size_t thread_idx) const { return mMainLoopisRun[thread_idx]; }
+    bool IsMainLoopRun(size_t thread_idx) const { return main_loopis_run_[thread_idx]; }
 
    private:
     void SubscribeHandler(std::string&& message_name, std::function<void(const CRMessageBasePtr&)>&& callback)
         override {
-        mSubscriptions.emplace(std::move(message_name), std::move(callback));
+        subscriptions_.emplace(std::move(message_name), std::move(callback));
     }
 
     void QueueProcessor(const CRMessageBasePtr& message) {
-        return mSubscriptions[message->GetMessageTypeName()](message);
+        return subscriptions_[message->GetMessageTypeName()](message);
     }
 
-    std::vector<bool>                                                   mMainLoopisRun;
-    std::map<std::string, std::function<void(const CRMessageBasePtr&)>> mSubscriptions;
+    std::vector<bool>                                                   main_loopis_run_;
+    std::map<std::string, std::function<void(const CRMessageBasePtr&)>> subscriptions_;
 };
 
 class CRMultiQueueNodeForTest : public CRMultiQueueNode<> {
    public:
-    CRMultiQueueNodeForTest() : CRMultiQueueNode<>(kMessageNum), mMainLoopisRun(kMainThreadNum, 0) {}
+    CRMultiQueueNodeForTest() : CRMultiQueueNode<>(kMessageNum), main_loopis_run_(kMainThreadNum, 0) {}
 
-    void MainLoop(const size_t thread_idx, const size_t thread_num) { mMainLoopisRun[thread_idx] = true; }
+    void MainLoop(const size_t thread_idx, const size_t thread_num) { main_loopis_run_[thread_idx] = true; }
 
-    bool IsMainLoopRun(size_t thread_idx) const { return mMainLoopisRun[thread_idx]; }
+    bool IsMainLoopRun(size_t thread_idx) const { return main_loopis_run_[thread_idx]; }
 
    private:
-    std::vector<bool> mMainLoopisRun;
+    std::vector<bool> main_loopis_run_;
 };
 
 class RRRunnerTest : public testing::Test {
    public:
-    void SetUp() override { std::memset(mCount, 0, sizeof(mCount)); }
+    void SetUp() override { std::memset(count_, 0, sizeof(count_)); }
 
     template<int idx>
     struct MessageForTest : public CRMessage<MessageForTest<idx>> {
-        MessageForTest(int value, RRRunnerTest* test) : mValue(value), mTest(test) {}
+        MessageForTest(int value, RRRunnerTest* test) : value_(value), test_(test) {}
 
-        void Process() { ++mTest->mCount[idx][mValue]; }
+        void Process() { ++test_->count_[idx][value_]; }
 
-        int           mValue;
-        RRRunnerTest* mTest;
+        int           value_;
+        RRRunnerTest* test_;
     };
 
     template<int idx>
@@ -70,7 +70,7 @@ class RRRunnerTest : public testing::Test {
 
     void TestImpl(CRNodeBase* node, CRNodeRunnerBase* node_runner);
 
-    unsigned mCount[kMessageTypeNum][kMessageNum];
+    unsigned count_[kMessageTypeNum][kMessageNum];
 };
 
 TEST_F(RRRunnerTest, SingleQueueSingleThread) {
@@ -120,7 +120,7 @@ TEST_F(RRRunnerTest, MultiQueueMultiThread) {
 void RRRunnerTest::TestImpl(CRNodeBase* node, CRNodeRunnerBase* node_runner) {
     for (size_t i = 0; i < kMessageTypeNum; ++i) {
         for (size_t j = 0; j < kMessageNum; ++j) {
-            EXPECT_EQ(mCount[i][j], 0);
+            EXPECT_EQ(count_[i][j], 0);
         }
     }
 
@@ -155,7 +155,7 @@ void RRRunnerTest::TestImpl(CRNodeBase* node, CRNodeRunnerBase* node_runner) {
 
     for (size_t i = 0; i < kMessageTypeNum; ++i) {
         for (size_t j = 0; j < kMessageNum; ++j) {
-            EXPECT_EQ(mCount[i][j], 1);
+            EXPECT_EQ(count_[i][j], 1);
         }
     }
 }

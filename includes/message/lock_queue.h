@@ -21,12 +21,12 @@ class CRMessageLockQueue : public CRMessageQueue {
     bool IsFull() override;
 
    private:
-    const size_t                  mCapacity;
-    size_t                        mSize{0};
-    size_t                        mBegin{0};
-    size_t                        mEnd{0};
-    std::mutex                    mMutex;
-    std::vector<CRMessageBasePtr> mBuffer;
+    const size_t                  capacity_;
+    size_t                        size_{0};
+    size_t                        begin_{0};
+    size_t                        end_{0};
+    std::mutex                    mutex_;
+    std::vector<CRMessageBasePtr> buffer_;
 };
 
 }  // namespace cris::core
