@@ -46,21 +46,23 @@ static void DumpSignalInfo(int signal_number, siginfo_t *siginfo) {
 
     LOG(ERROR) << "******************************************************";
 
-    snprintf(buffer,
-             kBufferLen,
-             "**** Signal %d (%s) received (@0x%" PRIxPTR ") ****",
-             signal_number,
-             strsignal(signal_number),
-             reinterpret_cast<intptr_t>(siginfo->si_addr));
+    snprintf(
+        buffer,
+        kBufferLen,
+        "**** Signal %d (%s) received (@0x%" PRIxPTR ") ****",
+        signal_number,
+        strsignal(signal_number),
+        reinterpret_cast<intptr_t>(siginfo->si_addr));
 
     LOG(ERROR) << buffer;
 
-    snprintf(buffer,
-             kBufferLen,
-             "PID %d, TID 0x%" PRIxPTR ", from PID %d",
-             getpid(),
-             static_cast<intptr_t>(pthread_self()),
-             siginfo->si_pid);
+    snprintf(
+        buffer,
+        kBufferLen,
+        "PID %d, TID 0x%" PRIxPTR ", from PID %d",
+        getpid(),
+        static_cast<intptr_t>(pthread_self()),
+        siginfo->si_pid);
 
     LOG(ERROR) << buffer;
 }
@@ -85,8 +87,7 @@ static void DumpStackFrame(int level, unw_cursor_t *stack_cursor) {
 
     char cmd[kMaxCmdLen];
 
-    snprintf(
-        cmd, kMaxCmdLen, "addr2line %p -e /proc/%d/exe", reinterpret_cast<void *>(pc), getpid());
+    snprintf(cmd, kMaxCmdLen, "addr2line %p -e /proc/%d/exe", reinterpret_cast<void *>(pc), getpid());
 
     FILE *cmd_fd = popen(cmd, "r");
     if (cmd_fd) {
@@ -129,8 +130,7 @@ static void SigIntHandler(int signal_number, siginfo_t *signal_info, void *ucont
 static void SignalHandler(int signal_number, siginfo_t *signal_info, void *ucontext) {
     pthread_t  current_thread            = pthread_self();
     pthread_t *expect_current_in_handler = nullptr;
-    if (!current_thread_in_handler.compare_exchange_strong(expect_current_in_handler,
-                                                           &current_thread)) {
+    if (!current_thread_in_handler.compare_exchange_strong(expect_current_in_handler, &current_thread)) {
         if (pthread_equal(current_thread, *expect_current_in_handler)) {
             // Same thread was in the handler
             InvokeDefaultSignalHandler(signal_number);

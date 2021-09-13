@@ -17,8 +17,7 @@ class CRNode : public CRNodeBase {
    private:
     void WaitForMessageImpl(std::chrono::nanoseconds timeout) override;
 
-    void SubscribeImpl(std::string &&                                  message_name,
-                       std::function<void(const CRMessageBasePtr &)> &&callback) override;
+    void SubscribeImpl(std::string &&message_name, std::function<void(const CRMessageBasePtr &)> &&callback) override;
 
     std::vector<std::string> mSubscribed{};
     std::mutex               mWaitMessageMutex{};

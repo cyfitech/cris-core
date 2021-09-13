@@ -19,12 +19,12 @@ class CRMultiQueueNodeBase : public CRNode {
 
     virtual std::unique_ptr<CRMessageQueue> MakeMessageQueue(queue_callback_t &&callback) = 0;
 
-    void SubscribeHandler(std::string &&                                  message_name,
-                          std::function<void(const CRMessageBasePtr &)> &&callback) override;
+    void SubscribeHandler(std::string &&message_name, std::function<void(const CRMessageBasePtr &)> &&callback)
+        override;
 
     std::vector<CRMessageQueue *> GetNodeQueues() override;
 
-    size_t                                          mQueueCapacity;
+    size_t                                                 mQueueCapacity;
     std::map<std::string, std::unique_ptr<CRMessageQueue>> mQueues{};
 };
 
@@ -40,8 +40,7 @@ class CRMultiQueueNode : public CRMultiQueueNodeBase {
 };
 
 template<CRMessageQueueType queue_t>
-std::unique_ptr<CRMessageQueue> CRMultiQueueNode<queue_t>::MakeMessageQueue(
-    queue_callback_t &&callback) {
+std::unique_ptr<CRMessageQueue> CRMultiQueueNode<queue_t>::MakeMessageQueue(queue_callback_t &&callback) {
     return std::make_unique<queue_t>(mQueueCapacity, this, std::move(callback));
 }
 

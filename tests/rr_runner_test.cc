@@ -19,15 +19,13 @@ class CRSingleQueueNodeForTest : public CRSingleQueueNode<> {
               std::bind(&CRSingleQueueNodeForTest::QueueProcessor, this, std::placeholders::_1))
         , mMainLoopisRun(kMainThreadNum, 0) {}
 
-    void MainLoop(const size_t thread_idx, const size_t thread_num) override {
-        mMainLoopisRun[thread_idx] = true;
-    }
+    void MainLoop(const size_t thread_idx, const size_t thread_num) override { mMainLoopisRun[thread_idx] = true; }
 
     bool IsMainLoopRun(size_t thread_idx) const { return mMainLoopisRun[thread_idx]; }
 
    private:
-    void SubscribeHandler(std::string&&                                  message_name,
-                          std::function<void(const CRMessageBasePtr&)>&& callback) override {
+    void SubscribeHandler(std::string&& message_name, std::function<void(const CRMessageBasePtr&)>&& callback)
+        override {
         mSubscriptions.emplace(std::move(message_name), std::move(callback));
     }
 
@@ -41,13 +39,9 @@ class CRSingleQueueNodeForTest : public CRSingleQueueNode<> {
 
 class CRMultiQueueNodeForTest : public CRMultiQueueNode<> {
    public:
-    CRMultiQueueNodeForTest()
-        : CRMultiQueueNode<>(kMessageNum)
-        , mMainLoopisRun(kMainThreadNum, 0) {}
+    CRMultiQueueNodeForTest() : CRMultiQueueNode<>(kMessageNum), mMainLoopisRun(kMainThreadNum, 0) {}
 
-    void MainLoop(const size_t thread_idx, const size_t thread_num) {
-        mMainLoopisRun[thread_idx] = true;
-    }
+    void MainLoop(const size_t thread_idx, const size_t thread_num) { mMainLoopisRun[thread_idx] = true; }
 
     bool IsMainLoopRun(size_t thread_idx) const { return mMainLoopisRun[thread_idx]; }
 

@@ -15,9 +15,8 @@ template<class message_t>
 concept CRMessageType = std::is_base_of_v<CRMessageBase, message_t>;
 
 template<class callback_t, class message_t = CRMessageBase>
-concept CRMessageCallbackType =
-    std::is_base_of_v<CRMessageBase, message_t>&& std::is_void_v<decltype(
-        std::declval<callback_t>()(std::declval<const std::shared_ptr<message_t>&>()))>;
+concept CRMessageCallbackType = std::is_base_of_v<CRMessageBase, message_t> &&
+    std::is_void_v<decltype(std::declval<callback_t>()(std::declval<const std::shared_ptr<message_t>&>()))>;
 
 class CRMessageBase {
    public:
@@ -59,9 +58,7 @@ using CRMessageBasePtr = std::shared_ptr<CRMessageBase>;
 template<class message_t>
 class CRMessage : public CRMessageBase {
    public:
-    const std::string GetMessageTypeName() const override {
-        return CRMessageBase::GetMessageTypeName<message_t>();
-    }
+    const std::string GetMessageTypeName() const override { return CRMessageBase::GetMessageTypeName<message_t>(); }
 };
 
 template<CRMessageType message_t>

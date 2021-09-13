@@ -8,12 +8,11 @@ namespace cris::core {
 class CRMessageManager : public CRNamedNode<CRMessageManager, CRSingleQueueNode<>> {
    public:
     CRMessageManager(size_t queue_capacity)
-        : CRNamedNode<CRMessageManager, CRSingleQueueNode<>>(queue_capacity,
-                                                             &CRMessageBase::Dispatch) {}
+        : CRNamedNode<CRMessageManager, CRSingleQueueNode<>>(queue_capacity, &CRMessageBase::Dispatch) {}
 
    private:
-    void SubscribeHandler(std::string &&                                  message_name,
-                          std::function<void(const CRMessageBasePtr &)> &&callback) override;
+    void SubscribeHandler(std::string &&message_name, std::function<void(const CRMessageBasePtr &)> &&callback)
+        override;
 };
 
 CRNodeBase *CRNodeBase::GetMessageManager() {
@@ -24,8 +23,9 @@ CRNodeBase *CRNodeBase::GetMessageManager() {
     return &manager;
 }
 
-void CRMessageManager::SubscribeHandler(std::string &&message_name,
-                                        std::function<void(const CRMessageBasePtr &)> &&callback) {
+void CRMessageManager::SubscribeHandler(
+    std::string &&                                  message_name,
+    std::function<void(const CRMessageBasePtr &)> &&callback) {
     // Message Manager never subscribe to any message
 }
 

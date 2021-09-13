@@ -29,10 +29,7 @@ struct TestQueue {
 };
 
 struct TestLockQueue : public TestQueue {
-    TestLockQueue()
-        : mQueue(kQueueSize,
-                 nullptr,
-                 std::bind(&TestQueue::Processor, this, std::placeholders::_1)) {}
+    TestLockQueue() : mQueue(kQueueSize, nullptr, std::bind(&TestQueue::Processor, this, std::placeholders::_1)) {}
 
     CRMessageQueue *GetQueue() override { return &mQueue; }
 
