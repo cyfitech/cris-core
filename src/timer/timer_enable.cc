@@ -26,8 +26,7 @@ static constexpr size_t kTimerEntryBucketNum = 32;
 // first bucket is 0 to base_nsec.
 static constexpr cr_dutration_nsec_t UpperNsecOfBucket(
     size_t              idx,
-    cr_dutration_nsec_t base_nsec = 10 *
-                                    std::ratio_divide<std::micro, std::nano>::num /* 10 us */) {
+    cr_dutration_nsec_t base_nsec = 10 * std::ratio_divide<std::micro, std::nano>::num /* 10 us */) {
     // The upper limit of the last bucket should be INT_MAX to cover everything
     if (idx >= kTimerEntryBucketNum - 1) {
         return std::numeric_limits<cr_dutration_nsec_t>::max();
@@ -107,6 +106,7 @@ class TimerStatTotal {
 
     struct StatTotalEntry {
         std::array<StatTotalEntryBucket, kTimerEntryBucketNum> mDurationBuckets;
+
         void Merge(const TimerStatCollector::CollectorEntry &entry);
     };
 
@@ -117,8 +117,7 @@ class TimerStatTotal {
     std::shared_lock<std::shared_mutex> LockForRead();
 
     // call with LockForRead
-    std::unique_ptr<TimerReport> GetReport(const std::string &section_name,
-                                           size_t             entry_index) const;
+    std::unique_ptr<TimerReport> GetReport(const std::string &section_name, size_t entry_index) const;
 
     static TimerStatTotal *GetTimerStatsTotal();
 
@@ -127,9 +126,9 @@ class TimerStatTotal {
 
     TimerStatTotal();
 
-    cr_timestamp_nsec_t                       mLastClearTime;
-    cr_timestamp_nsec_t                       mLastMergeTime;
-    std::shared_mutex                         mStatTotalMutex;
+    cr_timestamp_nsec_t                        mLastClearTime;
+    cr_timestamp_nsec_t                        mLastMergeTime;
+    std::shared_mutex                          mStatTotalMutex;
     std::array<StatTotalEntry, kCollectorSize> mStatEntries;
 };
 
@@ -153,10 +152,9 @@ class TimerStatRotater {
     static constexpr auto kRotatePeriod = std::chrono::minutes(5);
 };
 
-std::atomic<size_t> TimerStatCollector::current_collector_id{0};
-std::array<TimerStatCollector, TimerStatCollector::kRotatingCollectorNum>
-           TimerStatCollector::rotating_collectors;
-std::mutex TimerStatCollector::rotating_mutex;
+std::atomic<size_t>                                                       TimerStatCollector::current_collector_id{0};
+std::array<TimerStatCollector, TimerStatCollector::kRotatingCollectorNum> TimerStatCollector::rotating_collectors;
+std::mutex                                                                TimerStatCollector::rotating_mutex;
 
 TimerStatCollector *TimerStatCollector::GetTimerStatsCollector() {
     return &rotating_collectors[current_collector_id.load()];
@@ -168,8 +166,7 @@ void TimerStatCollector::RotateCollector() {
     size_t                       next_rotater_id;
     do {
         next_rotater_id = (expect_current_rotater_id + 1) % kRotatingCollectorNum;
-    } while (
-        !current_collector_id.compare_exchange_strong(expect_current_rotater_id, next_rotater_id));
+    } while (!current_collector_id.compare_exchange_strong(expect_current_rotater_id, next_rotater_id));
 
     // After exiting the while loop, next_rotater_id become the current, and
     // expect_current_rotater_id is the previous collector
@@ -212,10 +209,9 @@ void TimerStatCollector::Report(size_t index, cr_dutration_nsec_t duration) {
         }
     }
 
-    data_to_report.stat.hits           = 1;
+    data_to_report.stat.hits              = 1;
     data_to_report.stat.total_duration_ns = duration;
-    mCollectorEntries[index].mDurationBuckets[bucket_idx].mHitAndTotalDuration.fetch_add(
-        data_to_report.raw);
+    mCollectorEntries[index].mDurationBuckets[bucket_idx].mHitAndTotalDuration.fetch_add(data_to_report.raw);
 }
 
 void TimerStatCollector::Clear() {
@@ -226,9 +222,7 @@ void TimerStatCollector::Clear() {
     }
 }
 
-TimerStatTotal::TimerStatTotal()
-    : mLastClearTime(GetSystemTimestampNsec())
-    , mLastMergeTime(mLastClearTime) {
+TimerStatTotal::TimerStatTotal() : mLastClearTime(GetSystemTimestampNsec()), mLastMergeTime(mLastClearTime) {
 }
 
 void TimerStatTotal::Merge(const TimerStatCollector &collector) {
@@ -250,17 +244,15 @@ std::shared_lock<std::shared_mutex> TimerStatTotal::LockForRead() {
     return std::shared_lock(mStatTotalMutex);
 }
 
-std::unique_ptr<TimerReport> TimerStatTotal::GetReport(const std::string &section_name,
-                                                       size_t             entry_index) const {
-    auto  report                = std::make_unique<TimerReport>();
-    auto &entry                 = mStatEntries[entry_index];
-    report->mSectionName        = section_name;
-    report->mTimingDuration     = mLastMergeTime - mLastClearTime;
+std::unique_ptr<TimerReport> TimerStatTotal::GetReport(const std::string &section_name, size_t entry_index) const {
+    auto  report            = std::make_unique<TimerReport>();
+    auto &entry             = mStatEntries[entry_index];
+    report->mSectionName    = section_name;
+    report->mTimingDuration = mLastMergeTime - mLastClearTime;
     for (size_t i = 0; i < kTimerEntryBucketNum; ++i) {
         report->mReportBuckets.emplace_back(TimerReport::TimerReportBucket{
-            .mHits = entry.mDurationBuckets[i].hits,
-            .mSessionDurationSum =
-                static_cast<cr_dutration_nsec_t>(entry.mDurationBuckets[i].total_duration_ns),
+            .mHits               = entry.mDurationBuckets[i].hits,
+            .mSessionDurationSum = static_cast<cr_dutration_nsec_t>(entry.mDurationBuckets[i].total_duration_ns),
         });
     }
     return report;
@@ -300,8 +292,7 @@ void TimerStatRotater::RotateWorker() {
     std::mutex mutex;
     while (!mShutdownFlag.load()) {
         std::unique_lock lock(mutex);
-        auto             is_shutdown =
-            mShutdownCV.wait_for(lock, kRotatePeriod, [this]() { return mShutdownFlag.load(); });
+        auto is_shutdown = mShutdownCV.wait_for(lock, kRotatePeriod, [this]() { return mShutdownFlag.load(); });
         if (is_shutdown) {
             break;
         }
@@ -313,8 +304,7 @@ void TimerReport::AddSubsection(std::unique_ptr<TimerReport> &&subsection) {
     auto subsection_name = subsection->GetSectionName();
     auto result          = mSubsections.emplace(subsection_name, std::move(subsection));
     if (!result.second) {
-        LOG(ERROR) << "Failed to insert subsection " << subsection_name << " to section "
-                   << GetSectionName();
+        LOG(ERROR) << "Failed to insert subsection " << subsection_name << " to section " << GetSectionName();
     }
 }
 
@@ -334,8 +324,7 @@ double TimerReport::GetFreq() const {
     using std::chrono::duration;
     using std::chrono::duration_cast;
     using std::chrono::nanoseconds;
-    return GetTotalHits() * 1.0 /
-           duration_cast<duration<double>>(nanoseconds(mTimingDuration)).count();
+    return GetTotalHits() * 1.0 / duration_cast<duration<double>>(nanoseconds(mTimingDuration)).count();
 }
 
 cr_dutration_nsec_t TimerReport::GetAverageDurationNsec() const {
@@ -384,20 +373,15 @@ void TimerReport::PrintToLog(int indent_level) const {
     const std::string indent(4 * indent_level, ' ');
     LOG(WARNING) << indent << "Section '" << GetSectionName() << "':";
     if (GetTotalHits() > 0) {
-        LOG(WARNING) << indent << "    hits    : " << GetTotalHits()
-                     << " times, freq: " << GetFreq() << " Hz";
+        LOG(WARNING) << indent << "    hits    : " << GetTotalHits() << " times, freq: " << GetFreq() << " Hz";
         LOG(WARNING) << indent << "    avg time: " << std::fixed << std::setprecision(3)
-                     << duration_cast<duration<double, std::micro>>(
-                            nanoseconds(GetAverageDurationNsec()))
-                            .count()
+                     << duration_cast<duration<double, std::micro>>(nanoseconds(GetAverageDurationNsec())).count()
                      << " us";
         auto print_percentile = [&](int percent) {
-            LOG(WARNING) << indent << "    " << percent << "p time: " << std::fixed
-                         << std::setprecision(3)
-                         << duration_cast<duration<double, std::micro>>(
-                                nanoseconds(GetPercentileDurationNsec(percent)))
-                                .count()
-                         << " us";
+            LOG(WARNING)
+                << indent << "    " << percent << "p time: " << std::fixed << std::setprecision(3)
+                << duration_cast<duration<double, std::micro>>(nanoseconds(GetPercentileDurationNsec(percent))).count()
+                << " us";
         };
         print_percentile(50);
         print_percentile(90);

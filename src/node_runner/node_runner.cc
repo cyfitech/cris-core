@@ -12,8 +12,7 @@ CRMultiThreadNodeRunner::CRMultiThreadNodeRunner(CRNodeBase* node, size_t thread
     : CRNodeRunnerBase()
     , mNode(node)
     , mThreadNum(thread_num) {
-    LOG(INFO) << __func__ << ": " << this << " initialized for " << mNode->GetName() << "(" << mNode
-              << "), "
+    LOG(INFO) << __func__ << ": " << this << " initialized for " << mNode->GetName() << "(" << mNode << "), "
               << "thread number: " << mThreadNum;
 }
 
@@ -33,8 +32,7 @@ void CRMultiThreadNodeRunner::Run() {
     std::lock_guard<std::mutex>  state_lock(mRunStateMutex);
     std::unique_lock<std::mutex> threads_lock(mRunThreadsMutex, std::try_to_lock);
     if (!threads_lock.owns_lock()) {
-        LOG(ERROR) << __func__
-                   << ": Failed to run, maybe others are running/joining. Runner: " << this;
+        LOG(ERROR) << __func__ << ": Failed to run, maybe others are running/joining. Runner: " << this;
         return;
     }
 

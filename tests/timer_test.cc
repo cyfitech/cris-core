@@ -58,16 +58,17 @@ TEST(TimerTest, Basic) {
     EXPECT_EQ(report1->GetTotalHits(), 1);
     ExpectNear(
         report1->GetAverageDurationNsec(),
-        kTestHits *
-            std::chrono::duration_cast<std::chrono::nanoseconds>(kTestSessionDuration).count());
+        kTestHits * std::chrono::duration_cast<std::chrono::nanoseconds>(kTestSessionDuration).count());
 
     EXPECT_EQ(report2->GetTotalHits(), kTestHits);
-    ExpectNear(report2->GetAverageDurationNsec(),
-               std::chrono::duration_cast<std::chrono::nanoseconds>(kTestSessionDuration).count());
+    ExpectNear(
+        report2->GetAverageDurationNsec(),
+        std::chrono::duration_cast<std::chrono::nanoseconds>(kTestSessionDuration).count());
 
     EXPECT_EQ(report3->GetTotalHits(), 1);
-    EXPECT_EQ(report3->GetAverageDurationNsec(),
-              std::chrono::duration_cast<std::chrono::nanoseconds>(kTestSessionDuration).count());
+    EXPECT_EQ(
+        report3->GetAverageDurationNsec(),
+        std::chrono::duration_cast<std::chrono::nanoseconds>(kTestSessionDuration).count());
 #endif  // ENABLE_PROFILING
 
     TimerSection::FlushCollectedStats();

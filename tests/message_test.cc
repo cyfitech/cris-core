@@ -12,9 +12,7 @@ struct TestMessageType1 : public CRMessage<TestMessageType1> {
 
 struct SimpleTestNode : public CRSingleQueueNode<> {
     explicit SimpleTestNode(size_t queue_capacity)
-        : CRSingleQueueNode<>(
-              queue_capacity,
-              std::bind(&SimpleTestNode::QueueCallback, this, std::placeholders::_1)) {}
+        : CRSingleQueueNode<>(queue_capacity, std::bind(&SimpleTestNode::QueueCallback, this, std::placeholders::_1)) {}
 
     void Process() { mQueue.PopAndProcess(false); }
 
@@ -27,8 +25,8 @@ struct SimpleTestNode : public CRSingleQueueNode<> {
     }
 
    private:
-    void SubscribeHandler(std::string &&                                  message_name,
-                          std::function<void(const CRMessageBasePtr &)> &&callback) override {
+    void SubscribeHandler(std::string &&message_name, std::function<void(const CRMessageBasePtr &)> &&callback)
+        override {
         mCallbacks.emplace(message_name, std::move(callback));
     }
 
@@ -38,8 +36,7 @@ struct SimpleTestNode : public CRSingleQueueNode<> {
 TEST(MessageTest, Basics) {
     // name
     CRMessageBasePtr message = std::make_shared<TestMessageType1>(1);
-    EXPECT_EQ(CRMessageBase::GetMessageTypeName<TestMessageType1>(),
-              GetTypeName<TestMessageType1>());
+    EXPECT_EQ(CRMessageBase::GetMessageTypeName<TestMessageType1>(), GetTypeName<TestMessageType1>());
     EXPECT_EQ(message->GetMessageTypeName(), GetTypeName<TestMessageType1>());
 
     // empty dispatch

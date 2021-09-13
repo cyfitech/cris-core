@@ -97,14 +97,10 @@ class CRNodeRoundRobinQueueProcessor : public CRMultiThreadNodeRunner {
 template<class runner_t>
 concept CRNodeRunnerType = std::is_base_of_v<CRNodeRunnerBase, runner_t>;
 
-template<CRNodeRunnerType queue_processor_t,
-         CRNodeRunnerType main_thread_runner_t = CRNodeMainThreadRunner>
+template<CRNodeRunnerType queue_processor_t, CRNodeRunnerType main_thread_runner_t = CRNodeMainThreadRunner>
 class CRNodeRunner : public CRNodeRunnerBase {
    public:
-    CRNodeRunner(CRNodeBase* node,
-                 size_t      queue_processor_thread_num,
-                 size_t      main_thread_num = 1,
-                 bool        auto_run        = false)
+    CRNodeRunner(CRNodeBase* node, size_t queue_processor_thread_num, size_t main_thread_num = 1, bool auto_run = false)
         : mNode(node)
         , mQueueProcessor(node, queue_processor_thread_num, auto_run)
         , mMainThreadRunner(node, main_thread_num, auto_run) {}

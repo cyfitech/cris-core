@@ -11,8 +11,7 @@ namespace cris::core {
 template<CRMessageQueueType queue_t = CRMessageLockQueue>
 class CRSingleQueueNode : public CRNode {
    public:
-    CRSingleQueueNode(size_t                                          queue_capacity,
-                      std::function<void(const CRMessageBasePtr &)> &&callback)
+    CRSingleQueueNode(size_t queue_capacity, std::function<void(const CRMessageBasePtr &)> &&callback)
         : mQueueCapacity(queue_capacity)
         , mQueue(mQueueCapacity, this, std::move(callback)) {}
 

@@ -115,8 +115,7 @@ class TimerSection {
 template<class duration_t>
 void TimerSection::ReportDuration(duration_t&& duration) {
     ReportDurationNsec(
-        std::chrono::duration_cast<std::chrono::nanoseconds>(std::forward<duration_t>(duration))
-            .count());
+        std::chrono::duration_cast<std::chrono::nanoseconds>(std::forward<duration_t>(duration)).count());
 }
 
 }  // namespace cris::core

@@ -4,9 +4,7 @@
 
 namespace cris::core {
 
-CRMessageLockQueue::CRMessageLockQueue(size_t                capacity,
-                                       CRNodeBase *          node,
-                                       message_processor_t &&processor)
+CRMessageLockQueue::CRMessageLockQueue(size_t capacity, CRNodeBase *node, message_processor_t &&processor)
     : CRMessageQueue(node, std::move(processor))
     , mCapacity(capacity) {
     mBuffer.resize(mCapacity, nullptr);

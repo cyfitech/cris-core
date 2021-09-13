@@ -46,11 +46,13 @@ class CRNodeBase {
    protected:
     virtual void WaitForMessageImpl(std::chrono::nanoseconds timeout) = 0;
 
-    virtual void SubscribeImpl(std::string &&                                  message_name,
-                               std::function<void(const CRMessageBasePtr &)> &&callback) = 0;
+    virtual void SubscribeImpl(
+        std::string &&                                  message_name,
+        std::function<void(const CRMessageBasePtr &)> &&callback) = 0;
 
-    virtual void SubscribeHandler(std::string &&                                  message_name,
-                                  std::function<void(const CRMessageBasePtr &)> &&callback) = 0;
+    virtual void SubscribeHandler(
+        std::string &&                                  message_name,
+        std::function<void(const CRMessageBasePtr &)> &&callback) = 0;
 
     virtual std::vector<CRMessageQueue *> GetNodeQueues() = 0;
 
@@ -62,8 +64,7 @@ concept CRNodeType = std::is_base_of_v<CRNodeBase, node_t>;
 
 template<class duration_t>
 void CRNodeBase::WaitForMessage(duration_t &&timeout) {
-    return WaitForMessageImpl(
-        std::chrono::duration_cast<std::chrono::nanoseconds>(std::forward<duration_t>(timeout)));
+    return WaitForMessageImpl(std::chrono::duration_cast<std::chrono::nanoseconds>(std::forward<duration_t>(timeout)));
 }
 
 template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>

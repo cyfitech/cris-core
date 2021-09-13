@@ -1,28 +1,38 @@
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html
 ---
 BasedOnStyle: Google
-AlignConsecutiveAssignments: 'true'
-AlignConsecutiveDeclarations: 'true'
-AllowAllConstructorInitializersOnNextLine: 'false'
-AllowAllParametersOfDeclarationOnNextLine: 'false'
+AlignAfterOpenBracket: AlwaysBreak
+AlignConsecutiveAssignments: AcrossComments
+AlignConsecutiveDeclarations: AcrossComments
+AlignEscapedNewlines: Left
+AlignOperands: DontAlign
+AllowAllArgumentsOnNextLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowShortBlocksOnASingleLine: Empty
 AllowShortFunctionsOnASingleLine: InlineOnly
-AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortIfStatementsOnASingleLine: Never
 AllowShortLambdasOnASingleLine: Inline
-BinPackArguments: 'false'
-BinPackParameters: 'false'
+AllowShortLoopsOnASingleLine: false
+BinPackArguments: false
+BinPackParameters: false
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeComma
 BreakInheritanceList: BeforeComma
-ColumnLimit: '100'
-ConstructorInitializerAllOnOneLineOrOnePerLine: 'true'
-FixNamespaceComments: 'true'
+ColumnLimit: 120
+EmptyLineBeforeAccessModifier: Always
+FixNamespaceComments: true
 IncludeBlocks: Regroup
-IndentCaseLabels: 'true'
-IndentWidth: '4'
-SortIncludes: 'true'
-SortUsingDeclarations: 'true'
-SpaceAfterTemplateKeyword: 'false'
-SpacesBeforeTrailingComments: '2'
+IndentWidth: 4
+# PackConstructorInitializers: CurrentLine
+AllowAllConstructorInitializersOnNextLine: false        # Deprecated by PackConstructorInitializers
+ConstructorInitializerAllOnOneLineOrOnePerLine: true    # Deprecated by PackConstructorInitializers
+PenaltyReturnTypeOnItsOwnLine: 1000
+PointerAlignment: Left
+SortIncludes: true
+SortUsingDeclarations: true
+SpaceAfterTemplateKeyword: false
+SpacesBeforeTrailingComments: 2
 Standard: c++20
 UseTab: Never
-
 ...
-

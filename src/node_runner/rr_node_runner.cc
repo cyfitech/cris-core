@@ -8,9 +8,7 @@ using std::literals::chrono_literals::operator""ms;
 
 static constexpr auto kWaitMessageTimeout = 500ms;
 
-CRNodeRoundRobinQueueProcessor::CRNodeRoundRobinQueueProcessor(CRNodeBase* node,
-                                                               size_t      thread_num,
-                                                               bool        auto_run)
+CRNodeRoundRobinQueueProcessor::CRNodeRoundRobinQueueProcessor(CRNodeBase* node, size_t thread_num, bool auto_run)
     : CRMultiThreadNodeRunner(node, thread_num) {
     LOG(INFO) << __func__ << ": " << this << " initialized";
     if (auto_run) {
@@ -45,8 +43,7 @@ void CRNodeRoundRobinQueueProcessor::PrepareToRun() {
     mNodeQueues = GetNodeQueues();
 }
 
-std::function<void()> CRNodeRoundRobinQueueProcessor::GetWorker(size_t thread_idx,
-                                                                size_t thread_num) {
+std::function<void()> CRNodeRoundRobinQueueProcessor::GetWorker(size_t thread_idx, size_t thread_num) {
     return std::bind(&CRNodeRoundRobinQueueProcessor::WorkerLoop, this, thread_idx, thread_num);
 }
 
