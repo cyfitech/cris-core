@@ -1,9 +1,10 @@
-#include <cstring>
-
 #include "cris/core/node/multi_queue_node.h"
 #include "cris/core/node/single_queue_node.h"
 #include "cris/core/node_runner/runner.h"
+
 #include "gtest/gtest.h"
+
+#include <cstring>
 
 using namespace cris::core;
 

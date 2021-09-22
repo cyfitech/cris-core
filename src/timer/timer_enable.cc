@@ -1,5 +1,7 @@
 #ifdef ENABLE_PROFILING
 
+#include "cris/core/timer/timer.h"
+
 #include <glog/logging.h>
 
 #include <cmath>
@@ -9,8 +11,6 @@
 #include <mutex>
 #include <shared_mutex>
 #include <thread>
-
-#include "cris/core/timer/timer.h"
 
 namespace cris::core {
 

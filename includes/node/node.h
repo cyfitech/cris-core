@@ -1,10 +1,10 @@
 #pragma once
 
-#include <condition_variable>
-#include <mutex>
-
 #include "cris/core/message/queue.h"
 #include "cris/core/node/base.h"
+
+#include <condition_variable>
+#include <mutex>
 
 namespace cris::core {
 

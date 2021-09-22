@@ -6,16 +6,15 @@ extern "C" {
 #include <libunwind.h>
 }
 
-#include <signal.h>
+#include "cris/core/cr_signal.h"
+#include "cris/core/timer/timer.h"
 
 #include <atomic>
 #include <cinttypes>
 #include <cstdio>
 #include <cstring>
+#include <signal.h>
 #include <string>
-
-#include "cris/core/cr_signal.h"
-#include "cris/core/timer/timer.h"
 
 namespace cris::core {
 

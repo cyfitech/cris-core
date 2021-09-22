@@ -1,9 +1,9 @@
 #include "cris/core/timer/timer.h"
 
+#include "gtest/gtest.h"
+
 #include <chrono>
 #include <thread>
-
-#include "gtest/gtest.h"
 
 namespace cris::core {
 

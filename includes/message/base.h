@@ -1,10 +1,10 @@
 #pragma once
 
+#include "cris/core/defs.h"
+
 #include <memory>
 #include <string>
 #include <vector>
-
-#include "cris/core/defs.h"
 
 namespace cris::core {
 

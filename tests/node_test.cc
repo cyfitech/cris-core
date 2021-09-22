@@ -1,8 +1,9 @@
-#include <thread>
-
 #include "cris/core/node/base.h"
 #include "cris/core/node/multi_queue_node.h"
+
 #include "gtest/gtest.h"
+
+#include <thread>
 
 namespace cris::core {
 

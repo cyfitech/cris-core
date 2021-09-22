@@ -1,7 +1,7 @@
-#include <thread>
-
 #include "cris/core/node/named_node.h"
 #include "cris/core/node/single_queue_node.h"
+
+#include <thread>
 
 namespace cris::core {
 

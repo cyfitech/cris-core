@@ -1,8 +1,8 @@
 #pragma once
 
-#include <chrono>
-
 #include "cris/core/message/queue.h"
+
+#include <chrono>
 
 namespace cris::core {
 
