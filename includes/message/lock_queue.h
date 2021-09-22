@@ -1,8 +1,8 @@
 #pragma once
 
-#include <mutex>
-
 #include "cris/core/message/queue.h"
+
+#include <mutex>
 
 namespace cris::core {
 

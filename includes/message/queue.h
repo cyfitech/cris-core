@@ -1,8 +1,8 @@
 #pragma once
 
-#include <functional>
-
 #include "cris/core/message/base.h"
+
+#include <functional>
 
 namespace cris::core {
 

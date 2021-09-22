@@ -1,10 +1,10 @@
 #ifndef ENABLE_PROFILING
 
+#include "cris/core/timer/timer.h"
+
 #include <glog/logging.h>
 
 #include <mutex>
-
-#include "cris/core/timer/timer.h"
 
 namespace cris::core {
 

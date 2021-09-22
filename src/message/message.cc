@@ -1,9 +1,9 @@
+#include "cris/core/message/base.h"
+#include "cris/core/node/base.h"
+
 #include <glog/logging.h>
 
 #include <map>
-
-#include "cris/core/message/base.h"
-#include "cris/core/node/base.h"
 
 namespace cris::core {
 

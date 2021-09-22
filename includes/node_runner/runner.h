@@ -1,10 +1,10 @@
 #pragma once
 
+#include "cris/core/node/base.h"
+
 #include <atomic>
 #include <mutex>
 #include <thread>
-
-#include "cris/core/node/base.h"
 
 namespace cris::core {
 
