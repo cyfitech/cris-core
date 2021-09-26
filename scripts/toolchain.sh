@@ -4,8 +4,8 @@ set -e
 
 pushd "$(dirname "$0")/.."
 
-export CC='clang-12'
-export CXX='clang++-12'
+[ "$CC"  ] || export CC='clang-12'
+[ "$CXX" ] || export CXX='clang++-12'
 
 if which ccache >/dev/null 2>&1 && ([ -d 'run' ] && [ -w 'run' ] || [ -w '.' ]); then
     rm -rf 'run/toolchain'

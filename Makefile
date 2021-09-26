@@ -6,7 +6,7 @@ export MKDIR = mkdir -p
 export RM = rm -rf
 
 export CMD ?= bash
-export DOCKER_IMAGE ?= cajunhotpot/cris-build:20210901
+export DOCKER_IMAGE ?= cajunhotpot/cris-build:20210926
 
 .PHONY: all
 all: ci
