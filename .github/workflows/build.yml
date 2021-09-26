@@ -12,7 +12,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build:20210901
+      image: ghcr.io/cyfitech/cris-build:20210926
     steps:
     - uses: actions/checkout@v2
     - name: Run linter
@@ -23,7 +23,7 @@ jobs:
   bazel:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build:20210901
+      image: ghcr.io/cyfitech/cris-build:20210926
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
@@ -32,7 +32,7 @@ jobs:
           /root/.cache/bazel
           /root/.cache/pip
           /root/.ccache
-        key: ghcr.io/cyfitech/cris-build:20210901
+        key: ghcr.io/cyfitech/cris-build:20210926
     - name: Build
       run: export HOME=/root && scripts/build_all.sh -s
     - name: Test
