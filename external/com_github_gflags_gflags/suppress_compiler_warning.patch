@@ -1,0 +1,12 @@
+--- bazel/gflags.bzl
++++ bazel/gflags.bzl
+@@ -73,6 +73,9 @@
+         "-DHAVE_STRTOLL",
+         "-DHAVE_STRTOQ",
+         "-DHAVE_RWLOCK",
++        "-Wno-cast-function-type",
++        "-Wno-implicit-fallthrough",
++        "-Wno-unknown-warning-option",
+     ] + select({
+         "//:x64_windows": [
+             "-DOS_WINDOWS",

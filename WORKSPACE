@@ -8,6 +8,7 @@ http_archive(
     sha256 = "34af2f15cf7367513b352bdcd2493ab14ce43692d2dcd9dfc499492966c64dcf",
     strip_prefix = "gflags-2.2.2",
     urls = ["https://github.com/gflags/gflags/archive/v2.2.2.tar.gz"],
+    patches = ["//external/com_github_gflags_gflags:suppress_compiler_warning.patch"],
 )
 
 http_archive(
