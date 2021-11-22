@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
@@ -9,8 +10,8 @@
 
 namespace cris::core {
 
-using cr_timestamp_nsec_t = int64_t;
-using cr_dutration_nsec_t = int64_t;
+using cr_timestamp_nsec_t = std::int64_t;
+using cr_dutration_nsec_t = std::int64_t;
 
 // monotonic timestamp
 cr_timestamp_nsec_t GetSystemTimestampNsec();

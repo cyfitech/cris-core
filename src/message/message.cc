@@ -3,22 +3,22 @@
 
 #include <glog/logging.h>
 
+#include <atomic>
 #include <map>
 
 namespace cris::core {
 
-namespace impl {
-
-std::map<std::string, CRMessageBase::subscription_list_t> subscription_map{};
-
-}  // namespace impl
+std::map<std::string, CRMessageBase::SubscriptionInfo>* CRMessageBase::GetSubscriptionMap() {
+    static std::map<std::string, SubscriptionInfo> subscription_map;
+    return &subscription_map;
+};
 
 void CRMessageBase::Dispatch(const CRMessageBasePtr& message) {
-    auto* subscription_list = GetSubscriptionList(message->GetMessageTypeName());
-    if (!subscription_list) {
+    auto* subscription_info = GetSubscriptionInfo(message->GetMessageTypeName());
+    if (!subscription_info) {
         return;
     }
-    for (auto&& node : *subscription_list) {
+    for (auto&& node : subscription_info->sub_list_) {
         auto* queue = node->MessageQueueMapper(message);
         if (!queue) [[unlikely]] {
             LOG(ERROR) << __func__ << ": node: " << node << ", no queue for message " << message->GetMessageTypeName()
@@ -28,19 +28,21 @@ void CRMessageBase::Dispatch(const CRMessageBasePtr& message) {
         queue->AddMessage(CRMessageBasePtr(message));
         node->Kick();
     }
+    subscription_info->latest_delivered_time_.store(GetSystemTimestampNsec());
 }
 
 void CRMessageBase::Subscribe(const std::string& message_type, CRNodeBase* node) {
-    impl::subscription_map[message_type].emplace_back(node);
+    (*GetSubscriptionMap())[message_type].sub_list_.emplace_back(node);
 }
 
 void CRMessageBase::Unsubscribe(const std::string& message_type, CRNodeBase* node) {
-    auto subscription_map_search = impl::subscription_map.find(message_type);
-    if (subscription_map_search == impl::subscription_map.end()) {
+    auto* subscription_map        = GetSubscriptionMap();
+    auto  subscription_map_search = subscription_map->find(message_type);
+    if (subscription_map_search == subscription_map->end()) {
         LOG(WARNING) << __func__ << ": message '" << message_type << "' is unknown.";
         return;
     }
-    auto& subscription_list        = subscription_map_search->second;
+    auto& subscription_list        = subscription_map_search->second.sub_list_;
     auto  subscription_list_search = std::find(subscription_list.begin(), subscription_list.end(), node);
     if (subscription_list_search == subscription_list.end()) {
         LOG(WARNING) << __func__ << ": message '" << message_type << "' is not subscribed by node " << node;
@@ -50,9 +52,22 @@ void CRMessageBase::Unsubscribe(const std::string& message_type, CRNodeBase* nod
     subscription_list.pop_back();
 }
 
-const CRMessageBase::subscription_list_t* CRMessageBase::GetSubscriptionList(const std::string& message_type) {
-    auto subscription_find = impl::subscription_map.find(message_type);
-    if (subscription_find == impl::subscription_map.end()) [[unlikely]] {
+cr_timestamp_nsec_t CRMessageBase::GetLatestDeliveredTimeImpl(const std::string& message_type) {
+    constexpr cr_timestamp_nsec_t kDefaultDeliveredTime = 0;
+
+    auto* subscription_map        = GetSubscriptionMap();
+    auto  subscription_map_search = subscription_map->find(message_type);
+    if (subscription_map_search == subscription_map->end()) {
+        LOG(WARNING) << __func__ << ": message '" << message_type << "' is unknown.";
+        return kDefaultDeliveredTime;
+    }
+    return subscription_map_search->second.latest_delivered_time_.load();
+}
+
+CRMessageBase::SubscriptionInfo* CRMessageBase::GetSubscriptionInfo(const std::string& message_type) {
+    auto* subscription_map  = GetSubscriptionMap();
+    auto  subscription_find = subscription_map->find(message_type);
+    if (subscription_find == subscription_map->end()) [[unlikely]] {
         return nullptr;
     }
     return &subscription_find->second;

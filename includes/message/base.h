@@ -1,6 +1,7 @@
 #pragma once
 
 #include "cris/core/defs.h"
+#include "cris/core/timer/timer.h"
 
 #include <memory>
 #include <string>
@@ -20,8 +21,6 @@ concept CRMessageCallbackType = std::is_base_of_v<CRMessageBase, message_t> &&
 
 class CRMessageBase {
    public:
-    using subscription_list_t = std::vector<CRNodeBase*>;
-
     CRMessageBase() = default;
 
     CRMessageBase(const CRMessageBase&) = delete;
@@ -37,6 +36,9 @@ class CRMessageBase {
     template<CRMessageType message_t>
     static std::string GetMessageTypeName();
 
+    template<CRMessageType message_t>
+    static cr_timestamp_nsec_t GetLatestDeliveredTime();
+
     static void Dispatch(const std::shared_ptr<CRMessageBase>& message);
 
    private:
@@ -48,7 +50,17 @@ class CRMessageBase {
     // when messages are coming
     static void Unsubscribe(const std::string& message_type, CRNodeBase* node);
 
-    static const subscription_list_t* GetSubscriptionList(const std::string& message_type);
+    static cr_timestamp_nsec_t GetLatestDeliveredTimeImpl(const std::string& message_type);
+
+    class SubscriptionInfo {
+       public:
+        std::atomic<cr_timestamp_nsec_t> latest_delivered_time_{0};
+        std::vector<CRNodeBase*>         sub_list_;
+    };
+
+    static std::map<std::string, SubscriptionInfo>* GetSubscriptionMap();
+
+    static SubscriptionInfo* GetSubscriptionInfo(const std::string& message_type);
 
     friend class CRNode;
 };
@@ -64,6 +76,11 @@ class CRMessage : public CRMessageBase {
 template<CRMessageType message_t>
 std::string CRMessageBase::GetMessageTypeName() {
     return GetTypeName<message_t>();
+}
+
+template<CRMessageType message_t>
+cr_timestamp_nsec_t CRMessageBase::GetLatestDeliveredTime() {
+    return GetLatestDeliveredTimeImpl(GetMessageTypeName<message_t>());
 }
 
 }  // namespace cris::core

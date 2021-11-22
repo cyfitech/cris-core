@@ -5,8 +5,9 @@
 
 namespace cris::core {
 
-struct TestMessageType1 : public CRMessage<TestMessageType1> {
-    explicit TestMessageType1(int value) : value_(value) {}
+template<int idx>
+struct TestMessage : public CRMessage<TestMessage<idx>> {
+    explicit TestMessage(int value) : value_(value) {}
 
     int value_;
 };
@@ -36,16 +37,16 @@ struct SimpleTestNode : public CRSingleQueueNode<> {
 
 TEST(MessageTest, Basics) {
     // name
-    CRMessageBasePtr message = std::make_shared<TestMessageType1>(1);
-    EXPECT_EQ(CRMessageBase::GetMessageTypeName<TestMessageType1>(), GetTypeName<TestMessageType1>());
-    EXPECT_EQ(message->GetMessageTypeName(), GetTypeName<TestMessageType1>());
+    CRMessageBasePtr message = std::make_shared<TestMessage<1>>(1);
+    EXPECT_EQ(CRMessageBase::GetMessageTypeName<TestMessage<1>>(), GetTypeName<TestMessage<1>>());
+    EXPECT_EQ(message->GetMessageTypeName(), GetTypeName<TestMessage<1>>());
 
     // empty dispatch
     CRMessageBase::Dispatch(message);
 }
 
 TEST(MessageTest, Subscribe) {
-    CRMessageBasePtr message = std::make_shared<TestMessageType1>(1);
+    CRMessageBasePtr message = std::make_shared<TestMessage<1>>(1);
 
     // Dispatch message
     {
@@ -53,9 +54,9 @@ TEST(MessageTest, Subscribe) {
         int            value = 0;
         SimpleTestNode node(1);
 
-        node.Subscribe<TestMessageType1>([&](const CRMessageBasePtr& message) {
+        node.Subscribe<TestMessage<1>>([&](const CRMessageBasePtr& message) {
             ++count;
-            value = static_pointer_cast<TestMessageType1>(message)->value_;
+            value = static_pointer_cast<TestMessage<1>>(message)->value_;
         });
 
         CRMessageBase::Dispatch(message);
@@ -72,60 +73,119 @@ TEST(MessageTest, Subscribe) {
         int            count1 = 0;
         int            value1 = 0;
         SimpleTestNode node1(1);
-        node1.Subscribe<TestMessageType1>([&](const CRMessageBasePtr& message) {
+        node1.Subscribe<TestMessage<1>>([&](const CRMessageBasePtr& message) {
             ++count1;
-            value1 = static_pointer_cast<TestMessageType1>(message)->value_;
+            value1 = static_pointer_cast<TestMessage<1>>(message)->value_;
         });
 
         int            count2 = 0;
         int            value2 = 0;
         SimpleTestNode node2(1);
-        node2.Subscribe<TestMessageType1>([&](const CRMessageBasePtr& message) {
+        node2.Subscribe<TestMessage<1>>([&](const CRMessageBasePtr& message) {
             ++count2;
-            value2 = static_pointer_cast<TestMessageType1>(message)->value_;
+            value2 = static_pointer_cast<TestMessage<1>>(message)->value_;
         });
 
         int            count3 = 0;
         int            value3 = 0;
         SimpleTestNode node3(1);
-        node3.Subscribe<TestMessageType1>([&](const CRMessageBasePtr& message) {
+        node3.Subscribe<TestMessage<1>>([&](const CRMessageBasePtr& message) {
             ++count3;
-            value3 = static_pointer_cast<TestMessageType1>(message)->value_;
+            value3 = static_pointer_cast<TestMessage<1>>(message)->value_;
         });
 
-        CRMessageBasePtr message1 = std::make_shared<TestMessageType1>(100);
+        CRMessageBasePtr message1 = std::make_shared<TestMessage<1>>(100);
         CRMessageBase::Dispatch(message1);
 
         node1.Process();
         EXPECT_EQ(count1, 1);
-        EXPECT_EQ(value1, static_pointer_cast<TestMessageType1>(message1)->value_);
+        EXPECT_EQ(value1, static_pointer_cast<TestMessage<1>>(message1)->value_);
 
         node2.Process();
         EXPECT_EQ(count2, 1);
-        EXPECT_EQ(value2, static_pointer_cast<TestMessageType1>(message1)->value_);
+        EXPECT_EQ(value2, static_pointer_cast<TestMessage<1>>(message1)->value_);
 
         node3.Process();
         EXPECT_EQ(count3, 1);
-        EXPECT_EQ(value3, static_pointer_cast<TestMessageType1>(message1)->value_);
+        EXPECT_EQ(value3, static_pointer_cast<TestMessage<1>>(message1)->value_);
 
-        CRMessageBasePtr message2 = std::make_shared<TestMessageType1>(200);
+        CRMessageBasePtr message2 = std::make_shared<TestMessage<1>>(200);
         CRMessageBase::Dispatch(message2);
 
         node1.Process();
         EXPECT_EQ(count1, 2);
-        EXPECT_EQ(value1, static_pointer_cast<TestMessageType1>(message2)->value_);
+        EXPECT_EQ(value1, static_pointer_cast<TestMessage<1>>(message2)->value_);
 
         node2.Process();
         EXPECT_EQ(count2, 2);
-        EXPECT_EQ(value2, static_pointer_cast<TestMessageType1>(message2)->value_);
+        EXPECT_EQ(value2, static_pointer_cast<TestMessage<1>>(message2)->value_);
 
         node3.Process();
         EXPECT_EQ(count3, 2);
-        EXPECT_EQ(value3, static_pointer_cast<TestMessageType1>(message2)->value_);
+        EXPECT_EQ(value3, static_pointer_cast<TestMessage<1>>(message2)->value_);
     }
 
     // empty dispatch
     CRMessageBase::Dispatch(message);
+}
+
+TEST(MessageTest, DeliveredTime) {
+    constexpr cr_timestamp_nsec_t kDefaultTimestamp = 0;
+
+    // Unknown/Unsent Message Type
+    EXPECT_EQ(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(), kDefaultTimestamp);
+    EXPECT_EQ(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(), kDefaultTimestamp);
+    EXPECT_EQ(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), kDefaultTimestamp);
+
+    SimpleTestNode node12(1);
+    SimpleTestNode node23(1);
+    SimpleTestNode node13(1);
+
+    node12.Subscribe<TestMessage<100>>([](auto&&) {});
+    node12.Subscribe<TestMessage<200>>([](auto&&) {});
+
+    node23.Subscribe<TestMessage<200>>([](auto&&) {});
+    node23.Subscribe<TestMessage<300>>([](auto&&) {});
+
+    node13.Subscribe<TestMessage<100>>([](auto&&) {});
+    node13.Subscribe<TestMessage<300>>([](auto&&) {});
+
+    constexpr auto kRepeatTime = 5;
+
+    for (int i = 0; i < kRepeatTime; ++i) {
+        {
+            auto start_time = GetSystemTimestampNsec();
+            CRMessageBase::Dispatch(std::make_shared<TestMessage<100>>(0));
+            auto end_time = GetSystemTimestampNsec();
+
+            EXPECT_GT(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(), start_time);
+            EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(), end_time);
+            EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(), start_time);
+            EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), start_time);
+        }
+
+        {
+            auto start_time = GetSystemTimestampNsec();
+            CRMessageBase::Dispatch(std::make_shared<TestMessage<200>>(0));
+            auto end_time = GetSystemTimestampNsec();
+
+            EXPECT_GT(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(), start_time);
+            EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), end_time);
+            EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(), start_time);
+            EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), start_time);
+        }
+
+        {
+            auto start_time = GetSystemTimestampNsec();
+            CRMessageBase::Dispatch(std::make_shared<TestMessage<300>>(0));
+            auto end_time = GetSystemTimestampNsec();
+
+            EXPECT_GT(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), start_time);
+            EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), end_time);
+            EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(), start_time);
+            EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(), start_time);
+        }
+    }
 }
 
 }  // namespace cris::core
