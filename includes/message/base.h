@@ -44,7 +44,7 @@ class CRMessageBase {
    private:
     // Not thread-safe, do not call concurrently nor call it
     // when messages are coming
-    static void Subscribe(const std::string& message_type, CRNodeBase* node);
+    static bool Subscribe(const std::string& message_type, CRNodeBase* node);
 
     // Not thread-safe, do not call concurrently nor call it
     // when messages are coming

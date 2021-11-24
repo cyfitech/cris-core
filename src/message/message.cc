@@ -31,8 +31,16 @@ void CRMessageBase::Dispatch(const CRMessageBasePtr& message) {
     subscription_info->latest_delivered_time_.store(GetSystemTimestampNsec());
 }
 
-void CRMessageBase::Subscribe(const std::string& message_type, CRNodeBase* node) {
-    (*GetSubscriptionMap())[message_type].sub_list_.emplace_back(node);
+bool CRMessageBase::Subscribe(const std::string& message_type, CRNodeBase* node) {
+    auto& subscription_list = (*GetSubscriptionMap())[message_type].sub_list_;
+
+    if (std::find(subscription_list.begin(), subscription_list.end(), node) != subscription_list.end()) {
+        LOG(WARNING) << __func__ << ": Message type '" << message_type << " is subscribed by the node " << node
+                     << ", skipping subscription.";
+        return false;
+    }
+    subscription_list.emplace_back(node);
+    return true;
 }
 
 void CRMessageBase::Unsubscribe(const std::string& message_type, CRNodeBase* node) {

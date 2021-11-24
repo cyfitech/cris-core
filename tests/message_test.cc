@@ -3,6 +3,8 @@
 
 #include "gtest/gtest.h"
 
+#include <cstdlib>
+
 namespace cris::core {
 
 template<int idx>
@@ -57,6 +59,12 @@ TEST(MessageTest, Subscribe) {
         node.Subscribe<TestMessage<1>>([&](const CRMessageBasePtr& message) {
             ++count;
             value = static_pointer_cast<TestMessage<1>>(message)->value_;
+        });
+
+        // duplicate subscription, first one wins
+        node.Subscribe<TestMessage<1>>([&](const CRMessageBasePtr &) {
+            // never enters
+            std::abort();
         });
 
         CRMessageBase::Dispatch(message);

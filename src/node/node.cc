@@ -20,14 +20,10 @@ void CRNode::WaitForMessageImpl(std::chrono::nanoseconds timeout) {
 }
 
 void CRNode::SubscribeImpl(std::string&& message_name, std::function<void(const CRMessageBasePtr&)>&& callback) {
-    if (std::find(subscribed_.begin(), subscribed_.end(), message_name) != subscribed_.end()) {
-        LOG(WARNING) << __func__ << ": Message type '" << message_name << " is subscribed by the current node " << this
-                     << ", skipping subscription.";
+    if (!CRMessageBase::Subscribe(message_name, this)) {
         return;
     }
     subscribed_.push_back(message_name);
-
-    CRMessageBase::Subscribe(message_name, this);
     return SubscribeHandler(std::move(message_name), std::move(callback));
 }
 
