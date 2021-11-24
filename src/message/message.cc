@@ -43,8 +43,8 @@ bool CRMessageBase::Subscribe(const std::string& message_type, CRNodeBase* node)
 }
 
 void CRMessageBase::Unsubscribe(const std::string& message_type, CRNodeBase* node) {
-    const auto* subscription_map        = GetSubscriptionMap();
-    const auto  subscription_map_search = subscription_map->find(message_type);
+    auto* subscription_map        = GetSubscriptionMap();
+    auto  subscription_map_search = subscription_map->find(message_type);
     if (subscription_map_search == subscription_map->end()) {
         LOG(WARNING) << __func__ << ": message '" << message_type << "' is unknown.";
         return;
