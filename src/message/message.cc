@@ -50,14 +50,10 @@ void CRMessageBase::Unsubscribe(const std::string& message_type, CRNodeBase* nod
         LOG(WARNING) << __func__ << ": message '" << message_type << "' is unknown.";
         return;
     }
-    auto& subscription_list        = subscription_map_search->second.sub_list_;
-    auto  subscription_list_search = std::find(subscription_list.begin(), subscription_list.end(), node);
-    if (subscription_list_search == subscription_list.end()) {
+
+    if (!std::erase(subscription_map_search->second.sub_list_, node)) {
         LOG(WARNING) << __func__ << ": message '" << message_type << "' is not subscribed by node " << node;
-        return;
     }
-    std::swap(*subscription_list_search, subscription_list.back());
-    subscription_list.pop_back();
 }
 
 cr_timestamp_nsec_t CRMessageBase::GetLatestDeliveredTimeImpl(const std::string& message_type) {
