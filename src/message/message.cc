@@ -3,7 +3,6 @@
 
 #include <glog/logging.h>
 
-#include <atomic>
 #include <map>
 
 namespace cris::core {
@@ -44,8 +43,8 @@ bool CRMessageBase::Subscribe(const std::string& message_type, CRNodeBase* node)
 }
 
 void CRMessageBase::Unsubscribe(const std::string& message_type, CRNodeBase* node) {
-    auto* subscription_map        = GetSubscriptionMap();
-    auto  subscription_map_search = subscription_map->find(message_type);
+    const auto* subscription_map        = GetSubscriptionMap();
+    const auto  subscription_map_search = subscription_map->find(message_type);
     if (subscription_map_search == subscription_map->end()) {
         LOG(WARNING) << __func__ << ": message '" << message_type << "' is unknown.";
         return;
@@ -71,7 +70,7 @@ cr_timestamp_nsec_t CRMessageBase::GetLatestDeliveredTimeImpl(const std::string&
 CRMessageBase::SubscriptionInfo* CRMessageBase::GetSubscriptionInfo(const std::string& message_type) {
     auto* subscription_map  = GetSubscriptionMap();
     auto  subscription_find = subscription_map->find(message_type);
-    if (subscription_find == subscription_map->end()) [[unlikely]] {
+    if (subscription_find == subscription_map->end()) {
         return nullptr;
     }
     return &subscription_find->second;

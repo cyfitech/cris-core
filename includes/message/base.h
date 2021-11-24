@@ -3,6 +3,8 @@
 #include "cris/core/defs.h"
 #include "cris/core/timer/timer.h"
 
+#include <atomic>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
