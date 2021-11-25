@@ -72,7 +72,7 @@ class TimerStatCollector {
 
     void Report(size_t index, cr_dutration_nsec_t duration);
 
-    static TimerStatCollector *GetTimerStatsCollector();
+    static TimerStatCollector* GetTimerStatsCollector();
 
     // The size of the collector entry is not large enough to hold the
     // timer stats for the entire lifestyle of the process, so the collector
@@ -107,19 +107,19 @@ class TimerStatTotal {
     struct StatTotalEntry {
         std::array<StatTotalEntryBucket, kTimerEntryBucketNum> duration_buckets_;
 
-        void Merge(const TimerStatCollector::CollectorEntry &entry);
+        void Merge(const TimerStatCollector::CollectorEntry& entry);
     };
 
-    void Merge(const TimerStatCollector &collector);
+    void Merge(const TimerStatCollector& collector);
 
     void Clear();
 
     std::shared_lock<std::shared_mutex> LockForRead();
 
     // call with LockForRead
-    std::unique_ptr<TimerReport> GetReport(const std::string &section_name, size_t entry_index) const;
+    std::unique_ptr<TimerReport> GetReport(const std::string& section_name, size_t entry_index) const;
 
-    static TimerStatTotal *GetTimerStatsTotal();
+    static TimerStatTotal* GetTimerStatsTotal();
 
    private:
     static constexpr auto kCollectorSize = TimerStatCollector::kCollectorSize;
@@ -156,7 +156,7 @@ std::atomic<size_t>                                                       TimerS
 std::array<TimerStatCollector, TimerStatCollector::kRotatingCollectorNum> TimerStatCollector::rotating_collectors;
 std::mutex                                                                TimerStatCollector::rotating_mutex;
 
-TimerStatCollector *TimerStatCollector::GetTimerStatsCollector() {
+TimerStatCollector* TimerStatCollector::GetTimerStatsCollector() {
     return &rotating_collectors[current_collector_id.load()];
 }
 
@@ -215,8 +215,8 @@ void TimerStatCollector::Report(size_t index, cr_dutration_nsec_t duration) {
 }
 
 void TimerStatCollector::Clear() {
-    for (auto &&entry : collector_entries_) {
-        for (auto &&bucket : entry.duration_buckets_) {
+    for (auto&& entry : collector_entries_) {
+        for (auto&& bucket : entry.duration_buckets_) {
             bucket.hit_and_total_duration_.store(0);
         }
     }
@@ -225,7 +225,7 @@ void TimerStatCollector::Clear() {
 TimerStatTotal::TimerStatTotal() : last_clear_time_(GetSystemTimestampNsec()), last_merge_time_(last_clear_time_) {
 }
 
-void TimerStatTotal::Merge(const TimerStatCollector &collector) {
+void TimerStatTotal::Merge(const TimerStatCollector& collector) {
     std::unique_lock lock(stat_total_mutex_);
     for (size_t i = 0; i < kCollectorSize; ++i) {
         stat_entries_[i].Merge(collector.collector_entries_[i]);
@@ -244,9 +244,9 @@ std::shared_lock<std::shared_mutex> TimerStatTotal::LockForRead() {
     return std::shared_lock(stat_total_mutex_);
 }
 
-std::unique_ptr<TimerReport> TimerStatTotal::GetReport(const std::string &section_name, size_t entry_index) const {
+std::unique_ptr<TimerReport> TimerStatTotal::GetReport(const std::string& section_name, size_t entry_index) const {
     auto  report             = std::make_unique<TimerReport>();
-    auto &entry              = stat_entries_[entry_index];
+    auto& entry              = stat_entries_[entry_index];
     report->section_name_    = section_name;
     report->timing_duration_ = last_merge_time_ - last_clear_time_;
     for (size_t i = 0; i < kTimerEntryBucketNum; ++i) {
@@ -258,12 +258,12 @@ std::unique_ptr<TimerReport> TimerStatTotal::GetReport(const std::string &sectio
     return report;
 }
 
-TimerStatTotal *TimerStatTotal::GetTimerStatsTotal() {
+TimerStatTotal* TimerStatTotal::GetTimerStatsTotal() {
     static TimerStatTotal total;
     return &total;
 }
 
-void TimerStatTotal::StatTotalEntry::Merge(const TimerStatCollector::CollectorEntry &entry) {
+void TimerStatTotal::StatTotalEntry::Merge(const TimerStatCollector::CollectorEntry& entry) {
     union {
         uint64_t                                      raw;
         TimerStatCollector::HitAndTotalDurationType<> stat;
@@ -271,7 +271,7 @@ void TimerStatTotal::StatTotalEntry::Merge(const TimerStatCollector::CollectorEn
 
     for (size_t i = 0; i < kTimerEntryBucketNum; ++i) {
         data_to_merge.raw = entry.duration_buckets_[i].hit_and_total_duration_.load();
-        auto &bucket      = duration_buckets_[i];
+        auto& bucket      = duration_buckets_[i];
         bucket.hits += data_to_merge.stat.hits;
         bucket.total_duration_ns += data_to_merge.stat.total_duration_ns;
     }
@@ -300,7 +300,7 @@ void TimerStatRotater::RotateWorker() {
     }
 }
 
-void TimerReport::AddSubsection(std::unique_ptr<TimerReport> &&subsection) {
+void TimerReport::AddSubsection(std::unique_ptr<TimerReport>&& subsection) {
     auto subsection_name = subsection->GetSectionName();
     auto result          = subsections_.emplace(subsection_name, std::move(subsection));
     if (!result.second) {
@@ -314,7 +314,7 @@ std::string TimerReport::GetSectionName() const {
 
 uint64_t TimerReport::GetTotalHits() const {
     uint64_t total_hits = 0;
-    for (const auto &bucket : report_buckets_) {
+    for (const auto& bucket : report_buckets_) {
         total_hits += bucket.hits_;
     }
     return total_hits;
@@ -330,7 +330,7 @@ double TimerReport::GetFreq() const {
 cr_dutration_nsec_t TimerReport::GetAverageDurationNsec() const {
     uint64_t            total_hits         = 0;
     cr_dutration_nsec_t total_duration_sum = 0;
-    for (const auto &bucket : report_buckets_) {
+    for (const auto& bucket : report_buckets_) {
         total_hits += bucket.hits_;
         total_duration_sum += bucket.session_duration_sum_;
     }
@@ -355,7 +355,7 @@ cr_dutration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
     }
 
     uint64_t current_hits = 0;
-    for (const auto &bucket : report_buckets_) {
+    for (const auto& bucket : report_buckets_) {
         current_hits += bucket.hits_;
         if (current_hits >= target_hits) {
             return bucket.session_duration_sum_ / bucket.hits_;
@@ -392,7 +392,7 @@ void TimerReport::PrintToLog(int indent_level) const {
     if (!subsections_.empty()) {
         LOG(WARNING) << indent << "Subsections:";
         LOG(WARNING);
-        for (auto &&subsection : subsections_) {
+        for (auto&& subsection : subsections_) {
             subsection.second->PrintToLog(indent_level + 1);
         }
     }
@@ -407,14 +407,14 @@ TimerSession::~TimerSession() {
     EndSession();
 }
 
-TimerSection *TimerSection::GetMainSection() {
+TimerSection* TimerSection::GetMainSection() {
     static TimerSection main_section("main", collector_index_count.fetch_add(1), {});
 
     // Launching rotating before starting profiling
     static TimerStatRotater rotater;
 
     // Initializing stat total to record the start time of profiling.
-    [[maybe_unused]] static TimerStatTotal *total = TimerStatTotal::GetTimerStatsTotal();
+    [[maybe_unused]] static TimerStatTotal* total = TimerStatTotal::GetTimerStatsTotal();
 
     return &main_section;
 }
@@ -423,7 +423,7 @@ void TimerSection::FlushCollectedStats() {
     TimerStatCollector::RotateCollector();
 }
 
-TimerSection::TimerSection(const std::string &name, size_t collector_index, CtorPermission)
+TimerSection::TimerSection(const std::string& name, size_t collector_index, CtorPermission)
     : name_(name)
     , collector_index_(collector_index) {
 }
@@ -442,18 +442,18 @@ TimerSession TimerSection::StartTimerSession() {
 }
 
 std::unique_ptr<TimerReport> TimerSection::GetReport(bool recursive) {
-    auto *total     = TimerStatTotal::GetTimerStatsTotal();
+    auto* total     = TimerStatTotal::GetTimerStatsTotal();
     auto  read_lock = total->LockForRead();
     auto  report    = total->GetReport(name_, collector_index_);
     if (recursive) {
-        for (auto &&entry : subsections_) {
+        for (auto&& entry : subsections_) {
             report->AddSubsection(entry.second->GetReport(recursive));
         }
     }
     return report;
 }
 
-TimerSection *TimerSection::SubSection(const std::string &name) {
+TimerSection* TimerSection::SubSection(const std::string& name) {
     auto search = subsections_.find(name);
     if (search != subsections_.end()) {
         return search->second.get();

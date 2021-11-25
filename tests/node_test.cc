@@ -8,13 +8,13 @@
 namespace cris::core {
 
 class TrivialNodeForTest : public CRNode {
-    CRMessageQueue *MessageQueueMapper(const CRMessageBasePtr &message) override { return nullptr; }
+    CRMessageQueue* MessageQueueMapper(const CRMessageBasePtr& message) override { return nullptr; }
 
    private:
-    void SubscribeHandler(std::string &&message_name, std::function<void(const CRMessageBasePtr &)> &&callback)
+    void SubscribeHandler(std::string&& message_name, std::function<void(const CRMessageBasePtr&)>&& callback)
         override {}
 
-    std::vector<CRMessageQueue *> GetNodeQueues() override { return {}; }
+    std::vector<CRMessageQueue*> GetNodeQueues() override { return {}; }
 };
 
 TEST(NodeTest, WaitAndUnblock) {
@@ -36,7 +36,7 @@ TEST(NodeTest, WaitAndUnblock) {
     node.Kick();
     std::this_thread::sleep_for(std::chrono::milliseconds(200));
     ASSERT_EQ(unblocked.load(), kThreadNum);
-    for (auto &&thread : threads) {
+    for (auto&& thread : threads) {
         thread.join();
     }
 }
@@ -59,7 +59,7 @@ TEST(NodeTest, WaitAndTimeout) {
     EXPECT_EQ(unblocked.load(), 0);
     std::this_thread::sleep_for(std::chrono::seconds(1));
     ASSERT_EQ(unblocked.load(), kThreadNum);
-    for (auto &&thread : threads) {
+    for (auto&& thread : threads) {
         thread.join();
     }
 }
@@ -72,10 +72,10 @@ TEST(NodeTest, MultiQueueNode) {
     constexpr size_t              kNumOfTopics = 4;
     std::array<int, kNumOfTopics> received{0};
 
-    node.Subscribe<TestMessage<0>>([&received](const std::shared_ptr<TestMessage<0>> &) { ++received[0]; });
-    node.Subscribe<TestMessage<1>>([&received](const std::shared_ptr<TestMessage<1>> &) { ++received[1]; });
-    node.Subscribe<TestMessage<2>>([&received](const std::shared_ptr<TestMessage<2>> &) { ++received[2]; });
-    node.Subscribe<TestMessage<3>>([&received](const std::shared_ptr<TestMessage<3>> &) { ++received[3]; });
+    node.Subscribe<TestMessage<0>>([&received](const std::shared_ptr<TestMessage<0>>&) { ++received[0]; });
+    node.Subscribe<TestMessage<1>>([&received](const std::shared_ptr<TestMessage<1>>&) { ++received[1]; });
+    node.Subscribe<TestMessage<2>>([&received](const std::shared_ptr<TestMessage<2>>&) { ++received[2]; });
+    node.Subscribe<TestMessage<3>>([&received](const std::shared_ptr<TestMessage<3>>&) { ++received[3]; });
 
     {
         constexpr int message_type_idx = 0;

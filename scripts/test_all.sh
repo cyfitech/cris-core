@@ -4,14 +4,11 @@ set -e
 
 cd "$(dirname "$0")/.."
 
-for cmd in bazel; do
-    which "$cmd" >/dev/null
-done
-
+. scripts/codebase_utils.sh
 . scripts/toolchain.sh
 
 ! which ccache >/dev/null 2>&1 || ccache -z
 
-bazel test "$@" '//...'
+bazel_common_all test "$@"
 
 ! which ccache >/dev/null 2>&1 || ccache -s

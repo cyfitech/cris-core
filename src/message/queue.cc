@@ -6,14 +6,14 @@
 
 namespace cris::core {
 
-CRMessageQueue::CRMessageQueue(CRNodeBase *node, message_processor_t &&processor)
+CRMessageQueue::CRMessageQueue(CRNodeBase* node, message_processor_t&& processor)
     : node_(node)
     , processor_(std::move(processor)) {
     auto node_name = node_ ? node_->GetName() : "null";
     LOG(INFO) << __func__ << ": " << this << " initialized for node " << node_name << "(" << node_ << ")";
 }
 
-void CRMessageQueue::Process(const CRMessageBasePtr &message) {
+void CRMessageQueue::Process(const CRMessageBasePtr& message) {
     processor_(message);
 }
 

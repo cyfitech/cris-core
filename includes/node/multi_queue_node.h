@@ -12,17 +12,16 @@ class CRMultiQueueNodeBase : public CRNode {
    public:
     explicit CRMultiQueueNodeBase(size_t queue_capacity) : queue_capacity_(queue_capacity) {}
 
-    CRMessageQueue *MessageQueueMapper(const CRMessageBasePtr &message) override;
+    CRMessageQueue* MessageQueueMapper(const CRMessageBasePtr& message) override;
 
    protected:
-    using queue_callback_t = std::function<void(const CRMessageBasePtr &)>;
+    using queue_callback_t = std::function<void(const CRMessageBasePtr&)>;
 
-    virtual std::unique_ptr<CRMessageQueue> MakeMessageQueue(queue_callback_t &&callback) = 0;
+    virtual std::unique_ptr<CRMessageQueue> MakeMessageQueue(queue_callback_t&& callback) = 0;
 
-    void SubscribeHandler(std::string &&message_name, std::function<void(const CRMessageBasePtr &)> &&callback)
-        override;
+    void SubscribeHandler(std::string&& message_name, std::function<void(const CRMessageBasePtr&)>&& callback) override;
 
-    std::vector<CRMessageQueue *> GetNodeQueues() override;
+    std::vector<CRMessageQueue*> GetNodeQueues() override;
 
     size_t                                                 queue_capacity_;
     std::map<std::string, std::unique_ptr<CRMessageQueue>> queues_{};
@@ -36,11 +35,11 @@ class CRMultiQueueNode : public CRMultiQueueNodeBase {
    private:
     using queue_callback_t = CRMultiQueueNodeBase::queue_callback_t;
 
-    std::unique_ptr<CRMessageQueue> MakeMessageQueue(queue_callback_t &&callback) override;
+    std::unique_ptr<CRMessageQueue> MakeMessageQueue(queue_callback_t&& callback) override;
 };
 
 template<CRMessageQueueType queue_t>
-std::unique_ptr<CRMessageQueue> CRMultiQueueNode<queue_t>::MakeMessageQueue(queue_callback_t &&callback) {
+std::unique_ptr<CRMessageQueue> CRMultiQueueNode<queue_t>::MakeMessageQueue(queue_callback_t&& callback) {
     return std::make_unique<queue_t>(queue_capacity_, this, std::move(callback));
 }
 

@@ -13,11 +13,11 @@ struct TestMessageType1 : public CRMessage<TestMessageType1> {
 struct TestQueue {
     void Test();
 
-    virtual CRMessageQueue *GetQueue() = 0;
+    virtual CRMessageQueue* GetQueue() = 0;
 
     virtual ~TestQueue() = default;
 
-    void Processor(const CRMessageBasePtr &message) {
+    void Processor(const CRMessageBasePtr& message) {
         last_value_ = static_pointer_cast<TestMessageType1>(message)->value_;
     };
 
@@ -31,7 +31,7 @@ struct TestQueue {
 struct TestLockQueue : public TestQueue {
     TestLockQueue() : queue_(kQueueSize, nullptr, std::bind(&TestQueue::Processor, this, std::placeholders::_1)) {}
 
-    CRMessageQueue *GetQueue() override { return &queue_; }
+    CRMessageQueue* GetQueue() override { return &queue_; }
 
     CRMessageLockQueue queue_;
 };
