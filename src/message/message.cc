@@ -55,7 +55,7 @@ void CRMessageBase::Unsubscribe(const std::string& message_type, CRNodeBase* nod
     }
 }
 
-cr_timestamp_nsec_t CRMessageBase::GetLatestDeliveredTimeImpl(const std::string& message_type) {
+cr_timestamp_nsec_t CRMessageBase::GetLatestDeliveredTime(const std::string& message_type) {
     constexpr cr_timestamp_nsec_t kDefaultDeliveredTime = 0;
 
     auto* subscription_map        = GetSubscriptionMap();

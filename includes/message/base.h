@@ -41,6 +41,8 @@ class CRMessageBase {
     template<CRMessageType message_t>
     static cr_timestamp_nsec_t GetLatestDeliveredTime();
 
+    static cr_timestamp_nsec_t GetLatestDeliveredTime(const std::string& message_type);
+
     static void Dispatch(const std::shared_ptr<CRMessageBase>& message);
 
    private:
@@ -51,8 +53,6 @@ class CRMessageBase {
     // Not thread-safe, do not call concurrently nor call it
     // when messages are coming
     static void Unsubscribe(const std::string& message_type, CRNodeBase* node);
-
-    static cr_timestamp_nsec_t GetLatestDeliveredTimeImpl(const std::string& message_type);
 
     class SubscriptionInfo {
        public:
@@ -82,7 +82,7 @@ std::string CRMessageBase::GetMessageTypeName() {
 
 template<CRMessageType message_t>
 cr_timestamp_nsec_t CRMessageBase::GetLatestDeliveredTime() {
-    return GetLatestDeliveredTimeImpl(GetMessageTypeName<message_t>());
+    return GetLatestDeliveredTime(GetMessageTypeName<message_t>());
 }
 
 }  // namespace cris::core
