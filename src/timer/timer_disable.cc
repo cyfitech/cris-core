@@ -8,7 +8,7 @@
 
 namespace cris::core {
 
-void TimerReport::AddSubsection(std::unique_ptr<TimerReport> &&) {
+void TimerReport::AddSubsection(std::unique_ptr<TimerReport>&&) {
 }
 
 std::string TimerReport::GetSectionName() const {
@@ -34,12 +34,12 @@ cr_dutration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
 void TimerReport::PrintToLog(int indent_level) const {
 }
 
-TimerSection *TimerSection::GetMainSection() {
+TimerSection* TimerSection::GetMainSection() {
     static TimerSection main_section("main", 0, {});
     return &main_section;
 }
 
-TimerSection::TimerSection(const std::string &name, size_t collector_index, CtorPermission)
+TimerSection::TimerSection(const std::string& name, size_t collector_index, CtorPermission)
     : name_(name)
     , collector_index_(collector_index) {
 }
@@ -61,7 +61,7 @@ std::unique_ptr<TimerReport> TimerSection::GetReport(bool recursive) {
     return {};
 }
 
-TimerSection *TimerSection::SubSection(const std::string &name) {
+TimerSection* TimerSection::SubSection(const std::string& name) {
     return this;
 }
 

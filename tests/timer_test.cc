@@ -8,7 +8,7 @@
 namespace cris::core {
 
 template<class T1, class T2>
-void ExpectNear(const T1 &v1, const T2 &v2, float error = 0.05) {
+void ExpectNear(const T1& v1, const T2& v2, float error = 0.05) {
     EXPECT_LT((1 - error) * v2, v1);
     EXPECT_LT(v1, (1 + error) * v2);
 }
@@ -17,11 +17,11 @@ TEST(TimerTest, Basic) {
     std::string section1_name = "section 1";
     std::string section2_name = "subsection 2";
     std::string section3_name = "section 3";
-    auto *      section1      = TimerSection::GetMainSection()->SubSection(section1_name);
+    auto*       section1      = TimerSection::GetMainSection()->SubSection(section1_name);
     ASSERT_NE(section1, nullptr);
-    auto *section2 = section1->SubSection(section2_name);
+    auto* section2 = section1->SubSection(section2_name);
     ASSERT_NE(section2, nullptr);
-    auto *section3 = TimerSection::GetMainSection()->SubSection(section3_name);
+    auto* section3 = TimerSection::GetMainSection()->SubSection(section3_name);
     ASSERT_NE(section3, nullptr);
 
     constexpr auto kTestHits            = 100;
@@ -54,7 +54,7 @@ TEST(TimerTest, Basic) {
     auto report3 = section3->GetReport(false);
 
 #ifdef ENABLE_PROFILING
-    auto &report2 = report1->subsections_[section2_name];
+    auto& report2 = report1->subsections_[section2_name];
     EXPECT_EQ(report1->GetTotalHits(), 1);
     ExpectNear(
         report1->GetAverageDurationNsec(),
@@ -76,7 +76,7 @@ TEST(TimerTest, Basic) {
 }
 
 TEST(TimerTest, PercentileTest) {
-    auto *section = TimerSection::GetMainSection()->SubSection("pecentile test");
+    auto* section = TimerSection::GetMainSection()->SubSection("pecentile test");
     ASSERT_NE(section, nullptr);
 
     {

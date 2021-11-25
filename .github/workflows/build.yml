@@ -12,19 +12,24 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build:20210926
+      image: ghcr.io/cyfitech/cris-build:20211116
     steps:
     - uses: actions/checkout@v2
     - name: Run linter
-      run: make lint
+      run: scripts/format_all.sh
     - name: Check diff
       run: git --no-pager diff --exit-code
 
-  bazel:
+  llvm:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build:20210926
+      image: ghcr.io/cyfitech/cris-build:20211116
     steps:
+    - name: Date
+      id: date
+      run: |
+        date -u '+%F' | xargs printf '::set-output name=date::%s\n'
+        seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
       with:
@@ -32,8 +37,315 @@ jobs:
           /root/.cache/bazel
           /root/.cache/pip
           /root/.ccache
-        key: ghcr.io/cyfitech/cris-build:20210926
+        key: llvm:${{ steps.date.outputs.date }}
+        restore-keys: |
+          llvm:${{ steps.date.outputs.date-0 }}
+          llvm:${{ steps.date.outputs.date-1 }}
+          llvm:${{ steps.date.outputs.date-2 }}
+          llvm:${{ steps.date.outputs.date-3 }}
+          llvm:${{ steps.date.outputs.date-4 }}
+          llvm:${{ steps.date.outputs.date-5 }}
+          llvm:${{ steps.date.outputs.date-6 }}
+          llvm:${{ steps.date.outputs.date-7 }}
+          llvm
+    - name: Config
+      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx
+    - name: Auth
+      env:
+        CRIS_BASE_CI_SSH_PRIVKEY_ECDSA:  ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ECDSA  }}
+        CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA: ${{ secrets.CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA }}
+      run: |
+        # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
+        HOME=/root
+        mkdir -p ~/.ssh
+        for repo in 'cris-base' 'cris-huobi'; do
+            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ECDSA"'"' > ~/".ssh/id_ecdsa_$repo"
+            printf 'Host github_com_%s\n    HostName github.com\n    StrictHostKeyChecking no\n    IdentityFile ~/.ssh/id_ecdsa_%s\n' "$repo" "$repo" >> ~/.ssh/config
+        done
+        chmod go-w ~/.ssh ~/.ssh/config
+        chmod 600 ~/.ssh/id_ecdsa_cris*
+        tree -gpuash ~/.ssh
+    - name: Inject pre-auth hostname
+      run: sed -i 's/\(git@github\)\.\(com\)\(:.*\/\)\([[:alnum:]][[:alnum:]\-]*\)/\1_\2_\4\3\4/' WORKSPACE && git --no-pager diff
+    - name: Sync
+      run: export HOME=/root && scripts/bazel_pull.sh -s
     - name: Build
-      run: export HOME=/root && scripts/build_all.sh -s
+      run: export HOME=/root && CC=clang-12 CXX=clang++-12 scripts/build_all.sh --config=rel --config=lld -s
     - name: Test
-      run: export HOME=/root && scripts/test_all.sh --nocache_test_results --test_output=errors -s
+      run: export HOME=/root && CC=clang-12 CXX=clang++-12 scripts/test_all.sh --config=rel --config=lld --nocache_test_results --test_output=all -s
+    - name: Summary
+      run: export HOME=/root && ccache -X5 && ccache -svx
+
+  gcc:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyfitech/cris-build:20211116
+    steps:
+    - name: Date
+      id: date
+      run: |
+        date -u '+%F' | xargs printf '::set-output name=date::%s'
+        seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: |
+          /root/.cache/bazel
+          /root/.cache/pip
+          /root/.ccache
+        key: gcc:${{ steps.date.outputs.date }}
+        restore-keys: |
+          gcc:${{ steps.date.outputs.date-0 }}
+          gcc:${{ steps.date.outputs.date-1 }}
+          gcc:${{ steps.date.outputs.date-2 }}
+          gcc:${{ steps.date.outputs.date-3 }}
+          gcc:${{ steps.date.outputs.date-4 }}
+          gcc:${{ steps.date.outputs.date-5 }}
+          gcc:${{ steps.date.outputs.date-6 }}
+          gcc:${{ steps.date.outputs.date-7 }}
+          gcc
+    - name: Config
+      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx
+    - name: Auth
+      env:
+        CRIS_BASE_CI_SSH_PRIVKEY_ECDSA:  ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ECDSA  }}
+        CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA: ${{ secrets.CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA }}
+      run: |
+        # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
+        HOME=/root
+        mkdir -p ~/.ssh
+        for repo in 'cris-base' 'cris-huobi'; do
+            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ECDSA"'"' > ~/".ssh/id_ecdsa_$repo"
+            printf 'Host github_com_%s\n    HostName github.com\n    StrictHostKeyChecking no\n    IdentityFile ~/.ssh/id_ecdsa_%s\n' "$repo" "$repo" >> ~/.ssh/config
+        done
+        chmod go-w ~/.ssh ~/.ssh/config
+        chmod 600 ~/.ssh/id_ecdsa_cris*
+        tree -gpuash ~/.ssh
+    - name: Inject pre-auth hostname
+      run: sed -i 's/\(git@github\)\.\(com\)\(:.*\/\)\([[:alnum:]][[:alnum:]\-]*\)/\1_\2_\4\3\4/' WORKSPACE && git --no-pager diff
+    - name: Sync
+      run: export HOME=/root && scripts/bazel_pull.sh -s
+    - name: Build
+      run: export HOME=/root && CC=gcc-10 CXX=g++-10 scripts/build_all.sh --copt='-O3' -s
+    - name: Test
+      run: export HOME=/root && CC=gcc-10 CXX=g++-10 scripts/test_all.sh --copt='-O3' --nocache_test_results --test_output=all -s
+    - name: Summary
+      run: export HOME=/root && ccache -X5 && ccache -svx
+
+  asan:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyfitech/cris-build:20211116
+    steps:
+    - name: Date
+      id: date
+      run: |
+        date -u '+%F' | xargs printf '::set-output name=date::%s'
+        seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: |
+          /root/.cache/bazel
+          /root/.cache/pip
+          /root/.ccache
+        key: asan:${{ steps.date.outputs.date }}
+        restore-keys: |
+          asan:${{ steps.date.outputs.date-0 }}
+          asan:${{ steps.date.outputs.date-1 }}
+          asan:${{ steps.date.outputs.date-2 }}
+          asan:${{ steps.date.outputs.date-3 }}
+          asan:${{ steps.date.outputs.date-4 }}
+          asan:${{ steps.date.outputs.date-5 }}
+          asan:${{ steps.date.outputs.date-6 }}
+          asan:${{ steps.date.outputs.date-7 }}
+          asan
+    - name: Config
+      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx
+    - name: Auth
+      env:
+        CRIS_BASE_CI_SSH_PRIVKEY_ECDSA:  ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ECDSA  }}
+        CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA: ${{ secrets.CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA }}
+      run: |
+        # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
+        HOME=/root
+        mkdir -p ~/.ssh
+        for repo in 'cris-base' 'cris-huobi'; do
+            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ECDSA"'"' > ~/".ssh/id_ecdsa_$repo"
+            printf 'Host github_com_%s\n    HostName github.com\n    StrictHostKeyChecking no\n    IdentityFile ~/.ssh/id_ecdsa_%s\n' "$repo" "$repo" >> ~/.ssh/config
+        done
+        chmod go-w ~/.ssh ~/.ssh/config
+        chmod 600 ~/.ssh/id_ecdsa_cris*
+        tree -gpuash ~/.ssh
+    - name: Inject pre-auth hostname
+      run: sed -i 's/\(git@github\)\.\(com\)\(:.*\/\)\([[:alnum:]][[:alnum:]\-]*\)/\1_\2_\4\3\4/' WORKSPACE && git --no-pager diff
+    - name: Sync
+      run: export HOME=/root && scripts/bazel_pull.sh -s
+    - name: Test
+      run: export HOME=/root && CC=clang-12 CXX=clang++-12 scripts/test_all.sh --config=asan --nocache_test_results --test_output=all -s
+    - name: Summary
+      run: export HOME=/root && ccache -X5 && ccache -svx
+
+  ubsan:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyfitech/cris-build:20211116
+    steps:
+    - name: Date
+      id: date
+      run: |
+        date -u '+%F' | xargs printf '::set-output name=date::%s'
+        seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: |
+          /root/.cache/bazel
+          /root/.cache/pip
+          /root/.ccache
+        key: ubsan:${{ steps.date.outputs.date }}
+        restore-keys: |
+          ubsan:${{ steps.date.outputs.date-0 }}
+          ubsan:${{ steps.date.outputs.date-1 }}
+          ubsan:${{ steps.date.outputs.date-2 }}
+          ubsan:${{ steps.date.outputs.date-3 }}
+          ubsan:${{ steps.date.outputs.date-4 }}
+          ubsan:${{ steps.date.outputs.date-5 }}
+          ubsan:${{ steps.date.outputs.date-6 }}
+          ubsan:${{ steps.date.outputs.date-7 }}
+          ubsan
+    - name: Config
+      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx
+    - name: Auth
+      env:
+        CRIS_BASE_CI_SSH_PRIVKEY_ECDSA:  ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ECDSA  }}
+        CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA: ${{ secrets.CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA }}
+      run: |
+        # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
+        HOME=/root
+        mkdir -p ~/.ssh
+        for repo in 'cris-base' 'cris-huobi'; do
+            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ECDSA"'"' > ~/".ssh/id_ecdsa_$repo"
+            printf 'Host github_com_%s\n    HostName github.com\n    StrictHostKeyChecking no\n    IdentityFile ~/.ssh/id_ecdsa_%s\n' "$repo" "$repo" >> ~/.ssh/config
+        done
+        chmod go-w ~/.ssh ~/.ssh/config
+        chmod 600 ~/.ssh/id_ecdsa_cris*
+        tree -gpuash ~/.ssh
+    - name: Inject pre-auth hostname
+      run: sed -i 's/\(git@github\)\.\(com\)\(:.*\/\)\([[:alnum:]][[:alnum:]\-]*\)/\1_\2_\4\3\4/' WORKSPACE && git --no-pager diff
+    - name: Sync
+      run: export HOME=/root && scripts/bazel_pull.sh -s
+    - name: Test
+      run: export HOME=/root && CC=clang-12 CXX=clang++-12 scripts/test_all.sh --compiler=clang --config=ubsan --nocache_test_results --test_output=all -s
+    - name: Summary
+      run: export HOME=/root && ccache -X5 && ccache -svx
+
+  make-llvm:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyfitech/cris-build:20211116
+    steps:
+    - name: Date
+      id: date
+      run: |
+        date -u '+%F' | xargs printf '::set-output name=date::%s'
+        seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: |
+          /root/.cache/bazel
+          /root/.cache/pip
+          /root/.ccache
+        key: make-llvm:${{ steps.date.outputs.date }}
+        restore-keys: |
+          make-llvm:${{ steps.date.outputs.date-0 }}
+          make-llvm:${{ steps.date.outputs.date-1 }}
+          make-llvm:${{ steps.date.outputs.date-2 }}
+          make-llvm:${{ steps.date.outputs.date-3 }}
+          make-llvm:${{ steps.date.outputs.date-4 }}
+          make-llvm:${{ steps.date.outputs.date-5 }}
+          make-llvm:${{ steps.date.outputs.date-6 }}
+          make-llvm:${{ steps.date.outputs.date-7 }}
+          make-llvm
+    - name: Config
+      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx
+    - name: Auth
+      env:
+        CRIS_BASE_CI_SSH_PRIVKEY_ECDSA:  ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ECDSA  }}
+        CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA: ${{ secrets.CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA }}
+      run: |
+        # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
+        HOME=/root
+        mkdir -p ~/.ssh
+        for repo in 'cris-base' 'cris-huobi'; do
+            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ECDSA"'"' > ~/".ssh/id_ecdsa_$repo"
+            printf 'Host github_com_%s\n    HostName github.com\n    StrictHostKeyChecking no\n    IdentityFile ~/.ssh/id_ecdsa_%s\n' "$repo" "$repo" >> ~/.ssh/config
+        done
+        chmod go-w ~/.ssh ~/.ssh/config
+        chmod 600 ~/.ssh/id_ecdsa_cris*
+        tree -gpuash ~/.ssh
+    - name: Inject pre-auth hostname
+      run: sed -i 's/\(git@github\)\.\(com\)\(:.*\/\)\([[:alnum:]][[:alnum:]\-]*\)/\1_\2_\4\3\4/' WORKSPACE && git --no-pager diff
+    - name: Sync
+      run: export HOME=/root && scripts/bazel_pull.sh -s
+    - name: LLVM-12
+      run: export HOME=/root && CC=clang-12 CXX=clang++-12 make build
+    - name: Default
+      run: export HOME=/root && make build
+    - name: Summary
+      run: export HOME=/root && ccache -X5 && ccache -svx
+
+  make-gcc:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyfitech/cris-build:20211116
+    steps:
+    - name: Date
+      id: date
+      run: |
+        date -u '+%F' | xargs printf '::set-output name=date::%s'
+        seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: |
+          /root/.cache/bazel
+          /root/.cache/pip
+          /root/.ccache
+        key: make-gcc:${{ steps.date.outputs.date }}
+        restore-keys: |
+          make-gcc:${{ steps.date.outputs.date-0 }}
+          make-gcc:${{ steps.date.outputs.date-1 }}
+          make-gcc:${{ steps.date.outputs.date-2 }}
+          make-gcc:${{ steps.date.outputs.date-3 }}
+          make-gcc:${{ steps.date.outputs.date-4 }}
+          make-gcc:${{ steps.date.outputs.date-5 }}
+          make-gcc:${{ steps.date.outputs.date-6 }}
+          make-gcc:${{ steps.date.outputs.date-7 }}
+          make-gcc
+    - name: Config
+      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx
+    - name: Auth
+      env:
+        CRIS_BASE_CI_SSH_PRIVKEY_ECDSA:  ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ECDSA  }}
+        CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA: ${{ secrets.CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA }}
+      run: |
+        # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
+        HOME=/root
+        mkdir -p ~/.ssh
+        for repo in 'cris-base' 'cris-huobi'; do
+            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ECDSA"'"' > ~/".ssh/id_ecdsa_$repo"
+            printf 'Host github_com_%s\n    HostName github.com\n    StrictHostKeyChecking no\n    IdentityFile ~/.ssh/id_ecdsa_%s\n' "$repo" "$repo" >> ~/.ssh/config
+        done
+        chmod go-w ~/.ssh ~/.ssh/config
+        chmod 600 ~/.ssh/id_ecdsa_cris*
+        tree -gpuash ~/.ssh
+    - name: Inject pre-auth hostname
+      run: sed -i 's/\(git@github\)\.\(com\)\(:.*\/\)\([[:alnum:]][[:alnum:]\-]*\)/\1_\2_\4\3\4/' WORKSPACE && git --no-pager diff
+    - name: Sync
+      run: export HOME=/root && scripts/bazel_pull.sh -s
+    - name: GCC-10
+      run: export HOME=/root && CC=gcc-10 CXX=g++-10 make build
+    - name: Summary
+      run: export HOME=/root && ccache -X5 && ccache -svx

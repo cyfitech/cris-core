@@ -18,7 +18,7 @@ extern "C" {
 
 namespace cris::core {
 
-static void WriteToGlog(const char *data, int size) {
+static void WriteToGlog(const char* data, int size) {
     std::string msg(data, size);
     LOG(ERROR) << msg;
 }
@@ -39,7 +39,7 @@ static void InvokeDefaultSignalHandler(int signal_number) {
     kill(getpid(), signal_number);
 }
 
-static void DumpSignalInfo(int signal_number, siginfo_t *siginfo) {
+static void DumpSignalInfo(int signal_number, siginfo_t* siginfo) {
     constexpr size_t kBufferLen = 1024;
     char             buffer[kBufferLen];
 
@@ -66,7 +66,7 @@ static void DumpSignalInfo(int signal_number, siginfo_t *siginfo) {
     LOG(ERROR) << buffer;
 }
 
-static void DumpStackFrame(int level, unw_cursor_t *stack_cursor) {
+static void DumpStackFrame(int level, unw_cursor_t* stack_cursor) {
     constexpr size_t kBufferLen    = 1024;
     constexpr size_t kMaxCmdLen    = 256;
     constexpr size_t kMaxSymbolLen = 256;
@@ -86,9 +86,9 @@ static void DumpStackFrame(int level, unw_cursor_t *stack_cursor) {
 
     char cmd[kMaxCmdLen];
 
-    snprintf(cmd, kMaxCmdLen, "addr2line %p -e /proc/%d/exe", reinterpret_cast<void *>(pc), getpid());
+    snprintf(cmd, kMaxCmdLen, "addr2line %p -e /proc/%d/exe", reinterpret_cast<void*>(pc), getpid());
 
-    FILE *cmd_fd = popen(cmd, "r");
+    FILE* cmd_fd = popen(cmd, "r");
     if (cmd_fd) {
         auto res = fgets(fileinfo, kFileInfoLen, cmd_fd);
         if (!res || !std::strncmp(res, "??:", 3)) {
@@ -119,16 +119,16 @@ static void DumpStacktrace() {
     }
 }
 
-static std::atomic<pthread_t *> current_thread_in_handler{nullptr};
+static std::atomic<pthread_t*> current_thread_in_handler{nullptr};
 
-static void SigIntHandler(int signal_number, siginfo_t *signal_info, void *ucontext) {
+static void SigIntHandler(int signal_number, siginfo_t* signal_info, void* ucontext) {
     TimerSection::FlushCollectedStats();
     TimerSection::GetMainSection()->GetReport()->PrintToLog();
 }
 
-static void SignalHandler(int signal_number, siginfo_t *signal_info, void *ucontext) {
+static void SignalHandler(int signal_number, siginfo_t* signal_info, void* ucontext) {
     pthread_t  current_thread            = pthread_self();
-    pthread_t *expect_current_in_handler = nullptr;
+    pthread_t* expect_current_in_handler = nullptr;
     if (!current_thread_in_handler.compare_exchange_strong(expect_current_in_handler, &current_thread)) {
         if (pthread_equal(current_thread, *expect_current_in_handler)) {
             // Same thread was in the handler

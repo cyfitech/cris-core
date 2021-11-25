@@ -4,7 +4,7 @@
 
 namespace cris::core {
 
-CRMessageLockQueue::CRMessageLockQueue(size_t capacity, CRNodeBase *node, message_processor_t &&processor)
+CRMessageLockQueue::CRMessageLockQueue(size_t capacity, CRNodeBase* node, message_processor_t&& processor)
     : CRMessageQueue(node, std::move(processor))
     , capacity_(capacity) {
     buffer_.resize(capacity_, nullptr);
@@ -26,7 +26,7 @@ bool CRMessageLockQueue::IsFull() {
     return size_ >= capacity_;
 }
 
-void CRMessageLockQueue::AddMessage(std::shared_ptr<CRMessageBase> &&message) {
+void CRMessageLockQueue::AddMessage(std::shared_ptr<CRMessageBase>&& message) {
     std::lock_guard<std::mutex> lock(mutex_);
     size_t                      write_pos = end_;
     ++end_;

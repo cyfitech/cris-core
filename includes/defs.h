@@ -6,7 +6,7 @@ namespace cris::core {
 
 namespace impl {
 
-std::string GetTypeNameFromPrettyFunction(const std::string &pretty_function);
+std::string GetTypeNameFromPrettyFunction(const std::string& pretty_function);
 
 }  // namespace impl
 

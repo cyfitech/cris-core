@@ -6,7 +6,7 @@ export MKDIR = mkdir -p
 export RM = rm -rf
 
 export CMD ?= bash
-export DOCKER_IMAGE ?= cajunhotpot/cris-build:20210926
+export DOCKER_IMAGE ?= cajunhotpot/cris-build:20211116
 
 .PHONY: all
 all: ci
@@ -30,8 +30,9 @@ env:
 	    || $$sudo_docker volume create "$$prefix$$vol_cache";               \
 	done;                                                                   \
 	$$sudo_docker run                                                       \
+	    --cap-add=SYS_PTRACE                                                \
 	    --rm                                                                \
-	    --tmpfs /tmp                                                        \
+	    --security-opt seccomp=unconfined                                   \
 	    $$([ ! "$$HTTP_PROXY"  ] || grep '[[:space:]]' <<< "$$HTTP_PROXY"  >/dev/null || echo "-e  HTTP_PROXY=$$HTTP_PROXY" )   \
 	    $$([ ! "$$HTTPS_PROXY" ] || grep '[[:space:]]' <<< "$$HTTPS_PROXY" >/dev/null || echo "-e HTTPS_PROXY=$$HTTPS_PROXY")   \
 	    $$([ ! "$$http_proxy"  ] || grep '[[:space:]]' <<< "$$http_proxy"  >/dev/null || echo "-e  http_proxy=$$http_proxy" )   \
@@ -58,16 +59,27 @@ lint: scripts/format_all.sh
 	$<
 
 .PHONY: build
-build: scripts/build_all.sh
-	$<
+build: scripts/build_all.sh scripts/distro_cc.sh
+	$< $$(. scripts/distro_cc.sh >/dev/null && "$$($(SHELL) -c 'echo "$$CC"')" --version | grep -i 'clang version' >/dev/null && echo '--config=lld')
 
 .PHONY: test
-test: scripts/test_all.sh
-	$< --nocache_test_results --test_output=errors
+test: scripts/test_all.sh scripts/distro_cc.sh
+	$< $$(. scripts/distro_cc.sh >/dev/null && "$$($(SHELL) -c 'echo "$$CC"')" --version | grep -i 'clang version' >/dev/null && echo '--config=lld') --config=rel --nocache_test_results --test_output=errors
 
 .PHONY: sync
 sync: scripts/bazel_pull.sh
 	$<
+
+.PHONY: docker
+docker: docker/Dockerfile
+	set -e;                                                                 \
+	sudo_docker="$$([ -w '/var/run/docker.sock' ] || echo sudo) docker";    \
+	$$sudo_docker build                                                     \
+	    --no-cache                                                          \
+	    --pull                                                              \
+	    -f $<                                                               \
+	    -t "$$(cut -d: -f1 <<< "$$DOCKER_IMAGE:"):local"                    \
+	    .;
 
 .PHONY: cacheclean
 cacheclean:

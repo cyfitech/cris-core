@@ -1,16 +1,45 @@
-build -c opt
+build --config="_zlib64"
+build --copt="-DSIMDJSON_EXCEPTIONS=0"
 build --copt="-Wall"
 build --copt="-Werror"
 build --copt="-Wextra"
 build --copt="-Wno-unused-parameter"
 build --copt="-g3"
-build --cxxopt="-DSIMDJSON_EXCEPTIONS=0"
-build --cxxopt="-g3"
 build --cxxopt="-std=c++20"
+build --linkopt="-Wall"
+build --linkopt="-Werror"
+build --linkopt="-Wextra"
+build --linkopt="-Wno-fuse-ld-path"
+build -c opt
 
-build:profiling --cxxopt="-DENABLE_PROFILING"
+build:_zlib64 --copt="-D_FILE_OFFSET_BITS=64"
+build:_zlib64 --copt="-D_LARGEFILE64_SOURCE"
 
-test -c dbg
-test --linkopt="-fsanitize=address"
-test --linkopt="-fsanitize=leak"
-test --linkopt="-fsanitize=undefined"
+build:asan --linkopt="-fsanitize=address"
+build:asan --linkopt="-fsanitize=leak"
+
+build:lld --linkopt="-fuse-ld=lld"
+build:lld --linkopt="--ld-path=ld.lld-12"
+
+build:lto --copt="-flto=thin"
+build:lto --linkopt="-flto=thin"
+
+build:native --copt="-march=native"
+build:native --copt="-mtune=native"
+build:native --linkopt="-march=native"
+build:native --linkopt="-mtune=native"
+
+build:pedantic --copt="-pedantic"
+build:pednatic --linkopt="-pedantic"
+
+build:prof --cxxopt="-DENABLE_PROFILING"
+
+build:rel --config="lto"
+build:rel --copt="-O3"
+
+build:tsan --copt="-fsanitize=thread"
+build:tsan --linkopt="-fsanitize=thread"
+
+build:ubsan --copt="-fsanitize=undefined"
+build:ubsan --linkopt="-fsanitize=undefined"
+build:ubsan --linkopt="-fsanitize-link-c++-runtime"

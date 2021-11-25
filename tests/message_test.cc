@@ -17,7 +17,7 @@ struct SimpleTestNode : public CRSingleQueueNode<> {
 
     void Process() { queue_.PopAndProcess(false); }
 
-    void QueueCallback(const CRMessageBasePtr &message) {
+    void QueueCallback(const CRMessageBasePtr& message) {
         auto callback_search = callbacks_.find(message->GetMessageTypeName());
         if (callback_search == callbacks_.end()) {
             return;
@@ -26,12 +26,12 @@ struct SimpleTestNode : public CRSingleQueueNode<> {
     }
 
    private:
-    void SubscribeHandler(std::string &&message_name, std::function<void(const CRMessageBasePtr &)> &&callback)
+    void SubscribeHandler(std::string&& message_name, std::function<void(const CRMessageBasePtr&)>&& callback)
         override {
         callbacks_.emplace(message_name, std::move(callback));
     }
 
-    std::map<std::string, std::function<void(const CRMessageBasePtr &)>> callbacks_;
+    std::map<std::string, std::function<void(const CRMessageBasePtr&)>> callbacks_;
 };
 
 TEST(MessageTest, Basics) {
@@ -53,7 +53,7 @@ TEST(MessageTest, Subscribe) {
         int            value = 0;
         SimpleTestNode node(1);
 
-        node.Subscribe<TestMessageType1>([&](const CRMessageBasePtr &message) {
+        node.Subscribe<TestMessageType1>([&](const CRMessageBasePtr& message) {
             ++count;
             value = static_pointer_cast<TestMessageType1>(message)->value_;
         });
@@ -72,7 +72,7 @@ TEST(MessageTest, Subscribe) {
         int            count1 = 0;
         int            value1 = 0;
         SimpleTestNode node1(1);
-        node1.Subscribe<TestMessageType1>([&](const CRMessageBasePtr &message) {
+        node1.Subscribe<TestMessageType1>([&](const CRMessageBasePtr& message) {
             ++count1;
             value1 = static_pointer_cast<TestMessageType1>(message)->value_;
         });
@@ -80,7 +80,7 @@ TEST(MessageTest, Subscribe) {
         int            count2 = 0;
         int            value2 = 0;
         SimpleTestNode node2(1);
-        node2.Subscribe<TestMessageType1>([&](const CRMessageBasePtr &message) {
+        node2.Subscribe<TestMessageType1>([&](const CRMessageBasePtr& message) {
             ++count2;
             value2 = static_pointer_cast<TestMessageType1>(message)->value_;
         });
@@ -88,7 +88,7 @@ TEST(MessageTest, Subscribe) {
         int            count3 = 0;
         int            value3 = 0;
         SimpleTestNode node3(1);
-        node3.Subscribe<TestMessageType1>([&](const CRMessageBasePtr &message) {
+        node3.Subscribe<TestMessageType1>([&](const CRMessageBasePtr& message) {
             ++count3;
             value3 = static_pointer_cast<TestMessageType1>(message)->value_;
         });

@@ -4,8 +4,6 @@ set -e
 
 cd "$(dirname "$0")/.."
 
-for cmd in bazel; do
-    which "$cmd" >/dev/null
-done
+. scripts/codebase_utils.sh
 
-bazel fetch "$@" '//...'
+bazel_common_all fetch "$@"
