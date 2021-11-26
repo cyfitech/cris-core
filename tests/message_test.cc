@@ -62,7 +62,7 @@ TEST(MessageTest, Subscribe) {
         });
 
         // duplicate subscription, first one wins
-        node.Subscribe<TestMessage<1>>([&](const CRMessageBasePtr &) {
+        node.Subscribe<TestMessage<1>>([&](const CRMessageBasePtr&) {
             // never enters
             std::abort();
         });
