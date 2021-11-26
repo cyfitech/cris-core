@@ -4,6 +4,7 @@
 
 #include <glog/logging.h>
 
+#include <cstdint>
 #include <mutex>
 
 namespace cris::core {
@@ -15,7 +16,7 @@ std::string TimerReport::GetSectionName() const {
     return "";
 }
 
-uint64_t TimerReport::GetTotalHits() const {
+std::uint64_t TimerReport::GetTotalHits() const {
     return 0;
 }
 

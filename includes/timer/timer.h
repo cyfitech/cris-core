@@ -35,7 +35,7 @@ class TimerReport {
 
     std::string GetSectionName() const;
 
-    uint64_t GetTotalHits() const;
+    std::uint64_t GetTotalHits() const;
 
     double GetFreq() const;
 
@@ -46,7 +46,7 @@ class TimerReport {
     void PrintToLog(int indent_level = 0) const;
 
     struct TimerReportBucket {
-        uint64_t            hits_;
+        std::uint64_t       hits_;
         cr_duration_nsec_t  session_duration_sum_;
     };
 

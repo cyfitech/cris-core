@@ -5,6 +5,7 @@
 #include <glog/logging.h>
 
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <functional>
 #include <iomanip>
@@ -55,7 +56,7 @@ static_assert(kBucketUpperNsec[kTimerEntryBucketNum - 1] > 10000 * std::nano::de
 class TimerStatCollector {
    public:
     struct CollectorEntryBucket {
-        std::atomic<uint64_t> hit_and_total_duration_{0};
+        std::atomic<std::uint64_t> hit_and_total_duration_{0};
     };
 
     struct CollectorEntry {
@@ -64,11 +65,11 @@ class TimerStatCollector {
 
     template<int hit_count_bits = 22, int total_duration_bits = 64 - hit_count_bits>
     struct HitAndTotalDurationType {
-        uint64_t hits : hit_count_bits;
-        uint64_t total_duration_ns : total_duration_bits;
+        std::uint64_t hits : hit_count_bits;
+        std::uint64_t total_duration_ns : total_duration_bits;
     };
 
-    static_assert(sizeof(HitAndTotalDurationType<>) == sizeof(uint64_t));
+    static_assert(sizeof(HitAndTotalDurationType<>) == sizeof(std::uint64_t));
 
     void Report(size_t index, cr_duration_nsec_t duration);
 
@@ -100,8 +101,8 @@ class TimerStatCollector {
 class TimerStatTotal {
    public:
     struct StatTotalEntryBucket {
-        uint64_t hits;
-        uint64_t total_duration_ns;
+        std::uint64_t hits;
+        std::uint64_t total_duration_ns;
     };
 
     struct StatTotalEntry {
@@ -194,7 +195,7 @@ void TimerStatCollector::Report(size_t index, cr_duration_nsec_t duration) {
     }
 
     union {
-        uint64_t                  raw;
+        std::uint64_t             raw;
         HitAndTotalDurationType<> stat;
     } data_to_report;
 
@@ -265,7 +266,7 @@ TimerStatTotal* TimerStatTotal::GetTimerStatsTotal() {
 
 void TimerStatTotal::StatTotalEntry::Merge(const TimerStatCollector::CollectorEntry& entry) {
     union {
-        uint64_t                                      raw;
+        std::uint64_t                                 raw;
         TimerStatCollector::HitAndTotalDurationType<> stat;
     } data_to_merge;
 
@@ -312,8 +313,8 @@ std::string TimerReport::GetSectionName() const {
     return section_name_;
 }
 
-uint64_t TimerReport::GetTotalHits() const {
-    uint64_t total_hits = 0;
+std::uint64_t TimerReport::GetTotalHits() const {
+    std::uint64_t total_hits = 0;
     for (const auto& bucket : report_buckets_) {
         total_hits += bucket.hits_;
     }
@@ -328,7 +329,7 @@ double TimerReport::GetFreq() const {
 }
 
 cr_duration_nsec_t TimerReport::GetAverageDurationNsec() const {
-    uint64_t            total_hits         = 0;
+    std::uint64_t       total_hits         = 0;
     cr_duration_nsec_t  total_duration_sum = 0;
     for (const auto& bucket : report_buckets_) {
         total_hits += bucket.hits_;
@@ -354,7 +355,7 @@ cr_duration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
         return 0;
     }
 
-    uint64_t current_hits = 0;
+    std::uint64_t current_hits = 0;
     for (const auto& bucket : report_buckets_) {
         current_hits += bucket.hits_;
         if (current_hits >= target_hits) {
