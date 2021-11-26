@@ -23,11 +23,11 @@ double TimerReport::GetFreq() const {
     return 0;
 }
 
-cr_dutration_nsec_t TimerReport::GetAverageDurationNsec() const {
+cr_duration_nsec_t TimerReport::GetAverageDurationNsec() const {
     return 0;
 }
 
-cr_dutration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
+cr_duration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
     return 0;
 }
 

@@ -11,7 +11,7 @@
 namespace cris::core {
 
 using cr_timestamp_nsec_t = std::int64_t;
-using cr_dutration_nsec_t = std::int64_t;
+using cr_duration_nsec_t  = std::int64_t;
 
 // monotonic timestamp
 cr_timestamp_nsec_t GetSystemTimestampNsec();
@@ -39,19 +39,19 @@ class TimerReport {
 
     double GetFreq() const;
 
-    cr_dutration_nsec_t GetAverageDurationNsec() const;
+    cr_duration_nsec_t GetAverageDurationNsec() const;
 
-    cr_dutration_nsec_t GetPercentileDurationNsec(int percent) const;
+    cr_duration_nsec_t GetPercentileDurationNsec(int percent) const;
 
     void PrintToLog(int indent_level = 0) const;
 
     struct TimerReportBucket {
         uint64_t            hits_;
-        cr_dutration_nsec_t session_duration_sum_;
+        cr_duration_nsec_t  session_duration_sum_;
     };
 
     std::string                                         section_name_;
-    cr_dutration_nsec_t                                 timing_duration_;
+    cr_duration_nsec_t                                  timing_duration_;
     std::vector<TimerReportBucket>                      report_buckets_;
     std::map<std::string, std::unique_ptr<TimerReport>> subsections_;
 };
@@ -94,7 +94,7 @@ class TimerSection {
     template<class duration_t>
     void ReportDuration(duration_t&& duration);
 
-    void ReportDurationNsec(cr_dutration_nsec_t duration);
+    void ReportDurationNsec(cr_duration_nsec_t duration);
 
     static TimerSection* GetMainSection();
 

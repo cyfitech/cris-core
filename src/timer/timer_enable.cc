@@ -24,12 +24,12 @@ static constexpr size_t kTimerEntryBucketNum = 32;
 // Calculate the upper (exclusive) limit for each bucket.
 // The bucket range grows exponentially. The range of the
 // first bucket is 0 to base_nsec.
-static constexpr cr_dutration_nsec_t UpperNsecOfBucket(
-    size_t              idx,
-    cr_dutration_nsec_t base_nsec = 10 * std::ratio_divide<std::micro, std::nano>::num /* 10 us */) {
+static constexpr cr_duration_nsec_t UpperNsecOfBucket(
+    size_t             idx,
+    cr_duration_nsec_t base_nsec = 10 * std::ratio_divide<std::micro, std::nano>::num /* 10 us */) {
     // The upper limit of the last bucket should be INT_MAX to cover everything
     if (idx >= kTimerEntryBucketNum - 1) {
-        return std::numeric_limits<cr_dutration_nsec_t>::max();
+        return std::numeric_limits<cr_duration_nsec_t>::max();
     }
     auto result = base_nsec;
     for (size_t i = 0; i < idx; ++i) {
@@ -40,7 +40,7 @@ static constexpr cr_dutration_nsec_t UpperNsecOfBucket(
 
 template<size_t... idx>
 static constexpr auto GenerateBucketUpperNsec(std::integer_sequence<size_t, idx...>)
-    -> std::array<cr_dutration_nsec_t, sizeof...(idx)> {
+    -> std::array<cr_duration_nsec_t, sizeof...(idx)> {
     return {UpperNsecOfBucket(idx)...};
 }
 
@@ -70,7 +70,7 @@ class TimerStatCollector {
 
     static_assert(sizeof(HitAndTotalDurationType<>) == sizeof(uint64_t));
 
-    void Report(size_t index, cr_dutration_nsec_t duration);
+    void Report(size_t index, cr_duration_nsec_t duration);
 
     static TimerStatCollector* GetTimerStatsCollector();
 
@@ -182,7 +182,7 @@ void TimerStatCollector::RotateCollector() {
     TimerStatTotal::GetTimerStatsTotal()->Merge(rotating_collectors[previous_rotater_id]);
 }
 
-void TimerStatCollector::Report(size_t index, cr_dutration_nsec_t duration) {
+void TimerStatCollector::Report(size_t index, cr_duration_nsec_t duration) {
     if (duration < 0) {
         LOG(ERROR) << "duration " << duration << " is smaller than zero, skip it";
         return;
@@ -252,7 +252,7 @@ std::unique_ptr<TimerReport> TimerStatTotal::GetReport(const std::string& sectio
     for (size_t i = 0; i < kTimerEntryBucketNum; ++i) {
         report->report_buckets_.emplace_back(TimerReport::TimerReportBucket{
             .hits_                 = entry.duration_buckets_[i].hits,
-            .session_duration_sum_ = static_cast<cr_dutration_nsec_t>(entry.duration_buckets_[i].total_duration_ns),
+            .session_duration_sum_ = static_cast<cr_duration_nsec_t>(entry.duration_buckets_[i].total_duration_ns),
         });
     }
     return report;
@@ -327,9 +327,9 @@ double TimerReport::GetFreq() const {
     return GetTotalHits() * 1.0 / duration_cast<duration<double>>(nanoseconds(timing_duration_)).count();
 }
 
-cr_dutration_nsec_t TimerReport::GetAverageDurationNsec() const {
+cr_duration_nsec_t TimerReport::GetAverageDurationNsec() const {
     uint64_t            total_hits         = 0;
-    cr_dutration_nsec_t total_duration_sum = 0;
+    cr_duration_nsec_t  total_duration_sum = 0;
     for (const auto& bucket : report_buckets_) {
         total_hits += bucket.hits_;
         total_duration_sum += bucket.session_duration_sum_;
@@ -337,7 +337,7 @@ cr_dutration_nsec_t TimerReport::GetAverageDurationNsec() const {
     return total_duration_sum / total_hits;
 }
 
-cr_dutration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
+cr_duration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
     if (percent < 0) [[unlikely]] {
         LOG(ERROR) << __func__ << ": percent less than 0: " << percent;
         percent = 0;
