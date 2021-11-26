@@ -1,7 +1,10 @@
 #pragma once
 
 #include "cris/core/defs.h"
+#include "cris/core/timer/timer.h"
 
+#include <atomic>
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -20,8 +23,6 @@ concept CRMessageCallbackType = std::is_base_of_v<CRMessageBase, message_t> &&
 
 class CRMessageBase {
    public:
-    using subscription_list_t = std::vector<CRNodeBase*>;
-
     CRMessageBase() = default;
 
     CRMessageBase(const CRMessageBase&) = delete;
@@ -37,18 +38,31 @@ class CRMessageBase {
     template<CRMessageType message_t>
     static std::string GetMessageTypeName();
 
+    template<CRMessageType message_t>
+    static cr_timestamp_nsec_t GetLatestDeliveredTime();
+
+    static cr_timestamp_nsec_t GetLatestDeliveredTime(const std::string& message_type);
+
     static void Dispatch(const std::shared_ptr<CRMessageBase>& message);
 
    private:
     // Not thread-safe, do not call concurrently nor call it
     // when messages are coming
-    static void Subscribe(const std::string& message_type, CRNodeBase* node);
+    static bool Subscribe(const std::string& message_type, CRNodeBase* node);
 
     // Not thread-safe, do not call concurrently nor call it
     // when messages are coming
     static void Unsubscribe(const std::string& message_type, CRNodeBase* node);
 
-    static const subscription_list_t* GetSubscriptionList(const std::string& message_type);
+    class SubscriptionInfo {
+       public:
+        std::atomic<cr_timestamp_nsec_t> latest_delivered_time_{0};
+        std::vector<CRNodeBase*>         sub_list_;
+    };
+
+    static std::map<std::string, SubscriptionInfo>* GetSubscriptionMap();
+
+    static SubscriptionInfo* GetSubscriptionInfo(const std::string& message_type);
 
     friend class CRNode;
 };
@@ -64,6 +78,11 @@ class CRMessage : public CRMessageBase {
 template<CRMessageType message_t>
 std::string CRMessageBase::GetMessageTypeName() {
     return GetTypeName<message_t>();
+}
+
+template<CRMessageType message_t>
+cr_timestamp_nsec_t CRMessageBase::GetLatestDeliveredTime() {
+    return GetLatestDeliveredTime(GetMessageTypeName<message_t>());
 }
 
 }  // namespace cris::core

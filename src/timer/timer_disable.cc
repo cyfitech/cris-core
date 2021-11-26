@@ -4,6 +4,7 @@
 
 #include <glog/logging.h>
 
+#include <cstdint>
 #include <mutex>
 
 namespace cris::core {
@@ -15,7 +16,7 @@ std::string TimerReport::GetSectionName() const {
     return "";
 }
 
-uint64_t TimerReport::GetTotalHits() const {
+std::uint64_t TimerReport::GetTotalHits() const {
     return 0;
 }
 
@@ -23,11 +24,11 @@ double TimerReport::GetFreq() const {
     return 0;
 }
 
-cr_dutration_nsec_t TimerReport::GetAverageDurationNsec() const {
+cr_duration_nsec_t TimerReport::GetAverageDurationNsec() const {
     return 0;
 }
 
-cr_dutration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
+cr_duration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
     return 0;
 }
 
