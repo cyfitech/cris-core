@@ -46,8 +46,8 @@ class TimerReport {
     void PrintToLog(int indent_level = 0) const;
 
     struct TimerReportBucket {
-        std::uint64_t       hits_;
-        cr_duration_nsec_t  session_duration_sum_;
+        std::uint64_t      hits_;
+        cr_duration_nsec_t session_duration_sum_;
     };
 
     std::string                                         section_name_;

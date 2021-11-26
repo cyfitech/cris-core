@@ -329,8 +329,8 @@ double TimerReport::GetFreq() const {
 }
 
 cr_duration_nsec_t TimerReport::GetAverageDurationNsec() const {
-    std::uint64_t       total_hits         = 0;
-    cr_duration_nsec_t  total_duration_sum = 0;
+    std::uint64_t      total_hits         = 0;
+    cr_duration_nsec_t total_duration_sum = 0;
     for (const auto& bucket : report_buckets_) {
         total_hits += bucket.hits_;
         total_duration_sum += bucket.session_duration_sum_;
