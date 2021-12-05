@@ -87,7 +87,7 @@ class TimerStatCollector {
     void Clear();
 
     static constexpr size_t kRotatingCollectorNum = 3;
-    static constexpr size_t kCollectorSize        = 256;
+    static constexpr size_t kCollectorSize        = 65536;
 
     static std::atomic<size_t>                                   current_collector_id;
     static std::array<TimerStatCollector, kRotatingCollectorNum> rotating_collectors;
