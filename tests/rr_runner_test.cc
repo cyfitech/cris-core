@@ -25,17 +25,17 @@ class CRSingleQueueNodeForTest : public CRSingleQueueNode<> {
     bool IsMainLoopRun(size_t thread_idx) const { return main_loopis_run_[thread_idx]; }
 
    private:
-    void SubscribeHandler(std::string&& message_name, std::function<void(const CRMessageBasePtr&)>&& callback)
+    void SubscribeHandler(const std::type_index message_type, std::function<void(const CRMessageBasePtr&)>&& callback)
         override {
-        subscriptions_.emplace(std::move(message_name), std::move(callback));
+        subscriptions_.emplace(message_type, std::move(callback));
     }
 
     void QueueProcessor(const CRMessageBasePtr& message) {
-        return subscriptions_[message->GetMessageTypeName()](message);
+        return subscriptions_[message->GetMessageTypeIndex()](message);
     }
 
     std::vector<bool>                                                   main_loopis_run_;
-    std::map<std::string, std::function<void(const CRMessageBasePtr&)>> subscriptions_;
+    std::map<std::type_index, std::function<void(const CRMessageBasePtr&)>> subscriptions_;
 };
 
 class CRMultiQueueNodeForTest : public CRMultiQueueNode<> {
