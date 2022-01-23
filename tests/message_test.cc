@@ -78,8 +78,8 @@ TEST(MessageTest, Subscribe) {
         node.Process();
         EXPECT_EQ(count, 1);
         EXPECT_EQ(value, 1);
-        EXPECT_GT(CRMessageBase::GetLatestDeliveredTime<TestMessage<1>>(), dispatch_time_lower);
-        EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<1>>(), dispatch_time_upper);
+        EXPECT_GE(CRMessageBase::GetLatestDeliveredTime<TestMessage<1>>(), dispatch_time_lower);
+        EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<1>>(), dispatch_time_upper);
     }
 
     // empty dispatch
@@ -128,8 +128,8 @@ TEST(MessageTest, Subscribe) {
         EXPECT_EQ(count3, 1);
         EXPECT_EQ(value3, static_pointer_cast<TestMessage<1>>(message1)->value_);
 
-        EXPECT_GT(CRMessageBase::GetLatestDeliveredTime<TestMessage<1>>(), dispatch_time_lower_1);
-        EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<1>>(), dispatch_time_upper_1);
+        EXPECT_GE(CRMessageBase::GetLatestDeliveredTime<TestMessage<1>>(), dispatch_time_lower_1);
+        EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<1>>(), dispatch_time_upper_1);
 
         CRMessageBasePtr message2              = std::make_shared<TestMessage<1>>(200);
         auto             dispatch_time_lower_2 = GetSystemTimestampNsec();
@@ -148,8 +148,8 @@ TEST(MessageTest, Subscribe) {
         EXPECT_EQ(count3, 2);
         EXPECT_EQ(value3, static_pointer_cast<TestMessage<1>>(message2)->value_);
 
-        EXPECT_GT(CRMessageBase::GetLatestDeliveredTime<TestMessage<1>>(), dispatch_time_lower_2);
-        EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<1>>(), dispatch_time_upper_2);
+        EXPECT_GE(CRMessageBase::GetLatestDeliveredTime<TestMessage<1>>(), dispatch_time_lower_2);
+        EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<1>>(), dispatch_time_upper_2);
     }
 
     // empty dispatch
