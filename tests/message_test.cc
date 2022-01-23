@@ -5,6 +5,7 @@
 
 #include <cstdlib>
 #include <memory>
+#include <unordered_map>
 
 namespace cris::core {
 
@@ -35,7 +36,7 @@ struct SimpleTestNode : public CRSingleQueueNode<> {
         callbacks_.emplace(message_type, std::move(callback));
     }
 
-    std::map<std::type_index, std::function<void(const CRMessageBasePtr&)>> callbacks_;
+    std::unordered_map<std::type_index, std::function<void(const CRMessageBasePtr&)>> callbacks_;
 };
 
 TEST(MessageTest, Basics) {

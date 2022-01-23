@@ -3,8 +3,10 @@
 
 #include <glog/logging.h>
 
-#include <map>
+#include <boost/functional/hash.hpp>
+
 #include <typeindex>
+#include <unordered_map>
 #include <utility>
 
 namespace cris::core {
@@ -23,7 +25,8 @@ using channel_id_t = CRMessageBase::channel_id_t;
 
 // Mapping from type info and channel ID to subscription info
 // TODO (hao.chen): add channel ID support. Currently they are all 0.
-using subscription_map_t = std::map<std::pair<std::type_index, channel_id_t>, SubscriptionInfo>;
+using subscription_key_t = std::pair<std::type_index, channel_id_t>;
+using subscription_map_t = std::unordered_map<subscription_key_t, SubscriptionInfo, boost::hash<subscription_key_t>>;
 
 constexpr static channel_id_t kDefaultChannelID = 0;
 

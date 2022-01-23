@@ -5,6 +5,7 @@
 #include "gtest/gtest.h"
 
 #include <cstring>
+#include <unordered_map>
 
 using namespace cris::core;
 
@@ -35,7 +36,7 @@ class CRSingleQueueNodeForTest : public CRSingleQueueNode<> {
     }
 
     std::vector<bool>                                                   main_loopis_run_;
-    std::map<std::type_index, std::function<void(const CRMessageBasePtr&)>> subscriptions_;
+    std::unordered_map<std::type_index, std::function<void(const CRMessageBasePtr&)>> subscriptions_;
 };
 
 class CRMultiQueueNodeForTest : public CRMultiQueueNode<> {
