@@ -35,7 +35,7 @@ class CRSingleQueueNodeForTest : public CRSingleQueueNode<> {
         return subscriptions_[message->GetMessageTypeIndex()](message);
     }
 
-    std::vector<bool>                                                   main_loopis_run_;
+    std::vector<bool>                                                                 main_loopis_run_;
     std::unordered_map<std::type_index, std::function<void(const CRMessageBasePtr&)>> subscriptions_;
 };
 

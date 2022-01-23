@@ -111,7 +111,7 @@ TEST(MessageTest, Subscribe) {
             value3 = static_pointer_cast<TestMessage<1>>(message)->value_;
         });
 
-        CRMessageBasePtr message1 = std::make_shared<TestMessage<1>>(100);
+        CRMessageBasePtr message1              = std::make_shared<TestMessage<1>>(100);
         auto             dispatch_time_lower_1 = GetSystemTimestampNsec();
         CRMessageBase::Dispatch(message1);
         auto dispatch_time_upper_1 = GetSystemTimestampNsec();
@@ -131,7 +131,7 @@ TEST(MessageTest, Subscribe) {
         EXPECT_GT(CRMessageBase::GetLatestDeliveredTime<TestMessage<1>>(), dispatch_time_lower_1);
         EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<1>>(), dispatch_time_upper_1);
 
-        CRMessageBasePtr message2 = std::make_shared<TestMessage<1>>(200);
+        CRMessageBasePtr message2              = std::make_shared<TestMessage<1>>(200);
         auto             dispatch_time_lower_2 = GetSystemTimestampNsec();
         CRMessageBase::Dispatch(message2);
         auto dispatch_time_upper_2 = GetSystemTimestampNsec();
