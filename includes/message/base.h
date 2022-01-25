@@ -4,9 +4,11 @@
 #include "cris/core/timer/timer.h"
 
 #include <atomic>
-#include <map>
+#include <cstdint>
 #include <memory>
 #include <string>
+#include <typeindex>
+#include <typeinfo>
 #include <vector>
 
 namespace cris::core {
@@ -23,6 +25,8 @@ concept CRMessageCallbackType = std::is_base_of_v<CRMessageBase, message_t> &&
 
 class CRMessageBase {
    public:
+    using channel_id_t = std::uint64_t;
+
     CRMessageBase() = default;
 
     CRMessageBase(const CRMessageBase&) = delete;
@@ -35,34 +39,23 @@ class CRMessageBase {
 
     virtual const std::string GetMessageTypeName() const = 0;
 
-    template<CRMessageType message_t>
-    static std::string GetMessageTypeName();
+    virtual const std::type_index GetMessageTypeIndex() const = 0;
 
     template<CRMessageType message_t>
     static cr_timestamp_nsec_t GetLatestDeliveredTime();
 
-    static cr_timestamp_nsec_t GetLatestDeliveredTime(const std::string& message_type);
+    static cr_timestamp_nsec_t GetLatestDeliveredTime(const std::type_index message_type);
 
     static void Dispatch(const std::shared_ptr<CRMessageBase>& message);
 
    private:
     // Not thread-safe, do not call concurrently nor call it
     // when messages are coming
-    static bool Subscribe(const std::string& message_type, CRNodeBase* node);
+    static bool Subscribe(const std::type_index message_type, CRNodeBase* node);
 
     // Not thread-safe, do not call concurrently nor call it
     // when messages are coming
-    static void Unsubscribe(const std::string& message_type, CRNodeBase* node);
-
-    class SubscriptionInfo {
-       public:
-        std::atomic<cr_timestamp_nsec_t> latest_delivered_time_{0};
-        std::vector<CRNodeBase*>         sub_list_;
-    };
-
-    static std::map<std::string, SubscriptionInfo>* GetSubscriptionMap();
-
-    static SubscriptionInfo* GetSubscriptionInfo(const std::string& message_type);
+    static void Unsubscribe(const std::type_index message_type, CRNodeBase* node);
 
     friend class CRNode;
 };
@@ -72,17 +65,14 @@ using CRMessageBasePtr = std::shared_ptr<CRMessageBase>;
 template<class message_t>
 class CRMessage : public CRMessageBase {
    public:
-    const std::string GetMessageTypeName() const override { return CRMessageBase::GetMessageTypeName<message_t>(); }
+    const std::type_index GetMessageTypeIndex() const override { return std::type_index(typeid(message_t)); }
+
+    const std::string GetMessageTypeName() const override { return GetTypeName<message_t>(); }
 };
 
 template<CRMessageType message_t>
-std::string CRMessageBase::GetMessageTypeName() {
-    return GetTypeName<message_t>();
-}
-
-template<CRMessageType message_t>
 cr_timestamp_nsec_t CRMessageBase::GetLatestDeliveredTime() {
-    return GetLatestDeliveredTime(GetMessageTypeName<message_t>());
+    return GetLatestDeliveredTime(std::type_index(typeid(message_t)));
 }
 
 }  // namespace cris::core

@@ -11,7 +11,7 @@ class TrivialNodeForTest : public CRNode {
     CRMessageQueue* MessageQueueMapper(const CRMessageBasePtr& message) override { return nullptr; }
 
    private:
-    void SubscribeHandler(std::string&& message_name, std::function<void(const CRMessageBasePtr&)>&& callback)
+    void SubscribeHandler(const std::type_index message_type, std::function<void(const CRMessageBasePtr&)>&& callback)
         override {}
 
     std::vector<CRMessageQueue*> GetNodeQueues() override { return {}; }

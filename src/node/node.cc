@@ -19,12 +19,14 @@ void CRNode::WaitForMessageImpl(std::chrono::nanoseconds timeout) {
     wait_message_cv_.wait_for(lock, timeout);
 }
 
-void CRNode::SubscribeImpl(std::string&& message_name, std::function<void(const CRMessageBasePtr&)>&& callback) {
-    if (!CRMessageBase::Subscribe(message_name, this)) {
+void CRNode::SubscribeImpl(
+    const std::type_index                          message_type,
+    std::function<void(const CRMessageBasePtr&)>&& callback) {
+    if (!CRMessageBase::Subscribe(message_type, this)) {
         return;
     }
-    subscribed_.push_back(message_name);
-    return SubscribeHandler(std::move(message_name), std::move(callback));
+    subscribed_.push_back(message_type);
+    return SubscribeHandler(message_type, std::move(callback));
 }
 
 }  // namespace cris::core

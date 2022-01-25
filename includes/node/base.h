@@ -3,6 +3,8 @@
 #include "cris/core/message/queue.h"
 
 #include <chrono>
+#include <typeindex>
+#include <utility>
 
 namespace cris::core {
 
@@ -46,10 +48,12 @@ class CRNodeBase {
    protected:
     virtual void WaitForMessageImpl(std::chrono::nanoseconds timeout) = 0;
 
-    virtual void SubscribeImpl(std::string&& message_name, std::function<void(const CRMessageBasePtr&)>&& callback) = 0;
+    virtual void SubscribeImpl(
+        const std::type_index                          message_type,
+        std::function<void(const CRMessageBasePtr&)>&& callback) = 0;
 
     virtual void SubscribeHandler(
-        std::string&&                                  message_name,
+        const std::type_index                          message_type,
         std::function<void(const CRMessageBasePtr&)>&& callback) = 0;
 
     virtual std::vector<CRMessageQueue*> GetNodeQueues() = 0;
@@ -67,11 +71,9 @@ void CRNodeBase::WaitForMessage(duration_t&& timeout) {
 
 template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
 void CRNodeBase::Subscribe(callback_t&& callback) {
-    return SubscribeImpl(
-        CRMessageBase::GetMessageTypeName<message_t>(),
-        [callback = std::move(callback)](const CRMessageBasePtr& message) {
-            return callback(reinterpret_cast<const std::shared_ptr<message_t>&>(message));
-        });
+    return SubscribeImpl(typeid(message_t), [callback = std::move(callback)](const CRMessageBasePtr& message) {
+        return callback(reinterpret_cast<const std::shared_ptr<message_t>&>(message));
+    });
 }
 
 }  // namespace cris::core

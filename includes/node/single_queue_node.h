@@ -3,7 +3,6 @@
 #include "cris/core/message/lock_queue.h"
 #include "cris/core/node/node.h"
 
-#include <map>
 #include <memory>
 
 namespace cris::core {

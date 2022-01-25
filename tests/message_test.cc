@@ -5,6 +5,7 @@
 
 #include <cstdlib>
 #include <memory>
+#include <unordered_map>
 
 namespace cris::core {
 
@@ -22,7 +23,7 @@ struct SimpleTestNode : public CRSingleQueueNode<> {
     void Process() { queue_.PopAndProcess(false); }
 
     void QueueCallback(const CRMessageBasePtr& message) {
-        auto callback_search = callbacks_.find(message->GetMessageTypeName());
+        auto callback_search = callbacks_.find(message->GetMessageTypeIndex());
         if (callback_search == callbacks_.end()) {
             return;
         }
@@ -30,18 +31,17 @@ struct SimpleTestNode : public CRSingleQueueNode<> {
     }
 
    private:
-    void SubscribeHandler(std::string&& message_name, std::function<void(const CRMessageBasePtr&)>&& callback)
+    void SubscribeHandler(const std::type_index message_type, std::function<void(const CRMessageBasePtr&)>&& callback)
         override {
-        callbacks_.emplace(message_name, std::move(callback));
+        callbacks_.emplace(message_type, std::move(callback));
     }
 
-    std::map<std::string, std::function<void(const CRMessageBasePtr&)>> callbacks_;
+    std::unordered_map<std::type_index, std::function<void(const CRMessageBasePtr&)>> callbacks_;
 };
 
 TEST(MessageTest, Basics) {
     // name
     CRMessageBasePtr message = std::make_shared<TestMessage<1>>(1);
-    EXPECT_EQ(CRMessageBase::GetMessageTypeName<TestMessage<1>>(), GetTypeName<TestMessage<1>>());
     EXPECT_EQ(message->GetMessageTypeName(), GetTypeName<TestMessage<1>>());
 
     // empty dispatch
@@ -167,10 +167,10 @@ TEST(MessageTest, DeliveredTime) {
             CRMessageBase::Dispatch(std::make_shared<TestMessage<100>>(0));
             auto end_time = GetSystemTimestampNsec();
 
-            EXPECT_GT(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(), start_time);
-            EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(), end_time);
-            EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(), start_time);
-            EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), start_time);
+            EXPECT_GE(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(), start_time);
+            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(), end_time);
+            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(), start_time);
+            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), start_time);
         }
 
         {
@@ -178,10 +178,10 @@ TEST(MessageTest, DeliveredTime) {
             CRMessageBase::Dispatch(std::make_shared<TestMessage<200>>(0));
             auto end_time = GetSystemTimestampNsec();
 
-            EXPECT_GT(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(), start_time);
-            EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), end_time);
-            EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(), start_time);
-            EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), start_time);
+            EXPECT_GE(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(), start_time);
+            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), end_time);
+            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(), start_time);
+            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), start_time);
         }
 
         {
@@ -189,10 +189,10 @@ TEST(MessageTest, DeliveredTime) {
             CRMessageBase::Dispatch(std::make_shared<TestMessage<300>>(0));
             auto end_time = GetSystemTimestampNsec();
 
-            EXPECT_GT(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), start_time);
-            EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), end_time);
-            EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(), start_time);
-            EXPECT_LT(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(), start_time);
+            EXPECT_GE(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), start_time);
+            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), end_time);
+            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(), start_time);
+            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(), start_time);
         }
     }
 }

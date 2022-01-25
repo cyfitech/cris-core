@@ -3,8 +3,9 @@
 #include "cris/core/message/lock_queue.h"
 #include "cris/core/node/node.h"
 
-#include <map>
 #include <memory>
+#include <typeindex>
+#include <unordered_map>
 
 namespace cris::core {
 
@@ -19,12 +20,13 @@ class CRMultiQueueNodeBase : public CRNode {
 
     virtual std::unique_ptr<CRMessageQueue> MakeMessageQueue(queue_callback_t&& callback) = 0;
 
-    void SubscribeHandler(std::string&& message_name, std::function<void(const CRMessageBasePtr&)>&& callback) override;
+    void SubscribeHandler(const std::type_index message_type, std::function<void(const CRMessageBasePtr&)>&& callback)
+        override;
 
     std::vector<CRMessageQueue*> GetNodeQueues() override;
 
-    size_t                                                 queue_capacity_;
-    std::map<std::string, std::unique_ptr<CRMessageQueue>> queues_{};
+    size_t                                                               queue_capacity_;
+    std::unordered_map<std::type_index, std::unique_ptr<CRMessageQueue>> queues_{};
 };
 
 template<CRMessageQueueType queue_t = CRMessageLockQueue>
