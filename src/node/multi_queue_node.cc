@@ -4,8 +4,8 @@
 
 namespace cris::core {
 
-CRMessageQueue* CRMultiQueueNodeBase::MessageQueueMapper(const CRMessageBasePtr& message) {
-    auto queue_search = queues_.find(message->GetMessageTypeIndex());
+CRMessageQueue* CRMultiQueueNodeBase::MessageQueueMapper(const channel_id_t channel) {
+    auto queue_search = queues_.find(channel);
     if (queue_search == queues_.end()) [[unlikely]] {
         return nullptr;
     }
@@ -13,12 +13,12 @@ CRMessageQueue* CRMultiQueueNodeBase::MessageQueueMapper(const CRMessageBasePtr&
 }
 
 void CRMultiQueueNodeBase::SubscribeHandler(
-    const std::type_index                          message_type,
+    const channel_id_t                             channel,
     std::function<void(const CRMessageBasePtr&)>&& callback) {
-    auto insert = queues_.emplace(message_type, MakeMessageQueue(std::move(callback)));
+    auto insert = queues_.emplace(channel, MakeMessageQueue(std::move(callback)));
     if (!insert.second) {
-        LOG(ERROR) << __func__ << ": message '" << message_type.name()
-                   << "' is subscribed. The new callback is ignored. Node: " << this;
+        LOG(ERROR) << __func__ << ": channel (" << channel.first.name() << ", " << channel.second << ") "
+                   << "is subscribed. The new callback is ignored. Node: " << this;
     }
 }
 

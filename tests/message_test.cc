@@ -3,6 +3,8 @@
 
 #include "gtest/gtest.h"
 
+#include <boost/functional/hash.hpp>
+
 #include <cstdlib>
 #include <memory>
 #include <unordered_map>
@@ -23,7 +25,7 @@ struct SimpleTestNode : public CRSingleQueueNode<> {
     void Process() { queue_.PopAndProcess(false); }
 
     void QueueCallback(const CRMessageBasePtr& message) {
-        auto callback_search = callbacks_.find(message->GetMessageTypeIndex());
+        auto callback_search = callbacks_.find(message->GetChannelId());
         if (callback_search == callbacks_.end()) {
             return;
         }
@@ -31,12 +33,15 @@ struct SimpleTestNode : public CRSingleQueueNode<> {
     }
 
    private:
-    void SubscribeHandler(const std::type_index message_type, std::function<void(const CRMessageBasePtr&)>&& callback)
+    using callback_map_t =
+        std::unordered_map<channel_id_t, std::function<void(const CRMessageBasePtr&)>, boost::hash<channel_id_t>>;
+
+    void SubscribeHandler(const channel_id_t channel_id, std::function<void(const CRMessageBasePtr&)>&& callback)
         override {
-        callbacks_.emplace(message_type, std::move(callback));
+        callbacks_.emplace(channel_id, std::move(callback));
     }
 
-    std::unordered_map<std::type_index, std::function<void(const CRMessageBasePtr&)>> callbacks_;
+    callback_map_t callbacks_;
 };
 
 TEST(MessageTest, Basics) {
@@ -57,13 +62,13 @@ TEST(MessageTest, Subscribe) {
         int            value = 0;
         SimpleTestNode node(1);
 
-        node.Subscribe<TestMessage<1>>([&](const CRMessageBasePtr& message) {
+        node.Subscribe<TestMessage<1>>(/*channel_subid = */ 0, [&](const CRMessageBasePtr& message) {
             ++count;
             value = static_pointer_cast<TestMessage<1>>(message)->value_;
         });
 
         // duplicate subscription, first one wins
-        node.Subscribe<TestMessage<1>>([&](const CRMessageBasePtr&) {
+        node.Subscribe<TestMessage<1>>(/*channel_subid = */ 0, [&](const CRMessageBasePtr&) {
             // never enters
             std::abort();
         });
@@ -82,7 +87,7 @@ TEST(MessageTest, Subscribe) {
         int            count1 = 0;
         int            value1 = 0;
         SimpleTestNode node1(1);
-        node1.Subscribe<TestMessage<1>>([&](const CRMessageBasePtr& message) {
+        node1.Subscribe<TestMessage<1>>(/*channel_subid = */ 0, [&](const CRMessageBasePtr& message) {
             ++count1;
             value1 = static_pointer_cast<TestMessage<1>>(message)->value_;
         });
@@ -90,7 +95,7 @@ TEST(MessageTest, Subscribe) {
         int            count2 = 0;
         int            value2 = 0;
         SimpleTestNode node2(1);
-        node2.Subscribe<TestMessage<1>>([&](const CRMessageBasePtr& message) {
+        node2.Subscribe<TestMessage<1>>(/*channel_subid = */ 0, [&](const CRMessageBasePtr& message) {
             ++count2;
             value2 = static_pointer_cast<TestMessage<1>>(message)->value_;
         });
@@ -98,7 +103,7 @@ TEST(MessageTest, Subscribe) {
         int            count3 = 0;
         int            value3 = 0;
         SimpleTestNode node3(1);
-        node3.Subscribe<TestMessage<1>>([&](const CRMessageBasePtr& message) {
+        node3.Subscribe<TestMessage<1>>(/*channel_subid = */ 0, [&](const CRMessageBasePtr& message) {
             ++count3;
             value3 = static_pointer_cast<TestMessage<1>>(message)->value_;
         });
@@ -142,22 +147,22 @@ TEST(MessageTest, DeliveredTime) {
     constexpr cr_timestamp_nsec_t kDefaultTimestamp = 0;
 
     // Unknown/Unsent Message Type
-    EXPECT_EQ(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(), kDefaultTimestamp);
-    EXPECT_EQ(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(), kDefaultTimestamp);
-    EXPECT_EQ(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), kDefaultTimestamp);
+    EXPECT_EQ(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(/*channel_subid = */ 0), kDefaultTimestamp);
+    EXPECT_EQ(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(/*channel_subid = */ 0), kDefaultTimestamp);
+    EXPECT_EQ(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(/*channel_subid = */ 0), kDefaultTimestamp);
 
     SimpleTestNode node12(1);
     SimpleTestNode node23(1);
     SimpleTestNode node13(1);
 
-    node12.Subscribe<TestMessage<100>>([](auto&&) {});
-    node12.Subscribe<TestMessage<200>>([](auto&&) {});
+    node12.Subscribe<TestMessage<100>>(/*channel_subid = */ 0, [](auto&&) {});
+    node12.Subscribe<TestMessage<200>>(/*channel_subid = */ 0, [](auto&&) {});
 
-    node23.Subscribe<TestMessage<200>>([](auto&&) {});
-    node23.Subscribe<TestMessage<300>>([](auto&&) {});
+    node23.Subscribe<TestMessage<200>>(/*channel_subid = */ 0, [](auto&&) {});
+    node23.Subscribe<TestMessage<300>>(/*channel_subid = */ 0, [](auto&&) {});
 
-    node13.Subscribe<TestMessage<100>>([](auto&&) {});
-    node13.Subscribe<TestMessage<300>>([](auto&&) {});
+    node13.Subscribe<TestMessage<100>>(/*channel_subid = */ 0, [](auto&&) {});
+    node13.Subscribe<TestMessage<300>>(/*channel_subid = */ 0, [](auto&&) {});
 
     constexpr auto kRepeatTime = 5;
 
@@ -167,10 +172,10 @@ TEST(MessageTest, DeliveredTime) {
             CRMessageBase::Dispatch(std::make_shared<TestMessage<100>>(0));
             auto end_time = GetSystemTimestampNsec();
 
-            EXPECT_GE(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(), start_time);
-            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(), end_time);
-            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(), start_time);
-            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), start_time);
+            EXPECT_GE(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(/*channel_subid = */ 0), start_time);
+            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(/*channel_subid = */ 0), end_time);
+            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(/*channel_subid = */ 0), start_time);
+            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(/*channel_subid = */ 0), start_time);
         }
 
         {
@@ -178,10 +183,10 @@ TEST(MessageTest, DeliveredTime) {
             CRMessageBase::Dispatch(std::make_shared<TestMessage<200>>(0));
             auto end_time = GetSystemTimestampNsec();
 
-            EXPECT_GE(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(), start_time);
-            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), end_time);
-            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(), start_time);
-            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), start_time);
+            EXPECT_GE(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(/*channel_subid = */ 0), start_time);
+            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(/*channel_subid = */ 0), end_time);
+            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(/*channel_subid = */ 0), start_time);
+            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(/*channel_subid = */ 0), start_time);
         }
 
         {
@@ -189,10 +194,10 @@ TEST(MessageTest, DeliveredTime) {
             CRMessageBase::Dispatch(std::make_shared<TestMessage<300>>(0));
             auto end_time = GetSystemTimestampNsec();
 
-            EXPECT_GE(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), start_time);
-            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(), end_time);
-            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(), start_time);
-            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(), start_time);
+            EXPECT_GE(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(/*channel_subid = */ 0), start_time);
+            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(/*channel_subid = */ 0), end_time);
+            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(/*channel_subid = */ 0), start_time);
+            EXPECT_LE(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(/*channel_subid = */ 0), start_time);
         }
     }
 }

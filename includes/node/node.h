@@ -18,12 +18,11 @@ class CRNode : public CRNodeBase {
    private:
     void WaitForMessageImpl(std::chrono::nanoseconds timeout) override;
 
-    void SubscribeImpl(const std::type_index message_type, std::function<void(const CRMessageBasePtr&)>&& callback)
-        override;
+    void SubscribeImpl(const channel_id_t channel, std::function<void(const CRMessageBasePtr&)>&& callback) override;
 
-    std::vector<std::type_index> subscribed_{};
-    std::mutex                   wait_message_mutex_{};
-    std::condition_variable      wait_message_cv_{};
+    std::vector<channel_id_t> subscribed_{};
+    std::mutex                wait_message_mutex_{};
+    std::condition_variable   wait_message_cv_{};
 };
 
 }  // namespace cris::core

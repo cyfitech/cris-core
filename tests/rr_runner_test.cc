@@ -4,6 +4,8 @@
 
 #include "gtest/gtest.h"
 
+#include <boost/functional/hash.hpp>
+
 #include <cstring>
 #include <unordered_map>
 
@@ -26,17 +28,18 @@ class CRSingleQueueNodeForTest : public CRSingleQueueNode<> {
     bool IsMainLoopRun(size_t thread_idx) const { return main_loopis_run_[thread_idx]; }
 
    private:
-    void SubscribeHandler(const std::type_index message_type, std::function<void(const CRMessageBasePtr&)>&& callback)
+    void SubscribeHandler(const channel_id_t channel, std::function<void(const CRMessageBasePtr&)>&& callback)
         override {
-        subscriptions_.emplace(message_type, std::move(callback));
+        subscriptions_.emplace(channel, std::move(callback));
     }
 
-    void QueueProcessor(const CRMessageBasePtr& message) {
-        return subscriptions_[message->GetMessageTypeIndex()](message);
-    }
+    void QueueProcessor(const CRMessageBasePtr& message) { return subscriptions_[message->GetChannelId()](message); }
 
-    std::vector<bool>                                                                 main_loopis_run_;
-    std::unordered_map<std::type_index, std::function<void(const CRMessageBasePtr&)>> subscriptions_;
+    using callback_map_t =
+        std::unordered_map<channel_id_t, std::function<void(const CRMessageBasePtr&)>, boost::hash<channel_id_t>>;
+
+    std::vector<bool> main_loopis_run_;
+    callback_map_t    subscriptions_;
 };
 
 class CRMultiQueueNodeForTest : public CRMultiQueueNode<> {
@@ -126,13 +129,13 @@ void RRRunnerTest::TestImpl(CRNodeBase* node, CRNodeRunnerBase* node_runner) {
         }
     }
 
-    node->Subscribe<MessageForTest<0>>(&RRRunnerTest::MessageProcessorForTest<0>);
-    node->Subscribe<MessageForTest<1>>(&RRRunnerTest::MessageProcessorForTest<1>);
-    node->Subscribe<MessageForTest<2>>(&RRRunnerTest::MessageProcessorForTest<2>);
-    node->Subscribe<MessageForTest<3>>(&RRRunnerTest::MessageProcessorForTest<3>);
-    node->Subscribe<MessageForTest<4>>(&RRRunnerTest::MessageProcessorForTest<4>);
-    node->Subscribe<MessageForTest<5>>(&RRRunnerTest::MessageProcessorForTest<5>);
-    node->Subscribe<MessageForTest<6>>(&RRRunnerTest::MessageProcessorForTest<6>);
+    node->Subscribe<MessageForTest<0>>(/*channel_subid = */ 0, &RRRunnerTest::MessageProcessorForTest<0>);
+    node->Subscribe<MessageForTest<1>>(/*channel_subid = */ 0, &RRRunnerTest::MessageProcessorForTest<1>);
+    node->Subscribe<MessageForTest<2>>(/*channel_subid = */ 0, &RRRunnerTest::MessageProcessorForTest<2>);
+    node->Subscribe<MessageForTest<3>>(/*channel_subid = */ 0, &RRRunnerTest::MessageProcessorForTest<3>);
+    node->Subscribe<MessageForTest<4>>(/*channel_subid = */ 0, &RRRunnerTest::MessageProcessorForTest<4>);
+    node->Subscribe<MessageForTest<5>>(/*channel_subid = */ 0, &RRRunnerTest::MessageProcessorForTest<5>);
+    node->Subscribe<MessageForTest<6>>(/*channel_subid = */ 0, &RRRunnerTest::MessageProcessorForTest<6>);
     node_runner->Run();
 
     for (size_t i = 0; i < kMessageNum; ++i) {
