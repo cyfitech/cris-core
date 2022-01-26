@@ -45,6 +45,17 @@ class CRNodeBase {
 
     void Publish(const channel_subid_t channel_subid, CRMessageBasePtr&& message);
 
+    /* to be deprecated */
+    template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
+    void Subscribe(callback_t&& callback) {
+        return Subscribe<message_t>(CRMessageBase::kDefaultChannelSubID, std::forward<callback_t>(callback));
+    }
+
+    /* to be deprecated */
+    void Publish(CRMessageBasePtr&& message) {
+        return Publish(CRMessageBase::kDefaultChannelSubID, std::move(message));
+    }
+
     virtual CRMessageQueue* MessageQueueMapper(const channel_id_t channel) = 0;
 
     CRMessageQueue* MessageQueueMapper(const CRMessageBasePtr& message);
