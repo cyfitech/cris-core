@@ -5,6 +5,7 @@
 
 #include <boost/functional/hash.hpp>
 
+#include <cstddef>
 #include <memory>
 #include <typeindex>
 #include <unordered_map>
@@ -27,8 +28,8 @@ class CRMultiQueueNodeBase : public CRNode {
 
     std::vector<CRMessageQueue*> GetNodeQueues() override;
 
-    size_t      queue_capacity_;
-    queue_map_t queues_{};
+    std::size_t queue_capacity_;
+    queue_map_t queues_;
 };
 
 template<CRMessageQueueType queue_t = CRMessageLockQueue>

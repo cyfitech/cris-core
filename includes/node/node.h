@@ -20,9 +20,9 @@ class CRNode : public CRNodeBase {
 
     void SubscribeImpl(const channel_id_t channel, std::function<void(const CRMessageBasePtr&)>&& callback) override;
 
-    std::vector<channel_id_t> subscribed_{};
-    std::mutex                wait_message_mutex_{};
-    std::condition_variable   wait_message_cv_{};
+    std::vector<channel_id_t> subscribed_;
+    std::mutex                wait_message_mutex_;
+    std::condition_variable   wait_message_cv_;
 };
 
 }  // namespace cris::core

@@ -1,3 +1,4 @@
+#include "cris/core/message/base.h"
 #include "cris/core/node/multi_queue_node.h"
 #include "cris/core/node/single_queue_node.h"
 #include "cris/core/node_runner/runner.h"
@@ -123,19 +124,21 @@ TEST_F(RRRunnerTest, MultiQueueMultiThread) {
 }
 
 void RRRunnerTest::TestImpl(CRNodeBase* node, CRNodeRunnerBase* node_runner) {
+    constexpr CRMessageBase::channel_subid_t kChannelSubIDForTest = 1;
+
     for (size_t i = 0; i < kMessageTypeNum; ++i) {
         for (size_t j = 0; j < kMessageNum; ++j) {
             EXPECT_EQ(count_[i][j], 0);
         }
     }
 
-    node->Subscribe<MessageForTest<0>>(/*channel_subid = */ 0, &RRRunnerTest::MessageProcessorForTest<0>);
-    node->Subscribe<MessageForTest<1>>(/*channel_subid = */ 0, &RRRunnerTest::MessageProcessorForTest<1>);
-    node->Subscribe<MessageForTest<2>>(/*channel_subid = */ 0, &RRRunnerTest::MessageProcessorForTest<2>);
-    node->Subscribe<MessageForTest<3>>(/*channel_subid = */ 0, &RRRunnerTest::MessageProcessorForTest<3>);
-    node->Subscribe<MessageForTest<4>>(/*channel_subid = */ 0, &RRRunnerTest::MessageProcessorForTest<4>);
-    node->Subscribe<MessageForTest<5>>(/*channel_subid = */ 0, &RRRunnerTest::MessageProcessorForTest<5>);
-    node->Subscribe<MessageForTest<6>>(/*channel_subid = */ 0, &RRRunnerTest::MessageProcessorForTest<6>);
+    node->Subscribe<MessageForTest<0>>(kChannelSubIDForTest, &RRRunnerTest::MessageProcessorForTest<0>);
+    node->Subscribe<MessageForTest<1>>(kChannelSubIDForTest, &RRRunnerTest::MessageProcessorForTest<1>);
+    node->Subscribe<MessageForTest<2>>(kChannelSubIDForTest, &RRRunnerTest::MessageProcessorForTest<2>);
+    node->Subscribe<MessageForTest<3>>(kChannelSubIDForTest, &RRRunnerTest::MessageProcessorForTest<3>);
+    node->Subscribe<MessageForTest<4>>(kChannelSubIDForTest, &RRRunnerTest::MessageProcessorForTest<4>);
+    node->Subscribe<MessageForTest<5>>(kChannelSubIDForTest, &RRRunnerTest::MessageProcessorForTest<5>);
+    node->Subscribe<MessageForTest<6>>(kChannelSubIDForTest, &RRRunnerTest::MessageProcessorForTest<6>);
     node_runner->Run();
 
     for (size_t i = 0; i < kMessageNum; ++i) {
@@ -147,12 +150,19 @@ void RRRunnerTest::TestImpl(CRNodeBase* node, CRNodeRunnerBase* node_runner) {
         auto message5 = std::make_shared<MessageForTest<5>>(i, this);
         auto message6 = std::make_shared<MessageForTest<6>>(i, this);
 
+        message0->SetChannelSubId(kChannelSubIDForTest);
         CRMessageBase::Dispatch(message0);
+        message1->SetChannelSubId(kChannelSubIDForTest);
         CRMessageBase::Dispatch(message1);
+        message2->SetChannelSubId(kChannelSubIDForTest);
         CRMessageBase::Dispatch(message2);
+        message3->SetChannelSubId(kChannelSubIDForTest);
         CRMessageBase::Dispatch(message3);
+        message4->SetChannelSubId(kChannelSubIDForTest);
         CRMessageBase::Dispatch(message4);
+        message5->SetChannelSubId(kChannelSubIDForTest);
         CRMessageBase::Dispatch(message5);
+        message6->SetChannelSubId(kChannelSubIDForTest);
         CRMessageBase::Dispatch(message6);
     }
 
