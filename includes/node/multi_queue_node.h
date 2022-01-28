@@ -3,6 +3,9 @@
 #include "cris/core/message/lock_queue.h"
 #include "cris/core/node/node.h"
 
+#include <boost/functional/hash.hpp>
+
+#include <cstddef>
 #include <memory>
 #include <typeindex>
 #include <unordered_map>
@@ -13,20 +16,20 @@ class CRMultiQueueNodeBase : public CRNode {
    public:
     explicit CRMultiQueueNodeBase(size_t queue_capacity) : queue_capacity_(queue_capacity) {}
 
-    CRMessageQueue* MessageQueueMapper(const CRMessageBasePtr& message) override;
+    CRMessageQueue* MessageQueueMapper(const channel_id_t channel) override;
 
    protected:
     using queue_callback_t = std::function<void(const CRMessageBasePtr&)>;
+    using queue_map_t = std::unordered_map<channel_id_t, std::unique_ptr<CRMessageQueue>, boost::hash<channel_id_t>>;
 
     virtual std::unique_ptr<CRMessageQueue> MakeMessageQueue(queue_callback_t&& callback) = 0;
 
-    void SubscribeHandler(const std::type_index message_type, std::function<void(const CRMessageBasePtr&)>&& callback)
-        override;
+    void SubscribeHandler(const channel_id_t channel, std::function<void(const CRMessageBasePtr&)>&& callback) override;
 
     std::vector<CRMessageQueue*> GetNodeQueues() override;
 
-    size_t                                                               queue_capacity_;
-    std::unordered_map<std::type_index, std::unique_ptr<CRMessageQueue>> queues_{};
+    std::size_t queue_capacity_;
+    queue_map_t queues_;
 };
 
 template<CRMessageQueueType queue_t = CRMessageLockQueue>

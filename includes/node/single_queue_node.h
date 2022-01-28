@@ -14,7 +14,7 @@ class CRSingleQueueNode : public CRNode {
         : queue_capacity_(queue_capacity)
         , queue_(queue_capacity_, this, std::move(callback)) {}
 
-    CRMessageQueue* MessageQueueMapper(const CRMessageBasePtr& message) override { return &queue_; }
+    CRMessageQueue* MessageQueueMapper(const channel_id_t /* channel */) override { return &queue_; }
 
    protected:
     std::vector<CRMessageQueue*> GetNodeQueues() override {

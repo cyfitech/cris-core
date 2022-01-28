@@ -23,29 +23,28 @@ class SubscriptionInfo {
 
 using channel_id_t = CRMessageBase::channel_id_t;
 
-// Mapping from type info and channel ID to subscription info
-// TODO (hao.chen): add channel ID support. Currently they are all 0.
-using subscription_key_t = std::pair<std::type_index, channel_id_t>;
-using subscription_map_t = std::unordered_map<subscription_key_t, SubscriptionInfo, boost::hash<subscription_key_t>>;
-
-constexpr static channel_id_t kDefaultChannelID = 0;
+using subscription_map_t = std::unordered_map<channel_id_t, SubscriptionInfo, boost::hash<channel_id_t>>;
 
 static subscription_map_t& GetSubscriptionMap() {
     static subscription_map_t subscription_map;
     return subscription_map;
 };
 
-static SubscriptionInfo* GetSubscriptionInfo(const std::type_index message_type) {
+static SubscriptionInfo* GetSubscriptionInfo(const channel_id_t channel) {
     auto& subscription_map  = GetSubscriptionMap();
-    auto  subscription_find = subscription_map.find(std::make_pair(message_type, kDefaultChannelID));
+    auto  subscription_find = subscription_map.find(channel);
     if (subscription_find == subscription_map.end()) {
         return nullptr;
     }
     return &subscription_find->second;
 }
 
+channel_id_t CRMessageBase::GetChannelId() const {
+    return std::make_pair(GetMessageTypeIndex(), GetChannelSubId());
+}
+
 void CRMessageBase::Dispatch(const CRMessageBasePtr& message) {
-    auto* subscription_info = GetSubscriptionInfo(message->GetMessageTypeIndex());
+    auto* subscription_info = GetSubscriptionInfo(message->GetChannelId());
     if (!subscription_info) {
         return;
     }
@@ -62,38 +61,39 @@ void CRMessageBase::Dispatch(const CRMessageBasePtr& message) {
     subscription_info->latest_delivered_time_.store(GetSystemTimestampNsec());
 }
 
-bool CRMessageBase::Subscribe(const std::type_index message_type, CRNodeBase* node) {
-    auto& subscription_list = GetSubscriptionMap()[std::make_pair(message_type, kDefaultChannelID)].sub_list_;
+bool CRMessageBase::Subscribe(const channel_id_t channel, CRNodeBase* node) {
+    auto& subscription_list = GetSubscriptionMap()[channel].sub_list_;
 
     if (std::find(subscription_list.begin(), subscription_list.end(), node) != subscription_list.end()) {
-        LOG(WARNING) << __func__ << ": Message type '" << message_type.name() << " is subscribed by the node " << node
-                     << ", skipping subscription.";
+        LOG(WARNING) << __func__ << ": Channel (" << channel.first.name() << ", " << channel.second << ") "
+                     << "is subscribed by the node " << node << ", skipping subscription.";
         return false;
     }
     subscription_list.emplace_back(node);
     return true;
 }
 
-void CRMessageBase::Unsubscribe(const std::type_index message_type, CRNodeBase* node) {
+void CRMessageBase::Unsubscribe(const channel_id_t channel, CRNodeBase* node) {
     auto& subscription_map        = GetSubscriptionMap();
-    auto  subscription_map_search = subscription_map.find(std::make_pair(message_type, kDefaultChannelID));
+    auto  subscription_map_search = subscription_map.find(channel);
     if (subscription_map_search == subscription_map.end()) {
-        LOG(WARNING) << __func__ << ": message '" << message_type.name() << "' is unknown.";
+        LOG(WARNING) << __func__ << ": Channel (" << channel.first.name() << ", " << channel.second << ") is unknown";
         return;
     }
 
     if (!std::erase(subscription_map_search->second.sub_list_, node)) {
-        LOG(WARNING) << __func__ << ": message '" << message_type.name() << "' is not subscribed by node " << node;
+        LOG(WARNING) << __func__ << ": Channel (" << channel.first.name() << ", " << channel.second << ") "
+                     << "is not subscribed by node " << node;
     }
 }
 
-cr_timestamp_nsec_t CRMessageBase::GetLatestDeliveredTime(const std::type_index message_type) {
+cr_timestamp_nsec_t CRMessageBase::GetLatestDeliveredTime(const channel_id_t channel) {
     constexpr cr_timestamp_nsec_t kDefaultDeliveredTime = 0;
 
     auto& subscription_map        = GetSubscriptionMap();
-    auto  subscription_map_search = subscription_map.find(std::make_pair(message_type, kDefaultChannelID));
+    auto  subscription_map_search = subscription_map.find(channel);
     if (subscription_map_search == subscription_map.end()) {
-        LOG(WARNING) << __func__ << ": message '" << message_type.name() << "' is unknown.";
+        LOG(WARNING) << __func__ << ": Channel (" << channel.first.name() << ", " << channel.second << ") is unknown";
         return kDefaultDeliveredTime;
     }
     return subscription_map_search->second.latest_delivered_time_.load();

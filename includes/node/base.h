@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cris/core/message/base.h"
 #include "cris/core/message/queue.h"
 
 #include <chrono>
@@ -12,6 +13,9 @@ namespace cris::core {
 // messages are coming
 class CRNodeBase {
    public:
+    using channel_subid_t = CRMessageBase::channel_subid_t;
+    using channel_id_t    = CRMessageBase::channel_id_t;
+
     CRNodeBase() = default;
 
     CRNodeBase(const CRNodeBase&) = delete;
@@ -37,23 +41,34 @@ class CRNodeBase {
     // when messages are coming, nor call it after Node Runner
     // is Running
     template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
-    void Subscribe(callback_t&& callback);
+    void Subscribe(const channel_subid_t channel_subid, callback_t&& callback);
 
-    void Publish(CRMessageBasePtr&& message);
+    void Publish(const channel_subid_t channel_subid, CRMessageBasePtr&& message);
 
-    virtual CRMessageQueue* MessageQueueMapper(const CRMessageBasePtr& message) = 0;
+    /* to be deprecated */
+    template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
+    void Subscribe(callback_t&& callback) {
+        return Subscribe<message_t>(CRMessageBase::kDefaultChannelSubID, std::forward<callback_t>(callback));
+    }
+
+    /* to be deprecated */
+    void Publish(CRMessageBasePtr&& message) {
+        return Publish(CRMessageBase::kDefaultChannelSubID, std::move(message));
+    }
+
+    virtual CRMessageQueue* MessageQueueMapper(const channel_id_t channel) = 0;
+
+    CRMessageQueue* MessageQueueMapper(const CRMessageBasePtr& message);
 
     static CRNodeBase* GetMessageManager();
 
    protected:
     virtual void WaitForMessageImpl(std::chrono::nanoseconds timeout) = 0;
 
-    virtual void SubscribeImpl(
-        const std::type_index                          message_type,
-        std::function<void(const CRMessageBasePtr&)>&& callback) = 0;
+    virtual void SubscribeImpl(const channel_id_t channel, std::function<void(const CRMessageBasePtr&)>&& callback) = 0;
 
     virtual void SubscribeHandler(
-        const std::type_index                          message_type,
+        const channel_id_t                             channel,
         std::function<void(const CRMessageBasePtr&)>&& callback) = 0;
 
     virtual std::vector<CRMessageQueue*> GetNodeQueues() = 0;
@@ -70,10 +85,12 @@ void CRNodeBase::WaitForMessage(duration_t&& timeout) {
 }
 
 template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
-void CRNodeBase::Subscribe(callback_t&& callback) {
-    return SubscribeImpl(typeid(message_t), [callback = std::move(callback)](const CRMessageBasePtr& message) {
-        return callback(reinterpret_cast<const std::shared_ptr<message_t>&>(message));
-    });
+void CRNodeBase::Subscribe(const channel_subid_t channel_subid, callback_t&& callback) {
+    return SubscribeImpl(
+        std::make_pair(std::type_index(typeid(message_t)), channel_subid),
+        [callback = std::move(callback)](const CRMessageBasePtr& message) {
+            return callback(reinterpret_cast<const std::shared_ptr<message_t>&>(message));
+        });
 }
 
 }  // namespace cris::core

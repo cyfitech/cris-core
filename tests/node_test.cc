@@ -8,11 +8,12 @@
 namespace cris::core {
 
 class TrivialNodeForTest : public CRNode {
-    CRMessageQueue* MessageQueueMapper(const CRMessageBasePtr& message) override { return nullptr; }
+    CRMessageQueue* MessageQueueMapper(const channel_id_t /* channel */) override { return nullptr; }
 
    private:
-    void SubscribeHandler(const std::type_index message_type, std::function<void(const CRMessageBasePtr&)>&& callback)
-        override {}
+    void SubscribeHandler(
+        const channel_id_t /* channel */,
+        std::function<void(const CRMessageBasePtr&)>&& /* callback */) override {}
 
     std::vector<CRMessageQueue*> GetNodeQueues() override { return {}; }
 };
@@ -68,49 +69,79 @@ template<int idx>
 struct TestMessage : public CRMessage<TestMessage<idx>> {};
 
 TEST(NodeTest, MultiQueueNode) {
-    CRMultiQueueNode<>            node(1);
-    constexpr size_t              kNumOfTopics = 4;
-    std::array<int, kNumOfTopics> received{0};
+    CRMultiQueueNode<> node(1);
+    constexpr size_t   kNumOfTopics     = 4;
+    constexpr size_t   kNumOfSubChannel = 4;
 
-    node.Subscribe<TestMessage<0>>([&received](const std::shared_ptr<TestMessage<0>>&) { ++received[0]; });
-    node.Subscribe<TestMessage<1>>([&received](const std::shared_ptr<TestMessage<1>>&) { ++received[1]; });
-    node.Subscribe<TestMessage<2>>([&received](const std::shared_ptr<TestMessage<2>>&) { ++received[2]; });
-    node.Subscribe<TestMessage<3>>([&received](const std::shared_ptr<TestMessage<3>>&) { ++received[3]; });
+    std::array<std::array<int, kNumOfSubChannel>, kNumOfTopics> received{};
 
-    {
-        constexpr int message_type_idx = 0;
-        auto          message          = std::make_shared<TestMessage<message_type_idx>>();
-        CRMessageBase::Dispatch(message);
-        node.MessageQueueMapper(message)->PopAndProcess(false);
-
-        EXPECT_EQ(received[message_type_idx], 1);
+    for (size_t channel_subid = 0; channel_subid < kNumOfSubChannel; ++channel_subid) {
+        node.Subscribe<TestMessage<0>>(
+            channel_subid,
+            [&received, channel_subid](const std::shared_ptr<TestMessage<0>>&) { ++received[0][channel_subid]; });
+        node.Subscribe<TestMessage<1>>(
+            channel_subid,
+            [&received, channel_subid](const std::shared_ptr<TestMessage<1>>&) { ++received[1][channel_subid]; });
+        node.Subscribe<TestMessage<2>>(
+            channel_subid,
+            [&received, channel_subid](const std::shared_ptr<TestMessage<2>>&) { ++received[2][channel_subid]; });
+        node.Subscribe<TestMessage<3>>(
+            channel_subid,
+            [&received, channel_subid](const std::shared_ptr<TestMessage<3>>&) { ++received[3][channel_subid]; });
     }
 
-    {
-        constexpr int message_type_idx = 1;
-        auto          message          = std::make_shared<TestMessage<message_type_idx>>();
-        CRMessageBase::Dispatch(message);
-        node.MessageQueueMapper(message)->PopAndProcess(false);
+    for (size_t channel_subid = 0; channel_subid < kNumOfSubChannel; ++channel_subid) {
+        {
+            constexpr int message_type_idx = 0;
+            auto          message          = std::make_shared<TestMessage<message_type_idx>>();
+            message->SetChannelSubId(channel_subid);
 
-        EXPECT_EQ(received[message_type_idx], 1);
-    }
+            EXPECT_EQ(received[message_type_idx][channel_subid], 0);
 
-    {
-        constexpr int message_type_idx = 2;
-        auto          message          = std::make_shared<TestMessage<message_type_idx>>();
-        CRMessageBase::Dispatch(message);
-        node.MessageQueueMapper(message)->PopAndProcess(false);
+            CRMessageBase::Dispatch(message);
+            node.MessageQueueMapper(message->GetChannelId())->PopAndProcess(false);
 
-        EXPECT_EQ(received[message_type_idx], 1);
-    }
+            EXPECT_EQ(received[message_type_idx][channel_subid], 1);
+        }
 
-    {
-        constexpr int message_type_idx = 3;
-        auto          message          = std::make_shared<TestMessage<message_type_idx>>();
-        CRMessageBase::Dispatch(message);
-        node.MessageQueueMapper(message)->PopAndProcess(false);
+        {
+            constexpr int message_type_idx = 1;
+            auto          message          = std::make_shared<TestMessage<message_type_idx>>();
+            message->SetChannelSubId(channel_subid);
 
-        EXPECT_EQ(received[message_type_idx], 1);
+            EXPECT_EQ(received[message_type_idx][channel_subid], 0);
+
+            CRMessageBase::Dispatch(message);
+            node.MessageQueueMapper(message->GetChannelId())->PopAndProcess(false);
+
+            EXPECT_EQ(received[message_type_idx][channel_subid], 1);
+        }
+
+        {
+            constexpr int message_type_idx = 2;
+            auto          message          = std::make_shared<TestMessage<message_type_idx>>();
+            message->SetChannelSubId(channel_subid);
+
+            EXPECT_EQ(received[message_type_idx][channel_subid], 0);
+
+            CRMessageBase::Dispatch(message);
+            node.MessageQueueMapper(message->GetChannelId())->PopAndProcess(false);
+
+            EXPECT_EQ(received[message_type_idx][channel_subid], 1);
+        }
+
+        {
+            constexpr int message_type_idx = 3;
+            auto          message          = std::make_shared<TestMessage<message_type_idx>>();
+            message->SetChannelSubId(channel_subid);
+
+            EXPECT_EQ(received[message_type_idx][channel_subid], 0);
+
+            CRMessageBase::Dispatch(message);
+            node.MessageQueueMapper(message->GetChannelId())->PopAndProcess(false);
+
+            EXPECT_EQ(received[message_type_idx][channel_subid], 1);
+        }
     }
 }
 
