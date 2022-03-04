@@ -12,3 +12,5 @@
 #pragma CRIS_COMPILER diagnostic ignored "-Wconversion"
 #include <glog/logging.h>
 #pragma CRIS_COMPILER diagnostic pop
+
+#undef CRIS_COMPILER
