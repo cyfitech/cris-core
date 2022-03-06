@@ -1,8 +1,7 @@
 #include "cris/core/message/queue.h"
 
+#include "cris/core/logging.h"
 #include "cris/core/node/base.h"
-
-#include <glog/logging.h>
 
 namespace cris::core {
 

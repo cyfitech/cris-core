@@ -1,6 +1,6 @@
 #include "cris/core/message/lock_queue.h"
 
-#include <glog/logging.h>
+#include "cris/core/logging.h"
 
 namespace cris::core {
 

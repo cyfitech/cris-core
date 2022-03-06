@@ -1,8 +1,7 @@
 #ifdef ENABLE_PROFILING
 
+#include "cris/core/logging.h"
 #include "cris/core/timer/timer.h"
-
-#include <glog/logging.h>
 
 #include <cmath>
 #include <cstdint>

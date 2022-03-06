@@ -1,4 +1,4 @@
-#include <glog/logging.h>
+#include "cris/core/logging.h"
 
 extern "C" {
 
