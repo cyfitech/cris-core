@@ -1,7 +1,6 @@
+#include "cris/core/logging.h"
 #include "cris/core/message/base.h"
 #include "cris/core/node/base.h"
-
-#include <glog/logging.h>
 
 #include <boost/functional/hash.hpp>
 

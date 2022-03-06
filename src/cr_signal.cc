@@ -1,4 +1,4 @@
-#include <glog/logging.h>
+#include "cris/core/logging.h"
 
 extern "C" {
 
@@ -11,6 +11,7 @@ extern "C" {
 
 #include <atomic>
 #include <cinttypes>
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <signal.h>
@@ -19,7 +20,7 @@ extern "C" {
 namespace cris::core {
 
 static void WriteToGlog(const char* data, int size) {
-    std::string msg(data, size);
+    std::string msg(data, static_cast<std::size_t>(size));
     LOG(ERROR) << msg;
 }
 

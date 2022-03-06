@@ -1,6 +1,6 @@
 #include "cris/core/node/base.h"
 
-#include <glog/logging.h>
+#include "cris/core/logging.h"
 
 namespace cris::core {
 
