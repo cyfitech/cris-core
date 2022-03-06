@@ -8,7 +8,7 @@
 namespace cris::core {
 
 template<class T1, class T2>
-void ExpectNear(const T1& v1, const T2& v2, float error = 0.05) {
+void ExpectNear(const T1& v1, const T2& v2, float error = 0.05f) {
     EXPECT_LT((1 - error) * v2, v1);
     EXPECT_LT(v1, (1 + error) * v2);
 }

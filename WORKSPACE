@@ -16,6 +16,7 @@ http_archive(
     sha256 = "62efeb57ff70db9ea2129a16d0f908941e355d09d6d83c9f7b18557c0a7ab59e",
     strip_prefix = "glog-d516278b1cd33cd148e8989aec488b6049a4ca0b",
     urls = ["https://github.com/google/glog/archive/d516278b1cd33cd148e8989aec488b6049a4ca0b.zip"],
+    patches = ["//external/glog:suppress_compiler_warning.patch"],
 )
 
 http_archive(
