@@ -11,6 +11,7 @@ extern "C" {
 
 #include <atomic>
 #include <cinttypes>
+#include <cstddef>
 #include <cstdio>
 #include <cstring>
 #include <signal.h>
