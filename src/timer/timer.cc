@@ -26,7 +26,7 @@ static const double kTscToNsecRatio = []() {
 
     const auto nsec_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
 
-    return nsec_duration.count() * 1.0 / (end_tick - start_tick);
+    return static_cast<double>(nsec_duration.count()) / static_cast<double>((end_tick - start_tick));
 }();
 
 unsigned long long GetTSCTick(unsigned& aux) {
@@ -42,7 +42,7 @@ unsigned long long GetTSCTick(unsigned& aux) {
 
 cr_timestamp_nsec_t GetSystemTimestampNsec() {
     unsigned cpuid = 0;
-    return static_cast<cr_timestamp_nsec_t>(GetTSCTick(cpuid) * kTscToNsecRatio);
+    return static_cast<cr_timestamp_nsec_t>(static_cast<double>(GetTSCTick(cpuid)) * kTscToNsecRatio);
 }
 
 cr_timestamp_nsec_t GetUnixTimestampNsec() {
