@@ -1,5 +1,4 @@
 build --config="_zlib64"
-build --copt="-DSIMDJSON_EXCEPTIONS=0"
 build -c opt
 
 build:_zlib64 --copt="-D_FILE_OFFSET_BITS=64"
