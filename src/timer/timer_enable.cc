@@ -3,6 +3,8 @@
 #include "cris/core/logging.h"
 #include "cris/core/timer/timer.h"
 
+#include <array>
+#include <atomic>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
