@@ -1,8 +1,8 @@
 package(default_visibility = ["//visibility:public"])
 
-load("//bazel:rules.bzl", "cr_cc_library")
+load("//bazel:rules.bzl", "cris_cc_library")
 
-cr_cc_library (
+cris_cc_library (
     name = "corelib",
     srcs = glob(["src/**/*.cc"]),
     includes = ["includes"],

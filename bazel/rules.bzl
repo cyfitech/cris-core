@@ -1,4 +1,4 @@
-CRIS_CXX_COPTS = [
+CRIS_CXXOPTS = [
     "-Wall",
     "-Wfloat-conversion",
     "-Werror",
@@ -16,9 +16,9 @@ CRIS_LINKOPTS = [
 
 def __add_opts(attrs):
     if "copts" in attrs and attrs["copts"] != None:
-        attrs["copts"] = attrs["copts"] + CRIS_CXX_COPTS
+        attrs["copts"] = attrs["copts"] + CRIS_CXXOPTS
     else:
-        attrs["copts"] = CRIS_CXX_COPTS
+        attrs["copts"] = CRIS_CXXOPTS
 
     if "linkopts" in attrs and attrs["linkopts"] != None:
         attrs["linkopts"] = attrs["linkopts"] + CRIS_LINKOPTS
@@ -27,11 +27,11 @@ def __add_opts(attrs):
 
     return attrs
 
-def cr_cc_library(**attrs):
+def cris_cc_library(**attrs):
     native.cc_library(**__add_opts(attrs))
 
-def cr_cc_binary(**attrs):
+def cris_cc_binary(**attrs):
     native.cc_binary(**__add_opts(attrs))
 
-def cr_cc_test(**attrs):
+def cris_cc_test(**attrs):
     native.cc_test(**__add_opts(attrs))

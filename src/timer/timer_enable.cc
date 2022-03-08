@@ -348,8 +348,8 @@ cr_duration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
     }
 
     const auto total_hits = GetTotalHits();
-    const auto target_hits =
-        static_cast<unsigned long long>(std::llround(static_cast<double>(total_hits * percent) / 100.));
+    const auto target_hits = static_cast<unsigned long long>(
+        std::round(static_cast<double>(total_hits) * static_cast<double>(percent) / 100.));
 
     if (target_hits == 0) {
         return 0;
