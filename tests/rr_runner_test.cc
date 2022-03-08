@@ -24,7 +24,9 @@ class CRSingleQueueNodeForTest : public CRSingleQueueNode<> {
               std::bind(&CRSingleQueueNodeForTest::QueueProcessor, this, std::placeholders::_1))
         , main_loopis_run_(kMainThreadNum, 0) {}
 
-    void MainLoop(const size_t thread_idx, const size_t thread_num) override { main_loopis_run_[thread_idx] = true; }
+    void MainLoop(const size_t thread_idx, const size_t /* thread_num */) override {
+        main_loopis_run_[thread_idx] = true;
+    }
 
     bool IsMainLoopRun(size_t thread_idx) const { return main_loopis_run_[thread_idx]; }
 
@@ -47,7 +49,7 @@ class CRMultiQueueNodeForTest : public CRMultiQueueNode<> {
    public:
     CRMultiQueueNodeForTest() : CRMultiQueueNode<>(kMessageNum), main_loopis_run_(kMainThreadNum, 0) {}
 
-    void MainLoop(const size_t thread_idx, const size_t thread_num) { main_loopis_run_[thread_idx] = true; }
+    void MainLoop(const size_t thread_idx, const size_t /* thread_num */) { main_loopis_run_[thread_idx] = true; }
 
     bool IsMainLoopRun(size_t thread_idx) const { return main_loopis_run_[thread_idx]; }
 

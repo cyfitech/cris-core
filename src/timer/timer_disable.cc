@@ -27,11 +27,11 @@ cr_duration_nsec_t TimerReport::GetAverageDurationNsec() const {
     return 0;
 }
 
-cr_duration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
+cr_duration_nsec_t TimerReport::GetPercentileDurationNsec(int /* percent */) const {
     return 0;
 }
 
-void TimerReport::PrintToLog(int indent_level) const {
+void TimerReport::PrintToLog(int /* indent_level */) const {
 }
 
 TimerSection* TimerSection::GetMainSection() {
@@ -57,15 +57,15 @@ TimerSession TimerSection::StartTimerSession() {
     return {};
 }
 
-std::unique_ptr<TimerReport> TimerSection::GetReport(bool recursive) {
+std::unique_ptr<TimerReport> TimerSection::GetReport(bool /* recursive */) {
     return {};
 }
 
-TimerSection* TimerSection::SubSection(const std::string& name) {
+TimerSection* TimerSection::SubSection(const std::string& /* name */) {
     return this;
 }
 
-void TimerSection::ReportDurationNsec(cr_timestamp_nsec_t duration) {
+void TimerSection::ReportDurationNsec(cr_timestamp_nsec_t) {
 }
 
 void TimerSection::FlushCollectedStats() {

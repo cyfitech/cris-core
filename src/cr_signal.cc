@@ -122,7 +122,7 @@ static void DumpStacktrace() {
 
 static std::atomic<pthread_t*> current_thread_in_handler{nullptr};
 
-static void SigIntHandler(int signal_number, siginfo_t* signal_info, void* ucontext) {
+static void SigIntHandler(int /* signal_number */, siginfo_t* /* signal_info */, void* /* ucontext */) {
     TimerSection::FlushCollectedStats();
     TimerSection::GetMainSection()->GetReport()->PrintToLog();
 }

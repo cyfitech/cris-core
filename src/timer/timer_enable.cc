@@ -324,7 +324,7 @@ double TimerReport::GetFreq() const {
     using std::chrono::duration;
     using std::chrono::duration_cast;
     using std::chrono::nanoseconds;
-    return GetTotalHits() * 1.0 / duration_cast<duration<double>>(nanoseconds(timing_duration_)).count();
+    return static_cast<double>(GetTotalHits()) / duration_cast<duration<double>>(nanoseconds(timing_duration_)).count();
 }
 
 cr_duration_nsec_t TimerReport::GetAverageDurationNsec() const {
@@ -347,14 +347,15 @@ cr_duration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
         percent = 100;
     }
 
-    const auto total_hits  = GetTotalHits();
-    const auto target_hits = std::round(total_hits * percent / 100.);
+    const auto total_hits = GetTotalHits();
+    const auto target_hits =
+        static_cast<unsigned long long>(std::llround(static_cast<double>(total_hits * percent) / 100.));
 
     if (target_hits == 0) {
         return 0;
     }
 
-    std::uint64_t current_hits = 0;
+    unsigned long long current_hits = 0;
     for (const auto& bucket : report_buckets_) {
         current_hits += bucket.hits_;
         if (current_hits >= target_hits) {
