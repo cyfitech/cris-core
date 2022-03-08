@@ -4,14 +4,14 @@
 
 namespace cris::core {
 
-CRMessageLockQueue::CRMessageLockQueue(size_t capacity, CRNodeBase* node, message_processor_t&& processor)
+CRMessageLockQueue::CRMessageLockQueue(std::size_t capacity, CRNodeBase* node, message_processor_t&& processor)
     : CRMessageQueue(node, std::move(processor))
     , capacity_(capacity) {
     buffer_.resize(capacity_, nullptr);
     LOG(INFO) << __func__ << ": " << this << " initialized. Capacity: " << capacity;
 }
 
-size_t CRMessageLockQueue::Size() {
+std::size_t CRMessageLockQueue::Size() {
     std::lock_guard<std::mutex> lock(mutex_);
     return size_;
 }
@@ -28,7 +28,7 @@ bool CRMessageLockQueue::IsFull() {
 
 void CRMessageLockQueue::AddMessage(std::shared_ptr<CRMessageBase>&& message) {
     std::lock_guard<std::mutex> lock(mutex_);
-    size_t                      write_pos = end_;
+    std::size_t                 write_pos = end_;
     ++end_;
     if (end_ >= capacity_) {
         end_ = 0;
@@ -49,7 +49,7 @@ void CRMessageLockQueue::AddMessage(std::shared_ptr<CRMessageBase>&& message) {
 
 CRMessageBasePtr CRMessageLockQueue::PopMessage(bool only_latest) {
     CRMessageBasePtr            message;
-    size_t                      read_pos;
+    std::size_t                 read_pos;
     std::lock_guard<std::mutex> lock(mutex_);
 
     if (size_ == 0) [[unlikely]] {

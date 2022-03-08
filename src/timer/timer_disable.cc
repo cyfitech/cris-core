@@ -39,12 +39,12 @@ TimerSection* TimerSection::GetMainSection() {
     return &main_section;
 }
 
-TimerSection::TimerSection(const std::string& name, size_t collector_index, CtorPermission)
+TimerSection::TimerSection(const std::string& name, std::size_t collector_index, CtorPermission)
     : name_(name)
     , collector_index_(collector_index) {
 }
 
-TimerSession::TimerSession(cr_timestamp_nsec_t, size_t) {
+TimerSession::TimerSession(cr_timestamp_nsec_t, std::size_t) {
 }
 
 TimerSession::~TimerSession() {

@@ -38,7 +38,7 @@ TEST(TimerTest, Basic) {
         }
     });
 
-    for (size_t i = 0; i < kTestHits; ++i) {
+    for (std::size_t i = 0; i < kTestHits; ++i) {
         auto timer2 = section2->StartTimerSession();
         std::this_thread::sleep_for(kTestSessionDuration);
     }
@@ -95,7 +95,7 @@ TEST(TimerTest, PercentileTest) {
     // which is not great. Needs to find a setting-indepedent way to test
     //
     // Insert 3 records for first 10 duration buckets
-    for (size_t i = 0; i < 10; ++i) {
+    for (std::size_t i = 0; i < 10; ++i) {
         section->ReportDuration(std::chrono::microseconds(10 * (1 << i) - 1));
         section->ReportDuration(std::chrono::microseconds(10 * (1 << i) - 2));
         section->ReportDuration(std::chrono::microseconds(10 * (1 << i) - 3));

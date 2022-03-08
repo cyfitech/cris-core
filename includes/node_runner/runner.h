@@ -33,13 +33,13 @@ class CRNodeRunnerBase {
 
 class CRMultiThreadNodeRunner : public CRNodeRunnerBase {
    public:
-    CRMultiThreadNodeRunner(CRNodeBase* node, size_t thread_num);
+    CRMultiThreadNodeRunner(CRNodeBase* node, std::size_t thread_num);
 
     ~CRMultiThreadNodeRunner();
 
     CRNodeBase* GetNode() const override;
 
-    size_t GetThreadNum() const;
+    std::size_t GetThreadNum() const;
 
     void Run() override;
 
@@ -49,13 +49,13 @@ class CRMultiThreadNodeRunner : public CRNodeRunnerBase {
 
     virtual void PrepareToRun() = 0;
 
-    virtual std::function<void()> GetWorker(size_t thread_idx, size_t thread_num) = 0;
+    virtual std::function<void()> GetWorker(std::size_t thread_idx, std::size_t thread_num) = 0;
 
     virtual void NotifyWorkersToStop() = 0;
 
    private:
     CRNodeBase*              node_;
-    size_t                   thread_num_;
+    std::size_t              thread_num_;
     std::vector<std::thread> worker_threads_;
     bool                     is_running_{false};
     std::mutex               run_state_mutex_;
@@ -64,31 +64,31 @@ class CRMultiThreadNodeRunner : public CRNodeRunnerBase {
 
 class CRNodeMainThreadRunner : public CRMultiThreadNodeRunner {
    public:
-    CRNodeMainThreadRunner(CRNodeBase* node, size_t thread_num, bool auto_run = false);
+    CRNodeMainThreadRunner(CRNodeBase* node, std::size_t thread_num, bool auto_run = false);
 
     ~CRNodeMainThreadRunner();
 
     void PrepareToRun() override;
 
-    std::function<void()> GetWorker(size_t thread_idx, size_t thread_num) override;
+    std::function<void()> GetWorker(std::size_t thread_idx, std::size_t thread_num) override;
 
     void NotifyWorkersToStop() override;
 };
 
 class CRNodeRoundRobinQueueProcessor : public CRMultiThreadNodeRunner {
    public:
-    CRNodeRoundRobinQueueProcessor(CRNodeBase* node, size_t thread_num, bool auto_run = false);
+    CRNodeRoundRobinQueueProcessor(CRNodeBase* node, std::size_t thread_num, bool auto_run = false);
 
     ~CRNodeRoundRobinQueueProcessor();
 
     void PrepareToRun() override;
 
-    std::function<void()> GetWorker(size_t thread_idx, size_t thread_num) override;
+    std::function<void()> GetWorker(std::size_t thread_idx, std::size_t thread_num) override;
 
     void NotifyWorkersToStop() override;
 
    private:
-    void WorkerLoop(const size_t thread_idx, const size_t thread_num);
+    void WorkerLoop(const std::size_t thread_idx, const std::size_t thread_num);
 
     std::vector<CRMessageQueue*> node_queues_;
     std::atomic<bool>            shutdown_flag_{false};
@@ -100,7 +100,11 @@ concept CRNodeRunnerType = std::is_base_of_v<CRNodeRunnerBase, runner_t>;
 template<CRNodeRunnerType queue_processor_t, CRNodeRunnerType main_thread_runner_t = CRNodeMainThreadRunner>
 class CRNodeRunner : public CRNodeRunnerBase {
    public:
-    CRNodeRunner(CRNodeBase* node, size_t queue_processor_thread_num, size_t main_thread_num = 1, bool auto_run = false)
+    CRNodeRunner(
+        CRNodeBase* node,
+        std::size_t queue_processor_thread_num,
+        std::size_t main_thread_num = 1,
+        bool        auto_run        = false)
         : node_(node)
         , queue_processor_(node, queue_processor_thread_num, auto_run)
         , main_thread_runner_(node, main_thread_num, auto_run) {}

@@ -21,11 +21,11 @@ class TrivialNodeForTest : public CRNode {
 TEST(NodeTest, WaitAndUnblock) {
     std::atomic<int>         unblocked{0};
     std::vector<std::thread> threads{};
-    constexpr size_t         kThreadNum = 4;
+    constexpr std::size_t    kThreadNum = 4;
 
     TrivialNodeForTest node;
 
-    for (size_t i = 0; i < kThreadNum; ++i) {
+    for (std::size_t i = 0; i < kThreadNum; ++i) {
         threads.emplace_back([&unblocked, &node]() {
             node.WaitForMessage(std::chrono::seconds(60));
             unblocked.fetch_add(1);
@@ -45,11 +45,11 @@ TEST(NodeTest, WaitAndUnblock) {
 TEST(NodeTest, WaitAndTimeout) {
     std::atomic<int>         unblocked{0};
     std::vector<std::thread> threads{};
-    constexpr size_t         kThreadNum = 4;
+    constexpr std::size_t    kThreadNum = 4;
 
     TrivialNodeForTest node;
 
-    for (size_t i = 0; i < kThreadNum; ++i) {
+    for (std::size_t i = 0; i < kThreadNum; ++i) {
         threads.emplace_back([&unblocked, &node]() {
             node.WaitForMessage(std::chrono::seconds(1));
             unblocked.fetch_add(1);
@@ -69,13 +69,13 @@ template<int idx>
 struct TestMessage : public CRMessage<TestMessage<idx>> {};
 
 TEST(NodeTest, MultiQueueNode) {
-    CRMultiQueueNode<> node(1);
-    constexpr size_t   kNumOfTopics     = 4;
-    constexpr size_t   kNumOfSubChannel = 4;
+    CRMultiQueueNode<>    node(1);
+    constexpr std::size_t kNumOfTopics     = 4;
+    constexpr std::size_t kNumOfSubChannel = 4;
 
     std::array<std::array<int, kNumOfSubChannel>, kNumOfTopics> received{};
 
-    for (size_t channel_subid = 0; channel_subid < kNumOfSubChannel; ++channel_subid) {
+    for (std::size_t channel_subid = 0; channel_subid < kNumOfSubChannel; ++channel_subid) {
         node.Subscribe<TestMessage<0>>(
             channel_subid,
             [&received, channel_subid](const std::shared_ptr<TestMessage<0>>&) { ++received[0][channel_subid]; });
@@ -90,7 +90,7 @@ TEST(NodeTest, MultiQueueNode) {
             [&received, channel_subid](const std::shared_ptr<TestMessage<3>>&) { ++received[3][channel_subid]; });
     }
 
-    for (size_t channel_subid = 0; channel_subid < kNumOfSubChannel; ++channel_subid) {
+    for (std::size_t channel_subid = 0; channel_subid < kNumOfSubChannel; ++channel_subid) {
         {
             constexpr int message_type_idx = 0;
             auto          message          = std::make_shared<TestMessage<message_type_idx>>();

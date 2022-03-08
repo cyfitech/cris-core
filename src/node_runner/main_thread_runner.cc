@@ -3,7 +3,7 @@
 
 namespace cris::core {
 
-CRNodeMainThreadRunner::CRNodeMainThreadRunner(CRNodeBase* node, size_t thread_num, bool auto_run)
+CRNodeMainThreadRunner::CRNodeMainThreadRunner(CRNodeBase* node, std::size_t thread_num, bool auto_run)
     : CRMultiThreadNodeRunner(node, thread_num) {
     LOG(INFO) << __func__ << ": " << this << " initialized";
     if (auto_run) {
@@ -19,7 +19,7 @@ CRNodeMainThreadRunner::~CRNodeMainThreadRunner() {
 void CRNodeMainThreadRunner::PrepareToRun() {
 }
 
-std::function<void()> CRNodeMainThreadRunner::GetWorker(size_t thread_idx, size_t thread_num) {
+std::function<void()> CRNodeMainThreadRunner::GetWorker(std::size_t thread_idx, std::size_t thread_num) {
     return [node = this->GetNode(), thread_idx, thread_num]() {
         node->MainLoop(thread_idx, thread_num);
     };

@@ -26,7 +26,7 @@ class CRNodeBase {
 
     virtual ~CRNodeBase() = default;
 
-    virtual void MainLoop(const size_t /* thread_idx */, const size_t /* thread_num */) {}
+    virtual void MainLoop(const std::size_t /* thread_idx */, const std::size_t /* thread_num */) {}
 
     virtual void StopMainLoop() {}
 
