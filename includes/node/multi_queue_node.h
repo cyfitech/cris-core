@@ -14,7 +14,7 @@ namespace cris::core {
 
 class CRMultiQueueNodeBase : public CRNode {
    public:
-    explicit CRMultiQueueNodeBase(size_t queue_capacity) : queue_capacity_(queue_capacity) {}
+    explicit CRMultiQueueNodeBase(std::size_t queue_capacity) : queue_capacity_(queue_capacity) {}
 
     CRMessageQueue* MessageQueueMapper(const channel_id_t channel) override;
 
@@ -35,7 +35,7 @@ class CRMultiQueueNodeBase : public CRNode {
 template<CRMessageQueueType queue_t = CRMessageLockQueue>
 class CRMultiQueueNode : public CRMultiQueueNodeBase {
    public:
-    explicit CRMultiQueueNode(size_t queue_capacity) : CRMultiQueueNodeBase(queue_capacity) {}
+    explicit CRMultiQueueNode(std::size_t queue_capacity) : CRMultiQueueNodeBase(queue_capacity) {}
 
    private:
     using queue_callback_t = CRMultiQueueNodeBase::queue_callback_t;

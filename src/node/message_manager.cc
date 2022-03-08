@@ -7,7 +7,7 @@ namespace cris::core {
 
 class CRMessageManager : public CRNamedNode<CRMessageManager, CRSingleQueueNode<>> {
    public:
-    CRMessageManager(size_t queue_capacity)
+    CRMessageManager(std::size_t queue_capacity)
         : CRNamedNode<CRMessageManager, CRSingleQueueNode<>>(queue_capacity, &CRMessageBase::Dispatch) {}
 
    private:
@@ -16,7 +16,7 @@ class CRMessageManager : public CRNamedNode<CRMessageManager, CRSingleQueueNode<
 
 CRNodeBase* CRNodeBase::GetMessageManager() {
     // TODO: make them configurable
-    static const size_t kMessageManagerQueueCapacity = 8192;
+    static const std::size_t kMessageManagerQueueCapacity = 8192;
 
     static CRMessageManager manager(kMessageManagerQueueCapacity);
     return &manager;

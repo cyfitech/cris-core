@@ -28,7 +28,7 @@ class CRMessageQueue {
 
     void PopAndProcess(bool only_latest);
 
-    virtual size_t Size() = 0;
+    virtual std::size_t Size() = 0;
 
     virtual bool IsEmpty() = 0;
 

@@ -12,9 +12,9 @@
 
 using namespace cris::core;
 
-static constexpr size_t kMessageTypeNum = 7;
-static constexpr size_t kMessageNum     = 100;
-static constexpr size_t kMainThreadNum  = 4;
+static constexpr std::size_t kMessageTypeNum = 7;
+static constexpr std::size_t kMessageNum     = 100;
+static constexpr std::size_t kMainThreadNum  = 4;
 
 class CRSingleQueueNodeForTest : public CRSingleQueueNode<> {
    public:
@@ -24,9 +24,11 @@ class CRSingleQueueNodeForTest : public CRSingleQueueNode<> {
               std::bind(&CRSingleQueueNodeForTest::QueueProcessor, this, std::placeholders::_1))
         , main_loopis_run_(kMainThreadNum, 0) {}
 
-    void MainLoop(const size_t thread_idx, const size_t thread_num) override { main_loopis_run_[thread_idx] = true; }
+    void MainLoop(const std::size_t thread_idx, const std::size_t /* thread_num */) override {
+        main_loopis_run_[thread_idx] = true;
+    }
 
-    bool IsMainLoopRun(size_t thread_idx) const { return main_loopis_run_[thread_idx]; }
+    bool IsMainLoopRun(std::size_t thread_idx) const { return main_loopis_run_[thread_idx]; }
 
    private:
     void SubscribeHandler(const channel_id_t channel, std::function<void(const CRMessageBasePtr&)>&& callback)
@@ -47,9 +49,11 @@ class CRMultiQueueNodeForTest : public CRMultiQueueNode<> {
    public:
     CRMultiQueueNodeForTest() : CRMultiQueueNode<>(kMessageNum), main_loopis_run_(kMainThreadNum, 0) {}
 
-    void MainLoop(const size_t thread_idx, const size_t thread_num) { main_loopis_run_[thread_idx] = true; }
+    void MainLoop(const std::size_t thread_idx, const std::size_t /* thread_num */) {
+        main_loopis_run_[thread_idx] = true;
+    }
 
-    bool IsMainLoopRun(size_t thread_idx) const { return main_loopis_run_[thread_idx]; }
+    bool IsMainLoopRun(std::size_t thread_idx) const { return main_loopis_run_[thread_idx]; }
 
    private:
     std::vector<bool> main_loopis_run_;
@@ -85,7 +89,7 @@ TEST_F(RRRunnerTest, SingleQueueSingleThread) {
     CRNodeRoundRobinRunner   node_runner(&node, kQueueProcessorThreadNum, kMainThreadNum);
     TestImpl(&node, &node_runner);
 
-    for (size_t i = 0; i < kMainThreadNum; ++i) {
+    for (std::size_t i = 0; i < kMainThreadNum; ++i) {
         EXPECT_TRUE(node.IsMainLoopRun(i));
     }
 }
@@ -96,7 +100,7 @@ TEST_F(RRRunnerTest, SingleQueueMultiThread) {
     CRNodeRoundRobinRunner   node_runner(&node, kQueueProcessorThreadNum, kMainThreadNum);
     TestImpl(&node, &node_runner);
 
-    for (size_t i = 0; i < kMainThreadNum; ++i) {
+    for (std::size_t i = 0; i < kMainThreadNum; ++i) {
         EXPECT_TRUE(node.IsMainLoopRun(i));
     }
 }
@@ -107,7 +111,7 @@ TEST_F(RRRunnerTest, MultiQueueSingleThread) {
     CRNodeRoundRobinRunner  node_runner(&node, kQueueProcessorThreadNum, kMainThreadNum);
     TestImpl(&node, &node_runner);
 
-    for (size_t i = 0; i < kMainThreadNum; ++i) {
+    for (std::size_t i = 0; i < kMainThreadNum; ++i) {
         EXPECT_TRUE(node.IsMainLoopRun(i));
     }
 }
@@ -118,7 +122,7 @@ TEST_F(RRRunnerTest, MultiQueueMultiThread) {
     CRNodeRoundRobinRunner  node_runner(&node, kQueueProcessorThreadNum, kMainThreadNum);
     TestImpl(&node, &node_runner);
 
-    for (size_t i = 0; i < kMainThreadNum; ++i) {
+    for (std::size_t i = 0; i < kMainThreadNum; ++i) {
         EXPECT_TRUE(node.IsMainLoopRun(i));
     }
 }
@@ -126,8 +130,8 @@ TEST_F(RRRunnerTest, MultiQueueMultiThread) {
 void RRRunnerTest::TestImpl(CRNodeBase* node, CRNodeRunnerBase* node_runner) {
     constexpr CRMessageBase::channel_subid_t kChannelSubIDForTest = 1;
 
-    for (size_t i = 0; i < kMessageTypeNum; ++i) {
-        for (size_t j = 0; j < kMessageNum; ++j) {
+    for (std::size_t i = 0; i < kMessageTypeNum; ++i) {
+        for (std::size_t j = 0; j < kMessageNum; ++j) {
             EXPECT_EQ(count_[i][j], 0);
         }
     }
@@ -141,7 +145,7 @@ void RRRunnerTest::TestImpl(CRNodeBase* node, CRNodeRunnerBase* node_runner) {
     node->Subscribe<MessageForTest<6>>(kChannelSubIDForTest, &RRRunnerTest::MessageProcessorForTest<6>);
     node_runner->Run();
 
-    for (size_t i = 0; i < kMessageNum; ++i) {
+    for (std::size_t i = 0; i < kMessageNum; ++i) {
         auto message0 = std::make_shared<MessageForTest<0>>(i, this);
         auto message1 = std::make_shared<MessageForTest<1>>(i, this);
         auto message2 = std::make_shared<MessageForTest<2>>(i, this);
@@ -168,8 +172,8 @@ void RRRunnerTest::TestImpl(CRNodeBase* node, CRNodeRunnerBase* node_runner) {
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
 
-    for (size_t i = 0; i < kMessageTypeNum; ++i) {
-        for (size_t j = 0; j < kMessageNum; ++j) {
+    for (std::size_t i = 0; i < kMessageTypeNum; ++i) {
+        for (std::size_t j = 0; j < kMessageNum; ++j) {
             EXPECT_EQ(count_[i][j], 1);
         }
     }

@@ -3,7 +3,10 @@
 #include "cris/core/logging.h"
 #include "cris/core/timer/timer.h"
 
+#include <array>
+#include <atomic>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <functional>
@@ -14,39 +17,39 @@
 
 namespace cris::core {
 
-std::atomic<size_t> TimerSection::collector_index_count{0};
+std::atomic<std::size_t> TimerSection::collector_index_count{0};
 
 class TimerStatTotal;
 
 // Number of duration buckets in each Collector/Total Entry
-static constexpr size_t kTimerEntryBucketNum = 32;
+static constexpr std::size_t kTimerEntryBucketNum = 32;
 
 // Calculate the upper (exclusive) limit for each bucket.
 // The bucket range grows exponentially. The range of the
 // first bucket is 0 to base_nsec.
 static constexpr cr_duration_nsec_t UpperNsecOfBucket(
-    size_t             idx,
+    std::size_t        idx,
     cr_duration_nsec_t base_nsec = 10 * std::ratio_divide<std::micro, std::nano>::num /* 10 us */) {
     // The upper limit of the last bucket should be INT_MAX to cover everything
     if (idx >= kTimerEntryBucketNum - 1) {
         return std::numeric_limits<cr_duration_nsec_t>::max();
     }
     auto result = base_nsec;
-    for (size_t i = 0; i < idx; ++i) {
+    for (std::size_t i = 0; i < idx; ++i) {
         result *= 2;
     }
     return result;
 }
 
-template<size_t... idx>
-static constexpr auto GenerateBucketUpperNsec(std::integer_sequence<size_t, idx...>)
+template<std::size_t... idx>
+static constexpr auto GenerateBucketUpperNsec(std::integer_sequence<std::size_t, idx...>)
     -> std::array<cr_duration_nsec_t, sizeof...(idx)> {
     return {UpperNsecOfBucket(idx)...};
 }
 
 // Upper limit nsec (exclusive) of duration buckets of each timer entry
 static constexpr auto kBucketUpperNsec =
-    GenerateBucketUpperNsec(std::make_integer_sequence<size_t, kTimerEntryBucketNum>{});
+    GenerateBucketUpperNsec(std::make_integer_sequence<std::size_t, kTimerEntryBucketNum>{});
 
 static_assert(kBucketUpperNsec[4] == 160000);
 static_assert(kBucketUpperNsec[6] == 640000);
@@ -70,7 +73,7 @@ class TimerStatCollector {
 
     static_assert(sizeof(HitAndTotalDurationType<>) == sizeof(std::uint64_t));
 
-    void Report(size_t index, cr_duration_nsec_t duration);
+    void Report(std::size_t index, cr_duration_nsec_t duration);
 
     static TimerStatCollector* GetTimerStatsCollector();
 
@@ -85,10 +88,10 @@ class TimerStatCollector {
    private:
     void Clear();
 
-    static constexpr size_t kRotatingCollectorNum = 3;
-    static constexpr size_t kCollectorSize        = 65536;
+    static constexpr std::size_t kRotatingCollectorNum = 3;
+    static constexpr std::size_t kCollectorSize        = 65536;
 
-    static std::atomic<size_t>                                   current_collector_id;
+    static std::atomic<std::size_t>                              current_collector_id;
     static std::array<TimerStatCollector, kRotatingCollectorNum> rotating_collectors;
     static std::mutex                                            rotating_mutex;
 
@@ -117,7 +120,7 @@ class TimerStatTotal {
     std::shared_lock<std::shared_mutex> LockForRead();
 
     // call with LockForRead
-    std::unique_ptr<TimerReport> GetReport(const std::string& section_name, size_t entry_index) const;
+    std::unique_ptr<TimerReport> GetReport(const std::string& section_name, std::size_t entry_index) const;
 
     static TimerStatTotal* GetTimerStatsTotal();
 
@@ -152,7 +155,7 @@ class TimerStatRotater {
     static constexpr auto kRotatePeriod = std::chrono::minutes(5);
 };
 
-std::atomic<size_t>                                                       TimerStatCollector::current_collector_id{0};
+std::atomic<std::size_t>                                                  TimerStatCollector::current_collector_id{0};
 std::array<TimerStatCollector, TimerStatCollector::kRotatingCollectorNum> TimerStatCollector::rotating_collectors;
 std::mutex                                                                TimerStatCollector::rotating_mutex;
 
@@ -162,8 +165,8 @@ TimerStatCollector* TimerStatCollector::GetTimerStatsCollector() {
 
 void TimerStatCollector::RotateCollector() {
     std::unique_lock<std::mutex> lock(rotating_mutex);
-    size_t                       expect_current_rotater_id = current_collector_id.load();
-    size_t                       next_rotater_id;
+    std::size_t                  expect_current_rotater_id = current_collector_id.load();
+    std::size_t                  next_rotater_id;
     do {
         next_rotater_id = (expect_current_rotater_id + 1) % kRotatingCollectorNum;
     } while (!current_collector_id.compare_exchange_strong(expect_current_rotater_id, next_rotater_id));
@@ -182,7 +185,7 @@ void TimerStatCollector::RotateCollector() {
     TimerStatTotal::GetTimerStatsTotal()->Merge(rotating_collectors[previous_rotater_id]);
 }
 
-void TimerStatCollector::Report(size_t index, cr_duration_nsec_t duration) {
+void TimerStatCollector::Report(std::size_t index, cr_duration_nsec_t duration) {
     if (duration < 0) {
         LOG(ERROR) << "duration " << duration << " is smaller than zero, skip it";
         return;
@@ -201,8 +204,8 @@ void TimerStatCollector::Report(size_t index, cr_duration_nsec_t duration) {
     // Linear scan is better than binary search here, since shorter
     // session should react faster, while it is ok for long sessions
     // to be a little slower
-    size_t bucket_idx = 0;
-    for (size_t i = 0; i < kTimerEntryBucketNum; ++i) {
+    std::size_t bucket_idx = 0;
+    for (std::size_t i = 0; i < kTimerEntryBucketNum; ++i) {
         bucket_idx = i;
         if (duration < kBucketUpperNsec[i]) {
             break;
@@ -210,7 +213,7 @@ void TimerStatCollector::Report(size_t index, cr_duration_nsec_t duration) {
     }
 
     data_to_report.stat.hits              = 1;
-    data_to_report.stat.total_duration_ns = duration;
+    data_to_report.stat.total_duration_ns = static_cast<std::uint64_t>(duration);
     collector_entries_[index].duration_buckets_[bucket_idx].hit_and_total_duration_.fetch_add(data_to_report.raw);
 }
 
@@ -227,7 +230,7 @@ TimerStatTotal::TimerStatTotal() : last_clear_time_(GetSystemTimestampNsec()), l
 
 void TimerStatTotal::Merge(const TimerStatCollector& collector) {
     std::unique_lock lock(stat_total_mutex_);
-    for (size_t i = 0; i < kCollectorSize; ++i) {
+    for (std::size_t i = 0; i < kCollectorSize; ++i) {
         stat_entries_[i].Merge(collector.collector_entries_[i]);
     }
     last_merge_time_ = GetSystemTimestampNsec();
@@ -244,12 +247,12 @@ std::shared_lock<std::shared_mutex> TimerStatTotal::LockForRead() {
     return std::shared_lock(stat_total_mutex_);
 }
 
-std::unique_ptr<TimerReport> TimerStatTotal::GetReport(const std::string& section_name, size_t entry_index) const {
+std::unique_ptr<TimerReport> TimerStatTotal::GetReport(const std::string& section_name, std::size_t entry_index) const {
     auto  report             = std::make_unique<TimerReport>();
     auto& entry              = stat_entries_[entry_index];
     report->section_name_    = section_name;
     report->timing_duration_ = last_merge_time_ - last_clear_time_;
-    for (size_t i = 0; i < kTimerEntryBucketNum; ++i) {
+    for (std::size_t i = 0; i < kTimerEntryBucketNum; ++i) {
         report->report_buckets_.emplace_back(TimerReport::TimerReportBucket{
             .hits_                 = entry.duration_buckets_[i].hits,
             .session_duration_sum_ = static_cast<cr_duration_nsec_t>(entry.duration_buckets_[i].total_duration_ns),
@@ -269,7 +272,7 @@ void TimerStatTotal::StatTotalEntry::Merge(const TimerStatCollector::CollectorEn
         TimerStatCollector::HitAndTotalDurationType<> stat;
     } data_to_merge;
 
-    for (size_t i = 0; i < kTimerEntryBucketNum; ++i) {
+    for (std::size_t i = 0; i < kTimerEntryBucketNum; ++i) {
         data_to_merge.raw = entry.duration_buckets_[i].hit_and_total_duration_.load();
         auto& bucket      = duration_buckets_[i];
         bucket.hits += data_to_merge.stat.hits;
@@ -324,7 +327,7 @@ double TimerReport::GetFreq() const {
     using std::chrono::duration;
     using std::chrono::duration_cast;
     using std::chrono::nanoseconds;
-    return GetTotalHits() * 1.0 / duration_cast<duration<double>>(nanoseconds(timing_duration_)).count();
+    return static_cast<double>(GetTotalHits()) / duration_cast<duration<double>>(nanoseconds(timing_duration_)).count();
 }
 
 cr_duration_nsec_t TimerReport::GetAverageDurationNsec() const {
@@ -334,7 +337,7 @@ cr_duration_nsec_t TimerReport::GetAverageDurationNsec() const {
         total_hits += bucket.hits_;
         total_duration_sum += bucket.session_duration_sum_;
     }
-    return total_duration_sum / total_hits;
+    return static_cast<cr_duration_nsec_t>(static_cast<std::uint64_t>(total_duration_sum) / total_hits);
 }
 
 cr_duration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
@@ -348,17 +351,19 @@ cr_duration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
     }
 
     const auto total_hits  = GetTotalHits();
-    const auto target_hits = std::round(total_hits * percent / 100.);
+    const auto target_hits = static_cast<unsigned long long>(
+        std::round(static_cast<double>(total_hits) * static_cast<double>(percent) / 100.));
 
     if (target_hits == 0) {
         return 0;
     }
 
-    std::uint64_t current_hits = 0;
+    unsigned long long current_hits = 0;
     for (const auto& bucket : report_buckets_) {
         current_hits += bucket.hits_;
         if (current_hits >= target_hits) {
-            return bucket.session_duration_sum_ / bucket.hits_;
+            return static_cast<cr_duration_nsec_t>(
+                static_cast<std::uint64_t>(bucket.session_duration_sum_) / bucket.hits_);
         }
     }
 
@@ -366,7 +371,7 @@ cr_duration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
     return 0;
 }
 
-void TimerReport::PrintToLog(int indent_level) const {
+void TimerReport::PrintToLog(unsigned indent_level) const {
     using std::chrono::duration;
     using std::chrono::duration_cast;
     using std::chrono::nanoseconds;
@@ -398,7 +403,7 @@ void TimerReport::PrintToLog(int indent_level) const {
     }
 }
 
-TimerSession::TimerSession(cr_timestamp_nsec_t started_timestamp, size_t collector_index)
+TimerSession::TimerSession(cr_timestamp_nsec_t started_timestamp, std::size_t collector_index)
     : started_timestamp_(started_timestamp)
     , collector_index_(collector_index) {
 }
@@ -423,7 +428,7 @@ void TimerSection::FlushCollectedStats() {
     TimerStatCollector::RotateCollector();
 }
 
-TimerSection::TimerSection(const std::string& name, size_t collector_index, CtorPermission)
+TimerSection::TimerSection(const std::string& name, std::size_t collector_index, CtorPermission)
     : name_(name)
     , collector_index_(collector_index) {
 }

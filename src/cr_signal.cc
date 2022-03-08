@@ -41,8 +41,8 @@ static void InvokeDefaultSignalHandler(int signal_number) {
 }
 
 static void DumpSignalInfo(int signal_number, siginfo_t* siginfo) {
-    constexpr size_t kBufferLen = 1024;
-    char             buffer[kBufferLen];
+    constexpr std::size_t kBufferLen = 1024;
+    char                  buffer[kBufferLen];
 
     LOG(ERROR) << "******************************************************";
 
@@ -68,16 +68,16 @@ static void DumpSignalInfo(int signal_number, siginfo_t* siginfo) {
 }
 
 static void DumpStackFrame(int level, unw_cursor_t* stack_cursor) {
-    constexpr size_t kBufferLen    = 1024;
-    constexpr size_t kMaxCmdLen    = 256;
-    constexpr size_t kMaxSymbolLen = 256;
-    constexpr size_t kFileInfoLen  = 256;
-    char             buffer[kBufferLen];
-    char             symbol[kMaxSymbolLen];
-    char             fileinfo[kFileInfoLen];
-    unw_word_t       function_offset;
-    unw_word_t       pc;
-    unw_word_t       sp;
+    constexpr std::size_t kBufferLen    = 1024;
+    constexpr std::size_t kMaxCmdLen    = 256;
+    constexpr std::size_t kMaxSymbolLen = 256;
+    constexpr std::size_t kFileInfoLen  = 256;
+    char                  buffer[kBufferLen];
+    char                  symbol[kMaxSymbolLen];
+    char                  fileinfo[kFileInfoLen];
+    unw_word_t            function_offset;
+    unw_word_t            pc;
+    unw_word_t            sp;
 
     unw_get_proc_name(stack_cursor, symbol, kMaxSymbolLen, &function_offset);
     unw_get_reg(stack_cursor, UNW_REG_IP, &pc);
@@ -122,7 +122,7 @@ static void DumpStacktrace() {
 
 static std::atomic<pthread_t*> current_thread_in_handler{nullptr};
 
-static void SigIntHandler(int signal_number, siginfo_t* signal_info, void* ucontext) {
+static void SigIntHandler(int /* signal_number */, siginfo_t* /* signal_info */, void* /* ucontext */) {
     TimerSection::FlushCollectedStats();
     TimerSection::GetMainSection()->GetReport()->PrintToLog();
 }
@@ -163,7 +163,7 @@ static void InstallFailureSignalHandler() {
     sig_action.sa_flags |= SA_SIGINFO;
     sig_action.sa_sigaction = &SignalHandler;
 
-    for (size_t i = 0; i < sizeof(kFailureSignals) / sizeof(kFailureSignals[0]); ++i) {
+    for (std::size_t i = 0; i < sizeof(kFailureSignals) / sizeof(kFailureSignals[0]); ++i) {
         CHECK_ERR(sigaction(kFailureSignals[i], &sig_action, NULL));
     }
 }

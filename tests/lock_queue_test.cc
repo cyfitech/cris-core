@@ -23,9 +23,9 @@ struct TestQueue {
 
     int last_value_{kNoLastValue};
 
-    static constexpr size_t kQueueSize   = 10;
-    static constexpr int    kNoLastValue = -1;
-    static constexpr size_t kTestBatch   = 37;  // some random number
+    static constexpr std::size_t kQueueSize   = 10;
+    static constexpr int         kNoLastValue = -1;
+    static constexpr std::size_t kTestBatch   = 37;  // some random number
 };
 
 struct TestLockQueue : public TestQueue {
@@ -54,7 +54,7 @@ void TestQueue::Test() {
     EXPECT_FALSE(GetQueue()->IsFull());
 
     // Add and then pop for each value
-    for (size_t i = 0; i < kTestBatch; ++i) {
+    for (std::size_t i = 0; i < kTestBatch; ++i) {
         EXPECT_TRUE(GetQueue()->IsEmpty());
         GetQueue()->AddMessage(std::make_shared<TestMessageType1>(i));
         EXPECT_FALSE(GetQueue()->IsEmpty());
@@ -68,7 +68,7 @@ void TestQueue::Test() {
     EXPECT_EQ(last_value_, kNoLastValue);
 
     // Add and then pop latest for each value
-    for (size_t i = 0; i < kTestBatch; ++i) {
+    for (std::size_t i = 0; i < kTestBatch; ++i) {
         GetQueue()->AddMessage(std::make_shared<TestMessageType1>(i));
         GetQueue()->PopAndProcess(true);
         EXPECT_EQ(last_value_, i);
@@ -79,14 +79,14 @@ void TestQueue::Test() {
     EXPECT_EQ(last_value_, kNoLastValue);
 
     // Add all and then pop for each value
-    for (size_t i = 0; i < kTestBatch; ++i) {
+    for (std::size_t i = 0; i < kTestBatch; ++i) {
         GetQueue()->AddMessage(std::make_shared<TestMessageType1>(i));
         EXPECT_EQ(GetQueue()->IsFull(), i + 1 >= kQueueSize);
         EXPECT_EQ(GetQueue()->Size(), std::min(i + 1, kQueueSize));
     }
     EXPECT_TRUE(GetQueue()->IsFull());
     // only last kQueueSize values remains
-    for (size_t i = 0; i < kQueueSize; ++i) {
+    for (std::size_t i = 0; i < kQueueSize; ++i) {
         EXPECT_FALSE(GetQueue()->IsEmpty());
         GetQueue()->PopAndProcess(false);
         EXPECT_EQ(GetQueue()->Size(), kQueueSize - i - 1);
@@ -99,7 +99,7 @@ void TestQueue::Test() {
     EXPECT_EQ(last_value_, kNoLastValue);
 
     // Add all and then pop the latest
-    for (size_t i = 0; i < kTestBatch; ++i) {
+    for (std::size_t i = 0; i < kTestBatch; ++i) {
         GetQueue()->AddMessage(std::make_shared<TestMessageType1>(i));
     }
     EXPECT_TRUE(GetQueue()->IsFull());

@@ -23,7 +23,7 @@ struct TestMessage : public CRMessage<TestMessage<idx>> {
 };
 
 struct SimpleTestNode : public CRSingleQueueNode<> {
-    explicit SimpleTestNode(size_t queue_capacity)
+    explicit SimpleTestNode(std::size_t queue_capacity)
         : CRSingleQueueNode<>(queue_capacity, std::bind(&SimpleTestNode::QueueCallback, this, std::placeholders::_1)) {}
 
     void Process() { queue_.PopAndProcess(false); }

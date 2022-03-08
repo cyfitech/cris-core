@@ -46,7 +46,7 @@ class TimerReport {
 
     cr_duration_nsec_t GetPercentileDurationNsec(int percent) const;
 
-    void PrintToLog(int indent_level = 0) const;
+    void PrintToLog(unsigned indent_level = 0) const;
 
     struct TimerReportBucket {
         std::uint64_t      hits_;
@@ -63,7 +63,7 @@ class TimerSession {
    public:
     TimerSession() = default;
 
-    TimerSession(cr_timestamp_nsec_t started_timestamp, size_t collector_index);
+    TimerSession(cr_timestamp_nsec_t started_timestamp, std::size_t collector_index);
 
     ~TimerSession();
 
@@ -72,7 +72,7 @@ class TimerSession {
    private:
     PRIVATE_MAYBE_UNUSED bool                is_ended_{false};
     PRIVATE_MAYBE_UNUSED cr_timestamp_nsec_t started_timestamp_;
-    PRIVATE_MAYBE_UNUSED size_t              collector_index_;
+    PRIVATE_MAYBE_UNUSED std::size_t collector_index_;
 };
 
 class TimerSection {
@@ -82,7 +82,7 @@ class TimerSection {
    public:
     // The CtorPermission class has to be visible to caller, so that the class
     // cannot be constructed externally.
-    TimerSection(const std::string& name, size_t collector_index, CtorPermission);
+    TimerSection(const std::string& name, std::size_t collector_index, CtorPermission);
 
     TimerSection(const TimerSection&) = delete;
     TimerSection(TimerSection&&)      = default;
@@ -107,11 +107,11 @@ class TimerSection {
     static void FlushCollectedStats();
 
    private:
-    std::string                                          name_;
-    PRIVATE_MAYBE_UNUSED size_t                          collector_index_;
+    std::string          name_;
+    PRIVATE_MAYBE_UNUSED std::size_t                     collector_index_;
     std::map<std::string, std::unique_ptr<TimerSection>> subsections_;
 
-    static std::atomic<size_t> collector_index_count;
+    static std::atomic<std::size_t> collector_index_count;
 };
 
 #undef PRIVATE_MAYBE_UNUSED

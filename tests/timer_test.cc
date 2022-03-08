@@ -8,9 +8,11 @@
 namespace cris::core {
 
 template<class T1, class T2>
-void ExpectNear(const T1& v1, const T2& v2, float error = 0.05f) {
-    EXPECT_LT((1 - error) * v2, v1);
-    EXPECT_LT(v1, (1 + error) * v2);
+void ExpectNear(const T1& v1, const T2& v2, double error = 0.05) {
+    const auto d1 = static_cast<double>(v1);
+    const auto d2 = static_cast<double>(v2);
+    EXPECT_LT((1 - error) * d2, d1);
+    EXPECT_LT(d1, (1 + error) * d2);
 }
 
 TEST(TimerTest, Basic) {
@@ -36,7 +38,7 @@ TEST(TimerTest, Basic) {
         }
     });
 
-    for (size_t i = 0; i < kTestHits; ++i) {
+    for (std::size_t i = 0; i < kTestHits; ++i) {
         auto timer2 = section2->StartTimerSession();
         std::this_thread::sleep_for(kTestSessionDuration);
     }
@@ -93,7 +95,7 @@ TEST(TimerTest, PercentileTest) {
     // which is not great. Needs to find a setting-indepedent way to test
     //
     // Insert 3 records for first 10 duration buckets
-    for (size_t i = 0; i < 10; ++i) {
+    for (std::size_t i = 0; i < 10; ++i) {
         section->ReportDuration(std::chrono::microseconds(10 * (1 << i) - 1));
         section->ReportDuration(std::chrono::microseconds(10 * (1 << i) - 2));
         section->ReportDuration(std::chrono::microseconds(10 * (1 << i) - 3));
