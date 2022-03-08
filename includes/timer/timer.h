@@ -46,7 +46,7 @@ class TimerReport {
 
     cr_duration_nsec_t GetPercentileDurationNsec(int percent) const;
 
-    void PrintToLog(int indent_level = 0) const;
+    void PrintToLog(unsigned indent_level = 0) const;
 
     struct TimerReportBucket {
         std::uint64_t      hits_;

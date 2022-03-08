@@ -1,6 +1,6 @@
 CRIS_CXXOPTS = [
     "-Wall",
-    "-Wfloat-conversion",
+    "-Wconversion",
     "-Werror",
     "-Wextra",
     "-g3",

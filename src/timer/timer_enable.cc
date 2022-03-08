@@ -210,7 +210,7 @@ void TimerStatCollector::Report(size_t index, cr_duration_nsec_t duration) {
     }
 
     data_to_report.stat.hits              = 1;
-    data_to_report.stat.total_duration_ns = duration;
+    data_to_report.stat.total_duration_ns = static_cast<std::uint64_t>(duration);
     collector_entries_[index].duration_buckets_[bucket_idx].hit_and_total_duration_.fetch_add(data_to_report.raw);
 }
 
@@ -334,7 +334,7 @@ cr_duration_nsec_t TimerReport::GetAverageDurationNsec() const {
         total_hits += bucket.hits_;
         total_duration_sum += bucket.session_duration_sum_;
     }
-    return total_duration_sum / total_hits;
+    return static_cast<cr_duration_nsec_t>(static_cast<std::uint64_t>(total_duration_sum) / total_hits);
 }
 
 cr_duration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
@@ -359,7 +359,8 @@ cr_duration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
     for (const auto& bucket : report_buckets_) {
         current_hits += bucket.hits_;
         if (current_hits >= target_hits) {
-            return bucket.session_duration_sum_ / bucket.hits_;
+            return static_cast<cr_duration_nsec_t>(
+                static_cast<std::uint64_t>(bucket.session_duration_sum_) / bucket.hits_);
         }
     }
 
@@ -367,7 +368,7 @@ cr_duration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
     return 0;
 }
 
-void TimerReport::PrintToLog(int indent_level) const {
+void TimerReport::PrintToLog(unsigned indent_level) const {
     using std::chrono::duration;
     using std::chrono::duration_cast;
     using std::chrono::nanoseconds;

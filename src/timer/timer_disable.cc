@@ -31,7 +31,7 @@ cr_duration_nsec_t TimerReport::GetPercentileDurationNsec(int /* percent */) con
     return 0;
 }
 
-void TimerReport::PrintToLog(int /* indent_level */) const {
+void TimerReport::PrintToLog(unsigned /* indent_level */) const {
 }
 
 TimerSection* TimerSection::GetMainSection() {
