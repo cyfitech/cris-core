@@ -65,10 +65,13 @@ class TimerStatCollector {
         std::array<CollectorEntryBucket, kTimerEntryBucketNum> duration_buckets_{};
     };
 
-    template<int hit_count_bits = 22, int total_duration_bits = 64 - hit_count_bits>
+    template<unsigned hit_count_bits = 22, unsigned total_duration_bits = 64 - hit_count_bits>
     struct HitAndTotalDurationType {
         std::uint64_t hits : hit_count_bits;
         std::uint64_t total_duration_ns : total_duration_bits;
+
+        static constexpr unsigned kHitCountBits      = hit_count_bits;
+        static constexpr unsigned kTotalDurationBits = total_duration_bits;
     };
 
     static_assert(sizeof(HitAndTotalDurationType<>) == sizeof(std::uint64_t));
@@ -212,8 +215,10 @@ void TimerStatCollector::Report(std::size_t index, cr_duration_nsec_t duration) 
         }
     }
 
+    constexpr auto kDurationMask = (1ull << data_to_report.stat.kTotalDurationBits) - 1;
+
     data_to_report.stat.hits              = 1;
-    data_to_report.stat.total_duration_ns = static_cast<std::uint64_t>(duration);
+    data_to_report.stat.total_duration_ns = static_cast<std::uint64_t>(duration) & kDurationMask;
     collector_entries_[index].duration_buckets_[bucket_idx].hit_and_total_duration_.fetch_add(data_to_report.raw);
 }
 
