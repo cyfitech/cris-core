@@ -16,12 +16,12 @@ CRIS_LINKOPTS = [
 
 def __add_opts(attrs):
     if "copts" in attrs and attrs["copts"] != None:
-        attrs["copts"] = attrs["copts"] + CRIS_CXXOPTS
+        attrs["copts"] = CRIS_CXXOPTS + attrs["copts"]
     else:
         attrs["copts"] = CRIS_CXXOPTS
 
     if "linkopts" in attrs and attrs["linkopts"] != None:
-        attrs["linkopts"] = attrs["linkopts"] + CRIS_LINKOPTS
+        attrs["linkopts"] = CRIS_LINKOPTS + attrs["linkopts"]
     else:
         attrs["linkopts"] = CRIS_LINKOPTS
 
