@@ -2,6 +2,9 @@
 
 #include "cris/core/message/base.h"
 #include "cris/core/message/queue.h"
+#include "cris/core/node_runner/base.h"
+#include "cris/core/node_runner/main_loop_runner.h"
+#include "cris/core/node_runner/queue_processor.h"
 
 #include <chrono>
 #include <typeindex>
@@ -32,9 +35,6 @@ class CRNodeBase {
 
     virtual std::string GetName() const { return "noname"; }
 
-    template<class duration_t>
-    void WaitForMessage(duration_t&& timeout);
-
     virtual void Kick() = 0;
 
     // Not thread-safe, do not call concurrently nor call it
@@ -52,8 +52,6 @@ class CRNodeBase {
     static CRNodeBase* GetMessageManager();
 
    protected:
-    virtual void WaitForMessageImpl(std::chrono::nanoseconds timeout) = 0;
-
     virtual void SubscribeImpl(const channel_id_t channel, std::function<void(const CRMessageBasePtr&)>&& callback) = 0;
 
     virtual void SubscribeHandler(
@@ -62,16 +60,25 @@ class CRNodeBase {
 
     virtual std::vector<CRMessageQueue*> GetNodeQueues() = 0;
 
+    virtual void SetQueueProcessor(CRNodeQueueProcessor* queue_processor) = 0;
+
+    virtual CRNodeQueueProcessor* GetQueueProcessor() = 0;
+
+    void ResetQueueProcessor() { SetQueueProcessor(nullptr); }
+
+    virtual void SetMainLoopRunner(CRNodeMainLoopRunner* main_loop_runner) = 0;
+
+    virtual CRNodeMainLoopRunner* GetMainLoopRunner() = 0;
+
+    void ResetMainLoopRunner() { SetMainLoopRunner(nullptr); }
+
     friend class CRNodeRunnerBase;
+    friend class CRNodeQueueProcessor;
+    friend class CRNodeMainLoopRunner;
 };
 
 template<class node_t>
 concept CRNodeType = std::is_base_of_v<CRNodeBase, node_t>;
-
-template<class duration_t>
-void CRNodeBase::WaitForMessage(duration_t&& timeout) {
-    return WaitForMessageImpl(std::chrono::duration_cast<std::chrono::nanoseconds>(std::forward<duration_t>(timeout)));
-}
 
 template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
 void CRNodeBase::Subscribe(const channel_subid_t channel_subid, callback_t&& callback) {

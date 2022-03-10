@@ -3,67 +3,10 @@
 
 #include "gtest/gtest.h"
 
-#include <thread>
+#include <cstddef>
+#include <memory>
 
 namespace cris::core {
-
-class TrivialNodeForTest : public CRNode {
-    CRMessageQueue* MessageQueueMapper(const channel_id_t /* channel */) override { return nullptr; }
-
-   private:
-    void SubscribeHandler(
-        const channel_id_t /* channel */,
-        std::function<void(const CRMessageBasePtr&)>&& /* callback */) override {}
-
-    std::vector<CRMessageQueue*> GetNodeQueues() override { return {}; }
-};
-
-TEST(NodeTest, WaitAndUnblock) {
-    std::atomic<int>         unblocked{0};
-    std::vector<std::thread> threads{};
-    constexpr std::size_t    kThreadNum = 4;
-
-    TrivialNodeForTest node;
-
-    for (std::size_t i = 0; i < kThreadNum; ++i) {
-        threads.emplace_back([&unblocked, &node]() {
-            node.WaitForMessage(std::chrono::seconds(60));
-            unblocked.fetch_add(1);
-        });
-    }
-
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    EXPECT_EQ(unblocked.load(), 0);
-    node.Kick();
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    ASSERT_EQ(unblocked.load(), kThreadNum);
-    for (auto&& thread : threads) {
-        thread.join();
-    }
-}
-
-TEST(NodeTest, WaitAndTimeout) {
-    std::atomic<int>         unblocked{0};
-    std::vector<std::thread> threads{};
-    constexpr std::size_t    kThreadNum = 4;
-
-    TrivialNodeForTest node;
-
-    for (std::size_t i = 0; i < kThreadNum; ++i) {
-        threads.emplace_back([&unblocked, &node]() {
-            node.WaitForMessage(std::chrono::seconds(1));
-            unblocked.fetch_add(1);
-        });
-    }
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-    EXPECT_EQ(unblocked.load(), 0);
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    ASSERT_EQ(unblocked.load(), kThreadNum);
-    for (auto&& thread : threads) {
-        thread.join();
-    }
-}
 
 template<int idx>
 struct TestMessage : public CRMessage<TestMessage<idx>> {};

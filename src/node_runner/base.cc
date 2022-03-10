@@ -1,26 +1,30 @@
+#include "cris/core/node_runner/base.h"
+
 #include "cris/core/logging.h"
-#include "cris/core/node_runner/runner.h"
+#include "cris/core/node/base.h"
+
+#include <cstddef>
+#include <mutex>
 
 namespace cris::core {
 
-std::vector<CRMessageQueue*> CRNodeRunnerBase::GetNodeQueues() {
-    return GetNode()->GetNodeQueues();
+std::vector<CRMessageQueue*> CRNodeRunnerBase::GetNodeQueues(CRNodeBase* node) {
+    return node->GetNodeQueues();
 }
 
-CRMultiThreadNodeRunner::CRMultiThreadNodeRunner(CRNodeBase* node, std::size_t thread_num)
+CRMultiThreadNodeRunner::CRMultiThreadNodeRunner(const std::vector<CRNodeBase*>& nodes, std::size_t thread_num)
     : CRNodeRunnerBase()
-    , node_(node)
+    , nodes_(nodes)
     , thread_num_(thread_num) {
-    LOG(INFO) << __func__ << ": " << this << " initialized for " << node_->GetName() << "(" << node_ << "), "
-              << "thread number: " << thread_num_;
+    for (const auto* node : nodes_) {
+        LOG(INFO) << __func__ << ": " << this << " initialized for " << node->GetName() << "(" << node << ")";
+    }
+    LOG(INFO) << __func__ << ": Runner " << this << "."
+              << " Number of threads: " << thread_num_;
 }
 
-CRMultiThreadNodeRunner::~CRMultiThreadNodeRunner() {
-    Join();
-}
-
-CRNodeBase* CRMultiThreadNodeRunner::GetNode() const {
-    return node_;
+const std::vector<CRNodeBase*>& CRMultiThreadNodeRunner::GetNodes() const {
+    return nodes_;
 }
 
 std::size_t CRMultiThreadNodeRunner::GetThreadNum() const {
@@ -69,6 +73,7 @@ void CRMultiThreadNodeRunner::Join() {
         }
     }
     worker_threads_.clear();
+    CleanUp();
 }
 
 }  // namespace cris::core

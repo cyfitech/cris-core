@@ -47,8 +47,18 @@ cris_cc_test (
 )
 
 cris_cc_test (
-    name = "rr_runner_test",
-    srcs = ["rr_runner_test.cc"],
+    name = "rr_queue_processor_test",
+    srcs = ["rr_queue_processor_test.cc"],
+    deps = [
+        "//:corelib",
+        "@gtest//:gtest_main",
+    ],
+    linkopts = cc_test_sanitizers,
+)
+
+cris_cc_test (
+    name = "main_loop_runner_test",
+    srcs = ["main_loop_runner_test.cc"],
     deps = [
         "//:corelib",
         "@gtest//:gtest_main",
