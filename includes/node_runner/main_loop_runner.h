@@ -23,7 +23,6 @@ class CRNodeMainLoopRunner : public CRMultiThreadNodeRunner {
     std::function<void()> GetWorker(std::size_t thread_idx, std::size_t thread_num) override;
 
     void NotifyWorkersToStop() override;
-
 };
 
 }  // namespace cris::core
