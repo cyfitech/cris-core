@@ -6,6 +6,7 @@
 #include "cris/core/node_runner/queue_processor.h"
 
 #include <condition_variable>
+#include <functional>
 #include <mutex>
 #include <typeindex>
 

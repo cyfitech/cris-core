@@ -7,8 +7,10 @@
 #include "cris/core/node_runner/queue_processor.h"
 
 #include <chrono>
+#include <functional>
 #include <typeindex>
 #include <utility>
+#include <vector>
 
 namespace cris::core {
 
