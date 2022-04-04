@@ -5,6 +5,7 @@ CRIS_CXXOPTS = [
     "-Wextra",
     "-g3",
     "-std=c++20",
+    "-fno-sanitize-recover=all",
 ]
 
 CRIS_LINKOPTS = [
