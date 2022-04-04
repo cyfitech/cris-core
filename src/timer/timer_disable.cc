@@ -58,7 +58,7 @@ TimerSession TimerSection::StartTimerSession() {
 }
 
 std::unique_ptr<TimerReport> TimerSection::GetReport(bool /* recursive */) {
-    return {};
+    return std::make_unique<TimerReport>();
 }
 
 TimerSection* TimerSection::SubSection(const std::string& /* name */) {
