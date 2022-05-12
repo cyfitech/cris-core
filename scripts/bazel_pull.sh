@@ -9,6 +9,13 @@ for cmd in base64 diff git grep sed xargs; do
     which "$cmd" >/dev/null
 done
 
+git submodule foreach --recursive -q pwd            \
+| xargs -rI{} realpath --relative-to="$(pwd)" {}    \
+| sed 's/\/*$//'                                    \
+| grep -e'cris-'{base,xchg}'$'                      \
+| sort                                              \
+| xargs -rI{} bash -c 'git -C "$(dirname "{}")" submodule update --remote "$(basename "{}")" && git -C "{}" submodule update --init --recursive'
+
 # Vertical tab is reserved to be used as an inline LF.
 if grep "$(printf '\v')" 'WORKSPACE' >/dev/null; then
     printf '\033[31m[ERROR] Vertical tab is reserved to be used during scanning. Please use whitespace instead for the "____"-noted regions:\033[0m\n' >&2
