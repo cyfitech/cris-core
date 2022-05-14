@@ -24,6 +24,13 @@ done
 | $(which parallel >/dev/null 2>&1 && echo "parallel -j$(nproc) -m" || echo 'xargs -r'   ) -0           \
     grep -HI "$(printf '\r$')"                                                                          \
 | cut -d: -f1                                                                                           \
+| grep -v $(which git                                                                                   \
+    && git submodule foreach -q pwd                                                                     \
+    | xargs -rI{} realpath --relative-to="$(pwd)" {}                                                    \
+    | sed 's/\/*$/\//'                                                                                  \
+    | sed 's/\([\\\/\.\-]\)/\\\1/g'                                                                     \
+    | sed 's/^/\-e\^/'                                                                                  \
+    || echo '^$')                                                                                       \
 | sort -u                                                                                               \
 | sed 's/\r//g'                                                                                         \
 | tr '\n' '\0'                                                                                          \

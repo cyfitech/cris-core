@@ -19,8 +19,8 @@ extern "C" {
 
 namespace cris::core {
 
-static void WriteToGlog(const char* data, int size) {
-    std::string msg(data, static_cast<std::size_t>(size));
+static void WriteToGlog(const char* data, std::size_t size) {
+    std::string msg(data, size);
     LOG(ERROR) << msg;
 }
 

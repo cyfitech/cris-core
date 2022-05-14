@@ -14,7 +14,7 @@ jobs:
     container:
       image: ghcr.io/cyfitech/cris-build:20211116
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Run linter
       run: scripts/format_all.sh
     - name: Check diff
@@ -30,8 +30,8 @@ jobs:
       run: |
         date -u '+%F' | xargs printf '::set-output name=date::%s\n'
         seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
-    - uses: actions/checkout@v2
-    - uses: actions/cache@v2
+    - uses: actions/checkout@v3
+    - uses: actions/cache@v3
       with:
         path: |
           /root/.cache/bazel
@@ -52,21 +52,25 @@ jobs:
       run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx
     - name: Auth
       env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ECDSA:  ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ECDSA  }}
-        CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA: ${{ secrets.CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA }}
+        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
       run: |
         # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
-        HOME=/root
-        mkdir -p ~/.ssh
-        for repo in 'cris-base' 'cris-huobi'; do
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ECDSA"'"' > ~/".ssh/id_ecdsa_$repo"
-            printf 'Host github_com_%s\n    HostName github.com\n    StrictHostKeyChecking no\n    IdentityFile ~/.ssh/id_ecdsa_%s\n' "$repo" "$repo" >> ~/.ssh/config
+        export HOME=/root
+        for repo in 'cris-base' 'cris-xchg'; do
+            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
+            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
+            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
         done
-        chmod go-w ~/.ssh ~/.ssh/config
-        chmod 600 ~/.ssh/id_ecdsa_cris*
-        tree -gpuash ~/.ssh
-    - name: Inject pre-auth hostname
-      run: sed -i 's/\(git@github\)\.\(com\)\(:.*\/\)\([[:alnum:]][[:alnum:]\-]*\)/\1_\2_\4\3\4/' WORKSPACE && git --no-pager diff
+        scripts/auth_github_ssh.sh
+        # Re-route public access to HTTPS and private to SSH.
+        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
+        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
+        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
+    - name: Fetch submodules
+      run: |
+        export HOME=/root
+        GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
     - name: Sync
       run: export HOME=/root && scripts/bazel_pull.sh -s
     - name: Build
@@ -86,8 +90,8 @@ jobs:
       run: |
         date -u '+%F' | xargs printf '::set-output name=date::%s'
         seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
-    - uses: actions/checkout@v2
-    - uses: actions/cache@v2
+    - uses: actions/checkout@v3
+    - uses: actions/cache@v3
       with:
         path: |
           /root/.cache/bazel
@@ -108,21 +112,25 @@ jobs:
       run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx
     - name: Auth
       env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ECDSA:  ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ECDSA  }}
-        CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA: ${{ secrets.CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA }}
+        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
       run: |
         # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
-        HOME=/root
-        mkdir -p ~/.ssh
-        for repo in 'cris-base' 'cris-huobi'; do
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ECDSA"'"' > ~/".ssh/id_ecdsa_$repo"
-            printf 'Host github_com_%s\n    HostName github.com\n    StrictHostKeyChecking no\n    IdentityFile ~/.ssh/id_ecdsa_%s\n' "$repo" "$repo" >> ~/.ssh/config
+        export HOME=/root
+        for repo in 'cris-base' 'cris-xchg'; do
+            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
+            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
+            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
         done
-        chmod go-w ~/.ssh ~/.ssh/config
-        chmod 600 ~/.ssh/id_ecdsa_cris*
-        tree -gpuash ~/.ssh
-    - name: Inject pre-auth hostname
-      run: sed -i 's/\(git@github\)\.\(com\)\(:.*\/\)\([[:alnum:]][[:alnum:]\-]*\)/\1_\2_\4\3\4/' WORKSPACE && git --no-pager diff
+        scripts/auth_github_ssh.sh
+        # Re-route public access to HTTPS and private to SSH.
+        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
+        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
+        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
+    - name: Fetch submodules
+      run: |
+        export HOME=/root
+        GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
     - name: Sync
       run: export HOME=/root && scripts/bazel_pull.sh -s
     - name: Build
@@ -142,8 +150,8 @@ jobs:
       run: |
         date -u '+%F' | xargs printf '::set-output name=date::%s'
         seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
-    - uses: actions/checkout@v2
-    - uses: actions/cache@v2
+    - uses: actions/checkout@v3
+    - uses: actions/cache@v3
       with:
         path: |
           /root/.cache/bazel
@@ -164,21 +172,25 @@ jobs:
       run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx
     - name: Auth
       env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ECDSA:  ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ECDSA  }}
-        CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA: ${{ secrets.CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA }}
+        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
       run: |
         # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
-        HOME=/root
-        mkdir -p ~/.ssh
-        for repo in 'cris-base' 'cris-huobi'; do
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ECDSA"'"' > ~/".ssh/id_ecdsa_$repo"
-            printf 'Host github_com_%s\n    HostName github.com\n    StrictHostKeyChecking no\n    IdentityFile ~/.ssh/id_ecdsa_%s\n' "$repo" "$repo" >> ~/.ssh/config
+        export HOME=/root
+        for repo in 'cris-base' 'cris-xchg'; do
+            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
+            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
+            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
         done
-        chmod go-w ~/.ssh ~/.ssh/config
-        chmod 600 ~/.ssh/id_ecdsa_cris*
-        tree -gpuash ~/.ssh
-    - name: Inject pre-auth hostname
-      run: sed -i 's/\(git@github\)\.\(com\)\(:.*\/\)\([[:alnum:]][[:alnum:]\-]*\)/\1_\2_\4\3\4/' WORKSPACE && git --no-pager diff
+        scripts/auth_github_ssh.sh
+        # Re-route public access to HTTPS and private to SSH.
+        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
+        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
+        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
+    - name: Fetch submodules
+      run: |
+        export HOME=/root
+        GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
     - name: Sync
       run: export HOME=/root && scripts/bazel_pull.sh -s
     - name: Test
@@ -196,8 +208,8 @@ jobs:
       run: |
         date -u '+%F' | xargs printf '::set-output name=date::%s'
         seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
-    - uses: actions/checkout@v2
-    - uses: actions/cache@v2
+    - uses: actions/checkout@v3
+    - uses: actions/cache@v3
       with:
         path: |
           /root/.cache/bazel
@@ -218,21 +230,25 @@ jobs:
       run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx
     - name: Auth
       env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ECDSA:  ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ECDSA  }}
-        CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA: ${{ secrets.CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA }}
+        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
       run: |
         # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
-        HOME=/root
-        mkdir -p ~/.ssh
-        for repo in 'cris-base' 'cris-huobi'; do
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ECDSA"'"' > ~/".ssh/id_ecdsa_$repo"
-            printf 'Host github_com_%s\n    HostName github.com\n    StrictHostKeyChecking no\n    IdentityFile ~/.ssh/id_ecdsa_%s\n' "$repo" "$repo" >> ~/.ssh/config
+        export HOME=/root
+        for repo in 'cris-base' 'cris-xchg'; do
+            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
+            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
+            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
         done
-        chmod go-w ~/.ssh ~/.ssh/config
-        chmod 600 ~/.ssh/id_ecdsa_cris*
-        tree -gpuash ~/.ssh
-    - name: Inject pre-auth hostname
-      run: sed -i 's/\(git@github\)\.\(com\)\(:.*\/\)\([[:alnum:]][[:alnum:]\-]*\)/\1_\2_\4\3\4/' WORKSPACE && git --no-pager diff
+        scripts/auth_github_ssh.sh
+        # Re-route public access to HTTPS and private to SSH.
+        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
+        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
+        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
+    - name: Fetch submodules
+      run: |
+        export HOME=/root
+        GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
     - name: Sync
       run: export HOME=/root && scripts/bazel_pull.sh -s
     - name: Test
@@ -250,8 +266,8 @@ jobs:
       run: |
         date -u '+%F' | xargs printf '::set-output name=date::%s'
         seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
-    - uses: actions/checkout@v2
-    - uses: actions/cache@v2
+    - uses: actions/checkout@v3
+    - uses: actions/cache@v3
       with:
         path: |
           /root/.cache/bazel
@@ -272,21 +288,25 @@ jobs:
       run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx
     - name: Auth
       env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ECDSA:  ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ECDSA  }}
-        CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA: ${{ secrets.CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA }}
+        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
       run: |
         # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
-        HOME=/root
-        mkdir -p ~/.ssh
-        for repo in 'cris-base' 'cris-huobi'; do
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ECDSA"'"' > ~/".ssh/id_ecdsa_$repo"
-            printf 'Host github_com_%s\n    HostName github.com\n    StrictHostKeyChecking no\n    IdentityFile ~/.ssh/id_ecdsa_%s\n' "$repo" "$repo" >> ~/.ssh/config
+        export HOME=/root
+        for repo in 'cris-base' 'cris-xchg'; do
+            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
+            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
+            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
         done
-        chmod go-w ~/.ssh ~/.ssh/config
-        chmod 600 ~/.ssh/id_ecdsa_cris*
-        tree -gpuash ~/.ssh
-    - name: Inject pre-auth hostname
-      run: sed -i 's/\(git@github\)\.\(com\)\(:.*\/\)\([[:alnum:]][[:alnum:]\-]*\)/\1_\2_\4\3\4/' WORKSPACE && git --no-pager diff
+        scripts/auth_github_ssh.sh
+        # Re-route public access to HTTPS and private to SSH.
+        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
+        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
+        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
+    - name: Fetch submodules
+      run: |
+        export HOME=/root
+        GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
     - name: Sync
       run: export HOME=/root && scripts/bazel_pull.sh -s
     - name: LLVM-12
@@ -306,8 +326,8 @@ jobs:
       run: |
         date -u '+%F' | xargs printf '::set-output name=date::%s'
         seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
-    - uses: actions/checkout@v2
-    - uses: actions/cache@v2
+    - uses: actions/checkout@v3
+    - uses: actions/cache@v3
       with:
         path: |
           /root/.cache/bazel
@@ -328,21 +348,25 @@ jobs:
       run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx
     - name: Auth
       env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ECDSA:  ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ECDSA  }}
-        CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA: ${{ secrets.CRIS_HUOBI_CI_SSH_PRIVKEY_ECDSA }}
+        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
       run: |
         # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
-        HOME=/root
-        mkdir -p ~/.ssh
-        for repo in 'cris-base' 'cris-huobi'; do
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ECDSA"'"' > ~/".ssh/id_ecdsa_$repo"
-            printf 'Host github_com_%s\n    HostName github.com\n    StrictHostKeyChecking no\n    IdentityFile ~/.ssh/id_ecdsa_%s\n' "$repo" "$repo" >> ~/.ssh/config
+        export HOME=/root
+        for repo in 'cris-base' 'cris-xchg'; do
+            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
+            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
+            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
         done
-        chmod go-w ~/.ssh ~/.ssh/config
-        chmod 600 ~/.ssh/id_ecdsa_cris*
-        tree -gpuash ~/.ssh
-    - name: Inject pre-auth hostname
-      run: sed -i 's/\(git@github\)\.\(com\)\(:.*\/\)\([[:alnum:]][[:alnum:]\-]*\)/\1_\2_\4\3\4/' WORKSPACE && git --no-pager diff
+        scripts/auth_github_ssh.sh
+        # Re-route public access to HTTPS and private to SSH.
+        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
+        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
+        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
+    - name: Fetch submodules
+      run: |
+        export HOME=/root
+        GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
     - name: Sync
       run: export HOME=/root && scripts/bazel_pull.sh -s
     - name: GCC-10
