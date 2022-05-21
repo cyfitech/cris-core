@@ -12,7 +12,16 @@ namespace impl {
 
 class LockQueueBase {
    public:
+    using Self = LockQueueBase;
+
     LockQueueBase(std::size_t capacity);
+
+    LockQueueBase(const Self&) = delete;
+    LockQueueBase(Self&&)      = delete;
+    LockQueueBase& operator=(const Self&) = delete;
+    LockQueueBase& operator=(Self&&) = delete;
+
+    virtual ~LockQueueBase() = default;
 
     std::size_t Size();
 
