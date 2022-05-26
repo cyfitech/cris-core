@@ -136,7 +136,6 @@ void JobRunner::Worker::Stop() {
 void JobRunner::Worker::Join() {
     if (thread_.joinable()) {
         thread_.join();
-        thread_ = std::thread();
     }
     DLOG(INFO) << __func__ << ": Worker " << index_ << " is stopped.";
 }
