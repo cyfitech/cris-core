@@ -72,6 +72,10 @@ class JobRunner {
 
         void WorkerLoop();
 
+        void Stop();
+
+        void Join();
+
         JobRunner*        runner_;
         std::size_t       index_;
         std::atomic<bool> shutdown_flag_{false};

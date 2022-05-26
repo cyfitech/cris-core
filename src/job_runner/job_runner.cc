@@ -28,6 +28,10 @@ JobRunner::JobRunner(JobRunner::Config config)
 
 JobRunner::~JobRunner() {
     ready_for_stealing_.store(false);
+    for (auto&& worker : workers_) {
+        worker->Stop();
+        worker->Join();
+    }
 }
 
 void JobRunner::AddJob(job_t&& job, std::size_t scheduler_hint) {
@@ -78,15 +82,8 @@ JobRunner::Worker::Worker(JobRunner* runner, std::size_t idx)
 }
 
 JobRunner::Worker::~Worker() {
-    shutdown_flag_.store(true);
-
-    DLOG(INFO) << __func__ << ": Worker " << index_ << " is stopping.";
-    runner_->worker_inactive_cv_.notify_all();
-    if (thread_.joinable()) {
-        thread_.join();
-    }
-    DLOG(INFO) << __func__ << ": Worker " << index_ << " is stopped.";
-
+    Stop();
+    Join();
     job_queue_.consume_all([](job_t* job) { delete job; });
 }
 
@@ -128,6 +125,20 @@ void JobRunner::Worker::WorkerLoop() {
     }
 
     runner_->active_workers_num_.fetch_sub(1);
+}
+
+void JobRunner::Worker::Stop() {
+    shutdown_flag_.store(true);
+    DLOG(INFO) << __func__ << ": Worker " << index_ << " is stopping.";
+    runner_->worker_inactive_cv_.notify_all();
+}
+
+void JobRunner::Worker::Join() {
+    if (thread_.joinable()) {
+        thread_.join();
+        thread_ = std::thread();
+    }
+    DLOG(INFO) << __func__ << ": Worker " << index_ << " is stopped.";
 }
 
 }  // namespace cris::core
