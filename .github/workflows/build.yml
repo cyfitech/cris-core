@@ -12,18 +12,20 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build:20211116
+      image: ghcr.io/cyfitech/cris-build:20220520
     steps:
     - uses: actions/checkout@v3
+    - name: Config
+      run: export HOME=/root && git config --global --add safe.directory "$(pwd)"
     - name: Run linter
-      run: scripts/format_all.sh
+      run: export HOME=/root && scripts/format_all.sh
     - name: Check diff
-      run: git --no-pager diff --exit-code
+      run: export HOME=/root && git --no-pager diff --exit-code
 
   llvm:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build:20211116
+      image: ghcr.io/cyfitech/cris-build:20220520
     steps:
     - name: Date
       id: date
@@ -49,7 +51,7 @@ jobs:
           llvm:${{ steps.date.outputs.date-7 }}
           llvm
     - name: Config
-      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx
+      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx && git config --global --add safe.directory "$(pwd)"
     - name: Auth
       env:
         CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
@@ -71,8 +73,6 @@ jobs:
       run: |
         export HOME=/root
         GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
-    - name: Sync
-      run: export HOME=/root && scripts/bazel_pull.sh -s
     - name: Build
       run: export HOME=/root && CC=clang-12 CXX=clang++-12 scripts/build_all.sh --config=rel --config=lld -s
     - name: Test
@@ -83,7 +83,7 @@ jobs:
   gcc:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build:20211116
+      image: ghcr.io/cyfitech/cris-build:20220520
     steps:
     - name: Date
       id: date
@@ -109,7 +109,7 @@ jobs:
           gcc:${{ steps.date.outputs.date-7 }}
           gcc
     - name: Config
-      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx
+      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx && git config --global --add safe.directory "$(pwd)"
     - name: Auth
       env:
         CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
@@ -131,8 +131,6 @@ jobs:
       run: |
         export HOME=/root
         GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
-    - name: Sync
-      run: export HOME=/root && scripts/bazel_pull.sh -s
     - name: Build
       run: export HOME=/root && CC=gcc-10 CXX=g++-10 scripts/build_all.sh --copt='-O3' -s
     - name: Test
@@ -143,7 +141,7 @@ jobs:
   asan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build:20211116
+      image: ghcr.io/cyfitech/cris-build:20220520
     steps:
     - name: Date
       id: date
@@ -169,7 +167,7 @@ jobs:
           asan:${{ steps.date.outputs.date-7 }}
           asan
     - name: Config
-      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx
+      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx && git config --global --add safe.directory "$(pwd)"
     - name: Auth
       env:
         CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
@@ -191,8 +189,6 @@ jobs:
       run: |
         export HOME=/root
         GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
-    - name: Sync
-      run: export HOME=/root && scripts/bazel_pull.sh -s
     - name: Test
       run: export HOME=/root && CC=clang-12 CXX=clang++-12 scripts/test_all.sh --config=asan --nocache_test_results --test_output=all -s
     - name: Summary
@@ -201,7 +197,7 @@ jobs:
   ubsan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build:20211116
+      image: ghcr.io/cyfitech/cris-build:20220520
     steps:
     - name: Date
       id: date
@@ -227,7 +223,7 @@ jobs:
           ubsan:${{ steps.date.outputs.date-7 }}
           ubsan
     - name: Config
-      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx
+      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx && git config --global --add safe.directory "$(pwd)"
     - name: Auth
       env:
         CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
@@ -249,8 +245,6 @@ jobs:
       run: |
         export HOME=/root
         GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
-    - name: Sync
-      run: export HOME=/root && scripts/bazel_pull.sh -s
     - name: Test
       run: export HOME=/root && CC=clang-12 CXX=clang++-12 scripts/test_all.sh --compiler=clang --config=ubsan --nocache_test_results --test_output=all -s
     - name: Summary
@@ -259,7 +253,7 @@ jobs:
   make-llvm:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build:20211116
+      image: ghcr.io/cyfitech/cris-build:20220520
     steps:
     - name: Date
       id: date
@@ -285,7 +279,7 @@ jobs:
           make-llvm:${{ steps.date.outputs.date-7 }}
           make-llvm
     - name: Config
-      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx
+      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx && git config --global --add safe.directory "$(pwd)"
     - name: Auth
       env:
         CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
@@ -307,8 +301,6 @@ jobs:
       run: |
         export HOME=/root
         GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
-    - name: Sync
-      run: export HOME=/root && scripts/bazel_pull.sh -s
     - name: LLVM-12
       run: export HOME=/root && CC=clang-12 CXX=clang++-12 make build
     - name: Default
@@ -319,7 +311,7 @@ jobs:
   make-gcc:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build:20211116
+      image: ghcr.io/cyfitech/cris-build:20220520
     steps:
     - name: Date
       id: date
@@ -345,7 +337,7 @@ jobs:
           make-gcc:${{ steps.date.outputs.date-7 }}
           make-gcc
     - name: Config
-      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx
+      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx && git config --global --add safe.directory "$(pwd)"
     - name: Auth
       env:
         CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
@@ -367,8 +359,6 @@ jobs:
       run: |
         export HOME=/root
         GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
-    - name: Sync
-      run: export HOME=/root && scripts/bazel_pull.sh -s
     - name: GCC-10
       run: export HOME=/root && CC=gcc-10 CXX=g++-10 make build
     - name: Summary
