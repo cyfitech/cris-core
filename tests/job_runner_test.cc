@@ -42,11 +42,11 @@ TEST(JobRunnerTest, Basic) {
     };
 
     for (std::size_t i = 0; i < kTestBatchNum; ++i) {
-        test_batch(/*wait = */ true);
+        test_batch(/* wait = */ true);
     }
 
     // These jobs may be discarded when the runner destructs.
-    test_batch(/*wait = */ false);
+    test_batch(/* wait = */ false);
 }
 
 TEST(JobRunnerTest, JobLocality) {
