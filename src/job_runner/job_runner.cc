@@ -12,8 +12,8 @@
 
 namespace cris::core {
 
-thread_local std::atomic<bool>        JobRunner::kIsInWorkerThread         = false;
-thread_local std::atomic<std::size_t> JobRunner::kCurrentThreadWorkerIndex = 0;
+thread_local std::atomic<std::uintptr_t> JobRunner::kCurrentThreadJobRunner   = 0;
+thread_local std::atomic<std::size_t>    JobRunner::kCurrentThreadWorkerIndex = 0;
 
 JobRunner::JobRunner(JobRunner::Config config)
     : config_(std::move(config))
@@ -66,7 +66,9 @@ std::size_t JobRunner::ActiveThreadNum() const {
 }
 
 std::size_t JobRunner::DefaultSchedulerHint() {
-    return kIsInWorkerThread.load() ? kCurrentThreadWorkerIndex.load() : random_worker_selector_(random_engine_);
+    return kCurrentThreadJobRunner.load() == reinterpret_cast<std::uintptr_t>(this)
+        ? kCurrentThreadWorkerIndex.load()
+        : random_worker_selector_(random_engine_);
 }
 
 JobRunner::Worker::Worker(JobRunner* runner, std::size_t idx)
@@ -94,7 +96,7 @@ void JobRunner::Worker::WorkerLoop() {
     const long long active_time_nsec =
         std::chrono::duration_cast<std::chrono::nanoseconds>(runner_->config_.active_time_).count();
 
-    kIsInWorkerThread.store(true);
+    kCurrentThreadJobRunner.store(reinterpret_cast<std::uintptr_t>(runner_));
     kCurrentThreadWorkerIndex.store(index_);
 
     runner_->active_workers_num_.fetch_add(1);

@@ -5,6 +5,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -95,8 +96,8 @@ class JobRunner {
     std::uniform_int_distribution<std::size_t> random_worker_selector_;
     std::vector<std::unique_ptr<Worker>>       workers_;
 
-    static thread_local std::atomic<bool>        kIsInWorkerThread;
-    static thread_local std::atomic<std::size_t> kCurrentThreadWorkerIndex;
+    static thread_local std::atomic<std::uintptr_t> kCurrentThreadJobRunner;
+    static thread_local std::atomic<std::size_t>    kCurrentThreadWorkerIndex;
 };
 
 }  // namespace cris::core

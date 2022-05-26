@@ -109,7 +109,7 @@ TEST(JobRunnerTest, AlwaysActiveThread) {
     JobRunner runner(config);
 
     // Let the workers start
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     EXPECT_EQ(runner.ThreadNum(), kThreadNum);
     EXPECT_EQ(runner.ActiveThreadNum(), kThreadNum);
