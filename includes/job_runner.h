@@ -72,12 +72,6 @@ class JobRunner {
 
         void WorkerLoop();
 
-        void Start();
-
-        void Stop();
-
-        void Join();
-
         JobRunner*        runner_;
         std::size_t       index_;
         std::atomic<bool> shutdown_flag_{false};
@@ -88,6 +82,7 @@ class JobRunner {
     };
 
     Config                                     config_;
+    std::atomic<bool>                          ready_for_stealing_{false};
     std::atomic<std::size_t>                   active_workers_num_{0};
     std::mutex                                 worker_inactive_mutex_;
     std::condition_variable                    worker_inactive_cv_;
