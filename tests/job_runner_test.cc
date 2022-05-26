@@ -23,10 +23,14 @@ TEST(JobRunnerTest, Basic) {
     auto test_batch = [&runner](const bool wait) {
         std::atomic<std::size_t> call_count{0};
         for (std::size_t i = 0; i < kJobNum; ++i) {
-            runner.AddJob([&call_count]() {
-                std::this_thread::sleep_for(kSingleJobDuration);
-                call_count.fetch_add(1);
-            });
+            // Schedule the jobs to the same worker first, let the runner itself
+            // do the load-balancing.
+            runner.AddJob(
+                [&call_count]() {
+                    std::this_thread::sleep_for(kSingleJobDuration);
+                    call_count.fetch_add(1);
+                },
+                0);
         }
 
         if (!wait) {
