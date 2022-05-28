@@ -1,11 +1,5 @@
 load("//bazel:rules.bzl", "cris_cc_test")
 
-cc_test_sanitizers = [
-    "-fsanitize=address",
-    "-fsanitize=leak",
-    "-fsanitize=undefined",
-]
-
 cris_cc_test (
     name = "defs_test",
     srcs = ["defs_test.cc"],
@@ -13,7 +7,6 @@ cris_cc_test (
         "//:corelib",
         "@gtest//:gtest_main",
     ],
-    linkopts = cc_test_sanitizers,
 )
 
 cris_cc_test (
@@ -23,7 +16,6 @@ cris_cc_test (
         "//:corelib",
         "@gtest//:gtest_main",
     ],
-    linkopts = cc_test_sanitizers,
 )
 
 cris_cc_test (
@@ -33,7 +25,6 @@ cris_cc_test (
         "//:corelib",
         "@gtest//:gtest_main",
     ],
-    linkopts = cc_test_sanitizers,
 )
 
 cris_cc_test (
@@ -43,7 +34,6 @@ cris_cc_test (
         "//:corelib",
         "@gtest//:gtest_main",
     ],
-    linkopts = cc_test_sanitizers,
 )
 
 cris_cc_test (
@@ -53,7 +43,6 @@ cris_cc_test (
         "//:corelib",
         "@gtest//:gtest_main",
     ],
-    linkopts = cc_test_sanitizers,
 )
 
 cris_cc_test (
@@ -63,7 +52,6 @@ cris_cc_test (
         "//:corelib",
         "@gtest//:gtest_main",
     ],
-    linkopts = cc_test_sanitizers,
 )
 
 cris_cc_test (
@@ -73,5 +61,4 @@ cris_cc_test (
         "//:corelib",
         "@gtest//:gtest_main",
     ],
-    linkopts = cc_test_sanitizers,
 )
