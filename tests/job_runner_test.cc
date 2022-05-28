@@ -4,8 +4,11 @@
 
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <cstddef>
+#include <mutex>
 #include <thread>
+#include <vector>
 
 namespace cris::core {
 
@@ -21,14 +24,22 @@ TEST(JobRunnerTest, Basic) {
     JobRunner runner(config);
 
     auto test_batch = [&runner](const bool wait) {
+        std::mutex              mtx;
+        std::condition_variable cv;
+        std::unique_lock        lock(mtx);
+
         std::atomic<std::size_t> call_count{0};
+        std::vector<std::thread::id> worker_thread_ids(kJobNum);
+
         for (std::size_t i = 0; i < kJobNum; ++i) {
             // Schedule the jobs to the same worker first, let the runner itself
             // do the load-balancing.
             runner.AddJob(
-                [&call_count]() {
+                [&call_count, &cv, &worker_thread_id = worker_thread_ids[i]]() {
                     std::this_thread::sleep_for(kSingleJobDuration);
+                    worker_thread_id = std::this_thread::get_id();
                     call_count.fetch_add(1);
+                    cv.notify_all();
                 },
                 0);
         }
@@ -37,10 +48,21 @@ TEST(JobRunnerTest, Basic) {
             return;
         }
 
-        // Runner should be able to balance the loads on to the workers,
-        // so the jobs should be able to finish in about kSingleJobDuration * kJobNum / kThreadNum.
-        std::this_thread::sleep_for(kSingleJobDuration * (kJobNum * 5 / kThreadNum / 4));
+        while (call_count.load() < kJobNum) {
+            cv.wait(lock);
+        }
+
+        std::set<std::thread::id> scheduled_worker_threads;
+        for (auto&& worker_thread_id : worker_thread_ids) {
+            scheduled_worker_threads.insert(worker_thread_id);
+        }
+
+        // All jobs are executed.
         EXPECT_EQ(call_count.load(), kJobNum);
+
+        // All workers had jobs.
+        EXPECT_EQ(scheduled_worker_threads.size(), kThreadNum);
+
         EXPECT_EQ(runner.ThreadNum(), kThreadNum);
         EXPECT_EQ(runner.ActiveThreadNum(), 0);
     };
