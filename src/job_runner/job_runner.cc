@@ -15,10 +15,10 @@ namespace cris::core {
 thread_local std::atomic<std::uintptr_t> JobRunner::kCurrentThreadJobRunner   = 0;
 thread_local std::atomic<std::size_t>    JobRunner::kCurrentThreadWorkerIndex = 0;
 
-JobRunner::JobRunner(JobRunner::Config config)
-    : config_(std::move(config))
-    , random_engine_(random_device_())
-    , random_worker_selector_(0, config_.thread_num_ - 1) {
+thread_local std::random_device         JobRunner::random_device;
+thread_local std::default_random_engine JobRunner::random_engine(random_device());
+
+JobRunner::JobRunner(JobRunner::Config config) : config_(std::move(config)) {
     workers_.reserve(config_.thread_num_);
     for (std::size_t idx = 0; idx < config_.thread_num_; ++idx) {
         workers_.push_back(std::make_unique<Worker>(this, idx));
@@ -29,14 +29,25 @@ JobRunner::JobRunner(JobRunner::Config config)
 JobRunner::~JobRunner() {
     ready_for_stealing_.store(false);
     for (auto&& worker : workers_) {
+        if (!worker) {
+            continue;
+        }
         worker->Stop();
         worker->Join();
     }
 }
 
 void JobRunner::AddJob(job_t&& job, std::size_t scheduler_hint) {
-    auto& worker = *workers_[scheduler_hint % workers_.size()];
-    worker.job_queue_.push(new job_t(std::move(job)));
+    // In default case, modulo operation is not needed because the RNG guarantee the output range.
+    // Use conditions to avoid unnecessary modulos.
+    const std::size_t worker_idx =
+        scheduler_hint < config_.thread_num_ ? scheduler_hint : scheduler_hint % config_.thread_num_;
+    auto& worker = workers_[worker_idx];
+    if (!worker) [[unlikely]] {
+        LOG(ERROR) << __func__ << ": Try to schedule to uninitialized worker " << worker_idx
+                   << ", worker num: " << config_.thread_num_;
+    }
+    worker->job_queue_.push(new job_t(std::move(job)));
     worker_inactive_cv_.notify_one();
 }
 
@@ -45,11 +56,17 @@ bool JobRunner::Steal() {
         return false;
     }
 
+    std::uniform_int_distribution<std::size_t> random_worker_selector(0, config_.thread_num_);
+
     DLOG(INFO) << __func__ << ": Worker " << kCurrentThreadWorkerIndex.load() << " stealing.";
-    std::size_t idx = random_worker_selector_(random_engine_);
-    for (std::size_t i = 0; i < workers_.size(); ++idx, ++i) {
-        if (idx >= workers_.size()) {
-            idx -= workers_.size();
+    std::size_t idx = random_worker_selector(random_engine);
+    for (std::size_t i = 0; i < config_.thread_num_; ++idx, ++i) {
+        if (idx >= config_.thread_num_) {
+            idx -= config_.thread_num_;
+        }
+        if (!workers_[idx]) [[unlikely]] {
+            DLOG(FATAL) << __func__ << ": Worker " << idx << " is unexpectedly uninitialized.";
+            continue;
         }
         if (workers_[idx]->TryProcessOne()) {
             DLOG(INFO) << __func__ << ": Worker " << kCurrentThreadWorkerIndex.load() << " stole a job from " << idx
@@ -69,9 +86,11 @@ std::size_t JobRunner::ActiveThreadNum() const {
 }
 
 std::size_t JobRunner::DefaultSchedulerHint() {
+    std::uniform_int_distribution<std::size_t> random_worker_selector(0, config_.thread_num_);
+
     return kCurrentThreadJobRunner.load() == reinterpret_cast<std::uintptr_t>(this)
         ? kCurrentThreadWorkerIndex.load()
-        : random_worker_selector_(random_engine_);
+        : random_worker_selector(random_engine);
 }
 
 JobRunner::Worker::Worker(JobRunner* runner, std::size_t idx)
