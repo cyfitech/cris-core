@@ -28,7 +28,7 @@ TEST(JobRunnerTest, Basic) {
         std::condition_variable cv;
         std::unique_lock        lock(mtx);
 
-        std::atomic<std::size_t> call_count{0};
+        std::atomic<std::size_t>     call_count{0};
         std::vector<std::thread::id> worker_thread_ids(kJobNum);
 
         for (std::size_t i = 0; i < kJobNum; ++i) {
