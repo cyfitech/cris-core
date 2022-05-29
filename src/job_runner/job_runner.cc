@@ -156,6 +156,7 @@ void JobRunner::Worker::Join() {
     if (thread_.joinable()) {
         thread_.join();
     }
+    CHECK(!thread_.joinable());
     DLOG(INFO) << __func__ << ": Worker " << index_ << " is stopped.";
 }
 

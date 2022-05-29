@@ -6,6 +6,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstddef>
+#include <memory>
 #include <mutex>
 #include <thread>
 #include <vector>
@@ -24,22 +25,31 @@ TEST(JobRunnerTest, Basic) {
     JobRunner runner(config);
 
     auto test_batch = [&runner](const bool wait) {
-        std::mutex              mtx;
-        std::condition_variable cv;
-        std::unique_lock        lock(mtx);
+        std::mutex mtx;
+        auto       cv = std::make_shared<std::condition_variable>();
 
-        std::atomic<std::size_t>     call_count{0};
-        std::vector<std::thread::id> worker_thread_ids(kJobNum);
+        std::unique_lock lock(mtx);
+
+        std::atomic<std::size_t> call_count{0};
+
+        using worker_thread_id_record_t     = std::atomic<std::thread::id>;
+        using worker_thread_id_record_ptr_t = std::unique_ptr<worker_thread_id_record_t>;
+
+        auto worker_thread_ids = std::make_shared<std::vector<worker_thread_id_record_ptr_t>>();
+
+        for (std::size_t i = 0; i < kJobNum; ++i) {
+            worker_thread_ids->push_back(std::make_unique<worker_thread_id_record_t>());
+        }
 
         for (std::size_t i = 0; i < kJobNum; ++i) {
             // Schedule the jobs to the same worker first, let the runner itself
             // do the load-balancing.
             runner.AddJob(
-                [&call_count, &cv, &worker_thread_id = worker_thread_ids[i]]() {
+                [&call_count, cv, worker_thread_ids, i]() {
                     std::this_thread::sleep_for(kSingleJobDuration);
-                    worker_thread_id = std::this_thread::get_id();
+                    (*worker_thread_ids)[i]->store(std::this_thread::get_id());
                     call_count.fetch_add(1);
-                    cv.notify_all();
+                    cv->notify_all();
                 },
                 0);
         }
@@ -49,12 +59,12 @@ TEST(JobRunnerTest, Basic) {
         }
 
         while (call_count.load() < kJobNum) {
-            cv.wait(lock);
+            cv->wait_for(lock, std::chrono::milliseconds(100));
         }
 
         std::set<std::thread::id> scheduled_worker_threads;
-        for (auto&& worker_thread_id : worker_thread_ids) {
-            scheduled_worker_threads.insert(worker_thread_id);
+        for (auto&& worker_thread_id : *worker_thread_ids) {
+            scheduled_worker_threads.insert(worker_thread_id->load());
         }
 
         // All jobs are executed.
