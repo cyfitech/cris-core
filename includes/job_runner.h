@@ -68,6 +68,8 @@ class JobRunner {
 
         ~Worker();
 
+        std::unique_ptr<job_t> TryGetOneJob();
+
         bool TryProcessOne();
 
         void WorkerLoop();

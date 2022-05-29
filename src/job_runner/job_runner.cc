@@ -103,14 +103,21 @@ JobRunner::Worker::Worker(JobRunner* runner, std::size_t idx)
 JobRunner::Worker::~Worker() {
     Stop();
     Join();
-    job_queue_.consume_all([](job_t* job) { delete job; });
+    job_queue_.consume_all([](job_t* job_ptr) { delete job_ptr; });
+}
+
+std::unique_ptr<JobRunner::job_t> JobRunner::Worker::TryGetOneJob() {
+    std::unique_ptr<job_t> job{nullptr};
+    job_queue_.consume_one([&job](job_t* job_ptr) { job.reset(job_ptr); });
+    return job;
 }
 
 bool JobRunner::Worker::TryProcessOne() {
-    return job_queue_.consume_one([](job_t* job) {
+    if (auto job = TryGetOneJob()) {
         (*job)();
-        delete job;
-    });
+        return true;
+    }
+    return false;
 }
 
 void JobRunner::Worker::WorkerLoop() {
