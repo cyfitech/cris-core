@@ -1,19 +1,17 @@
 #pragma once
 
-#include <boost/lockfree/queue.hpp>
-
 #include <chrono>
-#include <condition_variable>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
-#include <mutex>
 #include <random>
 #include <thread>
 #include <vector>
 
 namespace cris::core {
+
+class JobRunnerWorker;
 
 class JobRunner {
    public:
@@ -63,36 +61,9 @@ class JobRunner {
     std::size_t DefaultSchedulerHint();
 
    private:
-    struct Worker {
-        using job_queue_t = boost::lockfree::queue<job_t*>;
+    friend class JobRunnerWorker;
 
-        explicit Worker(JobRunner* runner, std::size_t idx);
-
-        ~Worker();
-
-        std::unique_ptr<job_t> TryGetOneJob();
-
-        bool TryProcessOne();
-
-        void WorkerLoop();
-
-        void Stop();
-
-        void Join();
-
-        JobRunner*              runner_;
-        std::size_t             index_;
-        std::atomic<bool>       shutdown_flag_{false};
-        std::atomic<bool>       stopped_flag_{false};
-        std::mutex              inactive_cv_mutex_;
-        std::condition_variable inactive_cv_;
-        job_queue_t             job_queue_{kInitialQueueCapacity};
-        std::thread             thread_;
-
-        static constexpr std::size_t kInitialQueueCapacity = 8192;
-    };
-
-    using worker_list_t = std::vector<std::unique_ptr<Worker>>;
+    using worker_list_t = std::vector<std::unique_ptr<JobRunnerWorker>>;
 
     Config                   config_;
     std::atomic<bool>        ready_for_stealing_{false};

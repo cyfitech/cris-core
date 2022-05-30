@@ -3,10 +3,14 @@
 #include "cris/core/logging.h"
 #include "cris/core/timer/timer.h"
 
+#include <boost/lockfree/queue.hpp>
+
+#include <condition_variable>
 #include <cstddef>
 #include <cstdlib>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <thread>
 #include <utility>
 
@@ -18,10 +22,41 @@ thread_local std::atomic<std::size_t>    JobRunner::kCurrentThreadWorkerIndex = 
 thread_local std::random_device         JobRunner::random_device;
 thread_local std::default_random_engine JobRunner::random_engine(random_device());
 
+class JobRunnerWorker {
+   public:
+    using job_t       = JobRunner::job_t;
+    using job_queue_t = boost::lockfree::queue<job_t*>;
+
+    explicit JobRunnerWorker(JobRunner* runner, std::size_t idx);
+
+    ~JobRunnerWorker();
+
+    std::unique_ptr<job_t> TryGetOneJob();
+
+    bool TryProcessOne();
+
+    void WorkerLoop();
+
+    void Stop();
+
+    void Join();
+
+    JobRunner*              runner_;
+    std::size_t             index_;
+    std::atomic<bool>       shutdown_flag_{false};
+    std::atomic<bool>       stopped_flag_{false};
+    std::mutex              inactive_cv_mutex_;
+    std::condition_variable inactive_cv_;
+    job_queue_t             job_queue_{kInitialQueueCapacity};
+    std::thread             thread_;
+
+    static constexpr std::size_t kInitialQueueCapacity = 8192;
+};
+
 JobRunner::JobRunner(JobRunner::Config config) : config_(std::move(config)) {
     workers_.reserve(config_.thread_num_);
     for (std::size_t idx = 0; idx < config_.thread_num_; ++idx) {
-        workers_.push_back(std::make_unique<Worker>(this, idx));
+        workers_.push_back(std::make_unique<JobRunnerWorker>(this, idx));
     }
     ready_for_stealing_.store(true);
 }
@@ -67,19 +102,19 @@ bool JobRunner::Steal() {
 
     std::uniform_int_distribution<std::size_t> random_worker_selector(0, config_.thread_num_);
 
-    DLOG(INFO) << __func__ << ": Worker " << kCurrentThreadWorkerIndex.load() << " stealing.";
+    DLOG(INFO) << __func__ << ": JobRunnerWorker " << kCurrentThreadWorkerIndex.load() << " stealing.";
     std::size_t idx = random_worker_selector(random_engine);
     for (std::size_t i = 0; i < config_.thread_num_; ++idx, ++i) {
         if (idx >= config_.thread_num_) {
             idx -= config_.thread_num_;
         }
         if (!workers_[idx]) [[unlikely]] {
-            DLOG(FATAL) << __func__ << ": Worker " << idx << " is unexpectedly uninitialized.";
+            DLOG(FATAL) << __func__ << ": JobRunnerWorker " << idx << " is unexpectedly uninitialized.";
             continue;
         }
         if (workers_[idx]->TryProcessOne()) {
-            DLOG(INFO) << __func__ << ": Worker " << kCurrentThreadWorkerIndex.load() << " stole a job from " << idx
-                       << ".";
+            DLOG(INFO) << __func__ << ": JobRunnerWorker " << kCurrentThreadWorkerIndex.load() << " stole a job from "
+                       << idx << ".";
             return true;
         }
     }
@@ -91,7 +126,7 @@ void JobRunner::NotifyOneWorker() {
 
     std::size_t idx = random_worker_selector(random_engine);
     if (!workers_[idx]) [[unlikely]] {
-        DLOG(FATAL) << __func__ << ": Worker " << idx << " is unexpectedly uninitialized.";
+        DLOG(FATAL) << __func__ << ": JobRunnerWorker " << idx << " is unexpectedly uninitialized.";
         return;
     }
     workers_[idx]->inactive_cv_.notify_all();
@@ -113,24 +148,24 @@ std::size_t JobRunner::DefaultSchedulerHint() {
         : random_worker_selector(random_engine);
 }
 
-JobRunner::Worker::Worker(JobRunner* runner, std::size_t idx)
+JobRunnerWorker::JobRunnerWorker(JobRunner* runner, std::size_t idx)
     : runner_(runner)
     , index_(idx)
-    , thread_(std::bind(&Worker::WorkerLoop, this)) {
+    , thread_(std::bind(&JobRunnerWorker::WorkerLoop, this)) {
 }
 
-JobRunner::Worker::~Worker() {
+JobRunnerWorker::~JobRunnerWorker() {
     DCHECK(!thread_.joinable());
     job_queue_.consume_all([](job_t* const job_ptr) { delete job_ptr; });
 }
 
-std::unique_ptr<JobRunner::job_t> JobRunner::Worker::TryGetOneJob() {
+std::unique_ptr<JobRunner::job_t> JobRunnerWorker::TryGetOneJob() {
     std::unique_ptr<job_t> job{nullptr};
     job_queue_.consume_one([&job](job_t* const job_ptr) { job.reset(job_ptr); });
     return job;
 }
 
-bool JobRunner::Worker::TryProcessOne() {
+bool JobRunnerWorker::TryProcessOne() {
     if (auto job = TryGetOneJob()) {
         (*job)();
         return true;
@@ -138,14 +173,14 @@ bool JobRunner::Worker::TryProcessOne() {
     return false;
 }
 
-void JobRunner::Worker::WorkerLoop() {
+void JobRunnerWorker::WorkerLoop() {
     cr_timestamp_nsec_t last_active_timestamp = GetSystemTimestampNsec();
 
     const long long active_time_nsec =
         std::chrono::duration_cast<std::chrono::nanoseconds>(runner_->config_.active_time_).count();
 
-    kCurrentThreadJobRunner.store(reinterpret_cast<std::uintptr_t>(runner_));
-    kCurrentThreadWorkerIndex.store(index_);
+    JobRunner::kCurrentThreadJobRunner.store(reinterpret_cast<std::uintptr_t>(runner_));
+    JobRunner::kCurrentThreadWorkerIndex.store(index_);
 
     runner_->active_workers_num_.fetch_add(1);
     while (!shutdown_flag_.load()) {
@@ -160,31 +195,31 @@ void JobRunner::Worker::WorkerLoop() {
             continue;
         }
         runner_->active_workers_num_.fetch_sub(1);
-        DLOG(INFO) << __func__ << ": Worker " << index_ << " is inactive.";
+        DLOG(INFO) << __func__ << ": JobRunnerWorker " << index_ << " is inactive.";
         std::unique_lock<std::mutex> lock(inactive_cv_mutex_);
         constexpr auto               kWorkerIdleTime = std::chrono::seconds(1);
         inactive_cv_.wait_for(lock, kWorkerIdleTime);
-        DLOG(INFO) << __func__ << ": Worker " << index_ << " is active.";
+        DLOG(INFO) << __func__ << ": JobRunnerWorker " << index_ << " is active.";
         runner_->active_workers_num_.fetch_add(1);
     }
     runner_->active_workers_num_.fetch_sub(1);
     stopped_flag_.store(true);
 }
 
-void JobRunner::Worker::Stop() {
+void JobRunnerWorker::Stop() {
     bool expected_shutdown_flag = false;
     if (!shutdown_flag_.compare_exchange_strong(expected_shutdown_flag, true)) {
         return;
     }
     inactive_cv_.notify_all();
-    DLOG(INFO) << __func__ << ": Worker " << index_ << " is stopping.";
+    DLOG(INFO) << __func__ << ": JobRunnerWorker " << index_ << " is stopping.";
 }
 
-void JobRunner::Worker::Join() {
+void JobRunnerWorker::Join() {
     while (!stopped_flag_.load()) {
         inactive_cv_.notify_all();
     }
-    DLOG(INFO) << __func__ << ": Worker " << index_ << " is stopped.";
+    DLOG(INFO) << __func__ << ": JobRunnerWorker " << index_ << " is stopped.";
     thread_.join();
     std::atomic_thread_fence(std::memory_order::seq_cst);
 }
