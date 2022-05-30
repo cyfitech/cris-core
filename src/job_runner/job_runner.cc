@@ -48,7 +48,16 @@ void JobRunner::AddJob(job_t&& job, std::size_t scheduler_hint) {
                    << ", worker num: " << config_.thread_num_;
     }
     worker->job_queue_.push(new job_t(std::move(job)));
-    worker_inactive_cv_.notify_one();
+
+    // Notify the scheduled worker first, so that it has better chance to
+    // pick up this job.
+    worker->inactive_cv_.notify_all();
+
+    // Randomly notify another worker, in case all awake workers are busy,
+    // and that worker may steal the jobs.
+    if (!ready_for_stealing_.load()) {
+        NotifyOneWorker();
+    }
 }
 
 bool JobRunner::Steal() {
@@ -75,6 +84,17 @@ bool JobRunner::Steal() {
         }
     }
     return false;
+}
+
+void JobRunner::NotifyOneWorker() {
+    std::uniform_int_distribution<std::size_t> random_worker_selector(0, config_.thread_num_);
+
+    std::size_t idx = random_worker_selector(random_engine);
+    if (!workers_[idx]) [[unlikely]] {
+        DLOG(FATAL) << __func__ << ": Worker " << idx << " is unexpectedly uninitialized.";
+        return;
+    }
+    workers_[idx]->inactive_cv_.notify_all();
 }
 
 std::size_t JobRunner::ThreadNum() const {
@@ -142,9 +162,9 @@ void JobRunner::Worker::WorkerLoop() {
         }
         runner_->active_workers_num_.fetch_sub(1);
         DLOG(INFO) << __func__ << ": Worker " << index_ << " is inactive.";
-        std::unique_lock<std::mutex> lock(runner_->worker_inactive_mutex_);
+        std::unique_lock<std::mutex> lock(inactive_cv_mutex_);
         constexpr auto               kWorkerIdleTime = std::chrono::seconds(1);
-        runner_->worker_inactive_cv_.wait_for(lock, kWorkerIdleTime);
+        inactive_cv_.wait_for(lock, kWorkerIdleTime);
         DLOG(INFO) << __func__ << ": Worker " << index_ << " is active.";
         runner_->active_workers_num_.fetch_add(1);
     }
@@ -155,7 +175,7 @@ void JobRunner::Worker::WorkerLoop() {
 void JobRunner::Worker::Stop() {
     shutdown_flag_.store(true);
     DLOG(INFO) << __func__ << ": Worker " << index_ << " is stopping.";
-    runner_->worker_inactive_cv_.notify_all();
+    inactive_cv_.notify_all();
 }
 
 void JobRunner::Worker::Join() {

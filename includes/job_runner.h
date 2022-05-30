@@ -54,6 +54,8 @@ class JobRunner {
     /// @return true if any job was stolen
     bool Steal();
 
+    void NotifyOneWorker();
+
     std::size_t ThreadNum() const;
 
     std::size_t ActiveThreadNum() const;
@@ -78,11 +80,13 @@ class JobRunner {
 
         void Join();
 
-        JobRunner*        runner_;
-        std::size_t       index_;
-        std::atomic<bool> shutdown_flag_{false};
-        job_queue_t       job_queue_{kInitialQueueCapacity};
-        std::thread       thread_;
+        JobRunner*              runner_;
+        std::size_t             index_;
+        std::atomic<bool>       shutdown_flag_{false};
+        std::mutex              inactive_cv_mutex_;
+        std::condition_variable inactive_cv_;
+        job_queue_t             job_queue_{kInitialQueueCapacity};
+        std::thread             thread_;
 
         static constexpr std::size_t kInitialQueueCapacity = 8192;
     };
@@ -92,8 +96,6 @@ class JobRunner {
     Config                   config_;
     std::atomic<bool>        ready_for_stealing_{false};
     std::atomic<std::size_t> active_workers_num_{0};
-    std::mutex               worker_inactive_mutex_;
-    std::condition_variable  worker_inactive_cv_;
     worker_list_t            workers_;
 
     static thread_local std::atomic<std::uintptr_t> kCurrentThreadJobRunner;
