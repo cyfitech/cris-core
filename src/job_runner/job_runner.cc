@@ -96,19 +96,18 @@ std::size_t JobRunner::DefaultSchedulerHint() {
 JobRunner::Worker::Worker(JobRunner* runner, std::size_t idx)
     : runner_(runner)
     , index_(idx)
-    , job_queue_(kInitialQueueCapacity)
     , thread_(std::bind(&Worker::WorkerLoop, this)) {
 }
 
 JobRunner::Worker::~Worker() {
     Stop();
     Join();
-    job_queue_.consume_all([](job_t* job_ptr) { delete job_ptr; });
+    job_queue_.consume_all([](job_t* const job_ptr) { delete job_ptr; });
 }
 
 std::unique_ptr<JobRunner::job_t> JobRunner::Worker::TryGetOneJob() {
     std::unique_ptr<job_t> job{nullptr};
-    job_queue_.consume_one([&job](job_t* job_ptr) { job.reset(job_ptr); });
+    job_queue_.consume_one([&job](job_t* const job_ptr) { job.reset(job_ptr); });
     return job;
 }
 

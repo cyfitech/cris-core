@@ -81,7 +81,7 @@ class JobRunner {
         JobRunner*        runner_;
         std::size_t       index_;
         std::atomic<bool> shutdown_flag_{false};
-        job_queue_t       job_queue_;
+        job_queue_t       job_queue_{kInitialQueueCapacity};
         std::thread       thread_;
 
         static constexpr std::size_t kInitialQueueCapacity = 8192;
