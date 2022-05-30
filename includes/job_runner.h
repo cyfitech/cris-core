@@ -83,6 +83,7 @@ class JobRunner {
         JobRunner*              runner_;
         std::size_t             index_;
         std::atomic<bool>       shutdown_flag_{false};
+        std::atomic<bool>       stopped_flag_{false};
         std::mutex              inactive_cv_mutex_;
         std::condition_variable inactive_cv_;
         job_queue_t             job_queue_{kInitialQueueCapacity};

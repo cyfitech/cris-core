@@ -120,8 +120,7 @@ JobRunner::Worker::Worker(JobRunner* runner, std::size_t idx)
 }
 
 JobRunner::Worker::~Worker() {
-    Stop();
-    Join();
+    DCHECK(!thread_.joinable());
     job_queue_.consume_all([](job_t* const job_ptr) { delete job_ptr; });
 }
 
@@ -168,22 +167,26 @@ void JobRunner::Worker::WorkerLoop() {
         DLOG(INFO) << __func__ << ": Worker " << index_ << " is active.";
         runner_->active_workers_num_.fetch_add(1);
     }
-
     runner_->active_workers_num_.fetch_sub(1);
+    stopped_flag_.store(true);
 }
 
 void JobRunner::Worker::Stop() {
-    shutdown_flag_.store(true);
-    DLOG(INFO) << __func__ << ": Worker " << index_ << " is stopping.";
+    bool expected_shutdown_flag = false;
+    if (!shutdown_flag_.compare_exchange_strong(expected_shutdown_flag, true)) {
+        return;
+    }
     inactive_cv_.notify_all();
+    DLOG(INFO) << __func__ << ": Worker " << index_ << " is stopping.";
 }
 
 void JobRunner::Worker::Join() {
-    if (thread_.joinable()) {
-        thread_.join();
+    while (!stopped_flag_.load()) {
+        inactive_cv_.notify_all();
     }
-    CHECK(!thread_.joinable());
     DLOG(INFO) << __func__ << ": Worker " << index_ << " is stopped.";
+    thread_.join();
+    std::atomic_thread_fence(std::memory_order::seq_cst);
 }
 
 }  // namespace cris::core
