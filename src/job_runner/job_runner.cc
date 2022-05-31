@@ -7,20 +7,19 @@
 
 #include <condition_variable>
 #include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <random>
 #include <thread>
 #include <utility>
 
 namespace cris::core {
 
-static thread_local std::atomic<std::uintptr_t> kCurrentThreadJobRunner   = 0;
-static thread_local std::atomic<std::size_t>    kCurrentThreadWorkerIndex = 0;
-
-static thread_local std::random_device         random_device;
-static thread_local std::default_random_engine random_engine(random_device());
+static thread_local std::uintptr_t kCurrentThreadJobRunner   = 0;
+static thread_local std::size_t    kCurrentThreadWorkerIndex = 0;
 
 class JobRunnerWorker {
    public:
@@ -63,7 +62,7 @@ JobRunner::JobRunner(JobRunner::Config config) : config_(std::move(config)) {
 
 JobRunner::~JobRunner() {
     ready_for_stealing_.store(false);
-    for (auto&& worker : workers_) {
+    for (auto& worker : workers_) {
         if (!worker) {
             continue;
         }
@@ -82,11 +81,11 @@ void JobRunner::AddJob(job_t&& job, std::size_t scheduler_hint) {
         LOG(ERROR) << __func__ << ": Try to schedule to uninitialized worker " << worker_idx
                    << ", worker num: " << config_.thread_num_;
     }
-    worker->job_queue_.push(new job_t(std::move(job)));
 
+    worker->job_queue_.push(new job_t(std::move(job)));
     // Notify the scheduled worker first, so that it has better chance to
     // pick up this job.
-    worker->inactive_cv_.notify_all();
+    worker->inactive_cv_.notify_one();
 
     // Randomly notify another worker, in case all awake workers are busy,
     // and that worker may steal the jobs.
@@ -100,9 +99,11 @@ bool JobRunner::Steal() {
         return false;
     }
 
+    static thread_local std::random_device         random_device;
+    static thread_local std::default_random_engine random_engine(random_device());
     std::uniform_int_distribution<std::size_t> random_worker_selector(0, config_.thread_num_);
 
-    DLOG(INFO) << __func__ << ": JobRunnerWorker " << kCurrentThreadWorkerIndex.load() << " stealing.";
+    DLOG(INFO) << __func__ << ": JobRunnerWorker " << kCurrentThreadWorkerIndex << " stealing.";
     std::size_t idx = random_worker_selector(random_engine);
     for (std::size_t i = 0; i < config_.thread_num_; ++idx, ++i) {
         if (idx >= config_.thread_num_) {
@@ -113,8 +114,8 @@ bool JobRunner::Steal() {
             continue;
         }
         if (workers_[idx]->TryProcessOne()) {
-            DLOG(INFO) << __func__ << ": JobRunnerWorker " << kCurrentThreadWorkerIndex.load() << " stole a job from "
-                       << idx << ".";
+            DLOG(INFO) << __func__ << ": JobRunnerWorker " << kCurrentThreadWorkerIndex << " stole a job from " << idx
+                       << ".";
             return true;
         }
     }
@@ -122,6 +123,8 @@ bool JobRunner::Steal() {
 }
 
 void JobRunner::NotifyOneWorker() {
+    static thread_local std::random_device         random_device;
+    static thread_local std::default_random_engine random_engine(random_device());
     std::uniform_int_distribution<std::size_t> random_worker_selector(0, config_.thread_num_);
 
     std::size_t idx = random_worker_selector(random_engine);
@@ -141,11 +144,12 @@ std::size_t JobRunner::ActiveThreadNum() const {
 }
 
 std::size_t JobRunner::DefaultSchedulerHint() {
+    static thread_local std::random_device         random_device;
+    static thread_local std::default_random_engine random_engine(random_device());
     std::uniform_int_distribution<std::size_t> random_worker_selector(0, config_.thread_num_);
 
-    return kCurrentThreadJobRunner.load() == reinterpret_cast<std::uintptr_t>(this)
-        ? kCurrentThreadWorkerIndex.load()
-        : random_worker_selector(random_engine);
+    return kCurrentThreadJobRunner == reinterpret_cast<std::uintptr_t>(this) ? kCurrentThreadWorkerIndex
+                                                                             : random_worker_selector(random_engine);
 }
 
 JobRunnerWorker::JobRunnerWorker(JobRunner* runner, std::size_t idx)
@@ -179,8 +183,8 @@ void JobRunnerWorker::WorkerLoop() {
     const long long active_time_nsec =
         std::chrono::duration_cast<std::chrono::nanoseconds>(runner_->config_.active_time_).count();
 
-    kCurrentThreadJobRunner.store(reinterpret_cast<std::uintptr_t>(runner_));
-    kCurrentThreadWorkerIndex.store(index_);
+    kCurrentThreadJobRunner   = reinterpret_cast<std::uintptr_t>(runner_);
+    kCurrentThreadWorkerIndex = index_;
 
     runner_->active_workers_num_.fetch_add(1);
     while (!shutdown_flag_.load()) {
@@ -208,16 +212,17 @@ void JobRunnerWorker::WorkerLoop() {
 
 void JobRunnerWorker::Stop() {
     bool expected_shutdown_flag = false;
+    std::unique_lock<std::mutex> lock(inactive_cv_mutex_);
     if (!shutdown_flag_.compare_exchange_strong(expected_shutdown_flag, true)) {
         return;
     }
-    inactive_cv_.notify_all();
+    inactive_cv_.notify_one();
     DLOG(INFO) << __func__ << ": JobRunnerWorker " << index_ << " is stopping.";
 }
 
 void JobRunnerWorker::Join() {
     while (!stopped_flag_.load()) {
-        inactive_cv_.notify_all();
+        inactive_cv_.notify_one();
     }
     DLOG(INFO) << __func__ << ": JobRunnerWorker " << index_ << " is stopped.";
     thread_.join();

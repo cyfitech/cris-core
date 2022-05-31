@@ -1,12 +1,10 @@
 #pragma once
 
+#include <atomic>
 #include <chrono>
 #include <cstddef>
-#include <cstdint>
 #include <functional>
 #include <memory>
-#include <random>
-#include <thread>
 #include <vector>
 
 namespace cris::core {
