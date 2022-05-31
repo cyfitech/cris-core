@@ -16,11 +16,11 @@
 
 namespace cris::core {
 
-thread_local std::atomic<std::uintptr_t> JobRunner::kCurrentThreadJobRunner   = 0;
-thread_local std::atomic<std::size_t>    JobRunner::kCurrentThreadWorkerIndex = 0;
+static thread_local std::atomic<std::uintptr_t> kCurrentThreadJobRunner   = 0;
+static thread_local std::atomic<std::size_t>    kCurrentThreadWorkerIndex = 0;
 
-thread_local std::random_device         JobRunner::random_device;
-thread_local std::default_random_engine JobRunner::random_engine(random_device());
+static thread_local std::random_device         random_device;
+static thread_local std::default_random_engine random_engine(random_device());
 
 class JobRunnerWorker {
    public:
@@ -179,8 +179,8 @@ void JobRunnerWorker::WorkerLoop() {
     const long long active_time_nsec =
         std::chrono::duration_cast<std::chrono::nanoseconds>(runner_->config_.active_time_).count();
 
-    JobRunner::kCurrentThreadJobRunner.store(reinterpret_cast<std::uintptr_t>(runner_));
-    JobRunner::kCurrentThreadWorkerIndex.store(index_);
+    kCurrentThreadJobRunner.store(reinterpret_cast<std::uintptr_t>(runner_));
+    kCurrentThreadWorkerIndex.store(index_);
 
     runner_->active_workers_num_.fetch_add(1);
     while (!shutdown_flag_.load()) {

@@ -69,12 +69,6 @@ class JobRunner {
     std::atomic<bool>        ready_for_stealing_{false};
     std::atomic<std::size_t> active_workers_num_{0};
     worker_list_t            workers_;
-
-    static thread_local std::atomic<std::uintptr_t> kCurrentThreadJobRunner;
-    static thread_local std::atomic<std::size_t>    kCurrentThreadWorkerIndex;
-
-    static thread_local std::random_device         random_device;
-    static thread_local std::default_random_engine random_engine;
 };
 
 }  // namespace cris::core
