@@ -101,7 +101,7 @@ bool JobRunner::Steal() {
 
     static thread_local std::random_device         random_device;
     static thread_local std::default_random_engine random_engine(random_device());
-    std::uniform_int_distribution<std::size_t> random_worker_selector(0, config_.thread_num_);
+    std::uniform_int_distribution<std::size_t>     random_worker_selector(0, config_.thread_num_);
 
     DLOG(INFO) << __func__ << ": JobRunnerWorker " << kCurrentThreadWorkerIndex << " stealing.";
     std::size_t idx = random_worker_selector(random_engine);
@@ -125,7 +125,7 @@ bool JobRunner::Steal() {
 void JobRunner::NotifyOneWorker() {
     static thread_local std::random_device         random_device;
     static thread_local std::default_random_engine random_engine(random_device());
-    std::uniform_int_distribution<std::size_t> random_worker_selector(0, config_.thread_num_);
+    std::uniform_int_distribution<std::size_t>     random_worker_selector(0, config_.thread_num_);
 
     std::size_t idx = random_worker_selector(random_engine);
     if (!workers_[idx]) [[unlikely]] {
@@ -146,7 +146,7 @@ std::size_t JobRunner::ActiveThreadNum() const {
 std::size_t JobRunner::DefaultSchedulerHint() {
     static thread_local std::random_device         random_device;
     static thread_local std::default_random_engine random_engine(random_device());
-    std::uniform_int_distribution<std::size_t> random_worker_selector(0, config_.thread_num_);
+    std::uniform_int_distribution<std::size_t>     random_worker_selector(0, config_.thread_num_);
 
     return kCurrentThreadJobRunner == reinterpret_cast<std::uintptr_t>(this) ? kCurrentThreadWorkerIndex
                                                                              : random_worker_selector(random_engine);
@@ -214,7 +214,7 @@ void JobRunnerWorker::WorkerLoop() {
 }
 
 void JobRunnerWorker::Stop() {
-    bool expected_shutdown_flag = false;
+    bool                         expected_shutdown_flag = false;
     std::unique_lock<std::mutex> lock(inactive_cv_mutex_);
     if (!shutdown_flag_.compare_exchange_strong(expected_shutdown_flag, true)) {
         return;
