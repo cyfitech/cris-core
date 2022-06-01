@@ -186,14 +186,20 @@ void JobRunnerWorker::WorkerLoop() {
     kCurrentThreadJobRunner   = reinterpret_cast<std::uintptr_t>(runner_);
     kCurrentThreadWorkerIndex = index_;
 
+    bool has_pending_jobs = false;
+
     runner_->active_workers_num_.fetch_add(1);
     while (!shutdown_flag_.load()) {
         if (TryProcessOne() || runner_->Steal()) {
-            last_active_timestamp = GetSystemTimestampNsec();
+            has_pending_jobs = true;
             continue;
         }
         if (index_ < runner_->config_.always_active_thread_num_) {
             continue;
+        }
+        if (has_pending_jobs) {
+            last_active_timestamp = GetSystemTimestampNsec();
+            has_pending_jobs      = false;
         }
         if (GetSystemTimestampNsec() < last_active_timestamp + active_time_nsec) {
             continue;
