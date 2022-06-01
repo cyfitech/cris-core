@@ -13,7 +13,7 @@
 
 #define EVENTUALLY_EQ(lfs, rhs)                                            \
     do {                                                                   \
-        constexpr std::size_t kMaxAttempts = 100;                          \
+        constexpr std::size_t kMaxAttempts = 1000;                         \
         constexpr auto        kAttemptGap  = std::chrono::milliseconds(5); \
         bool                  is_eq        = false;                        \
         for (std::size_t i = 0; i < kMaxAttempts; ++i) {                   \
@@ -146,8 +146,7 @@ TEST(JobRunnerTest, JobLocality) {
         runner.AddJob(spawning_job, i);
     }
 
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-    EXPECT_EQ(call_count.load(), kSpawningJobNum);
+    EVENTUALLY_EQ(call_count.load(), kSpawningJobNum);
 }
 
 TEST(JobRunnerTest, AlwaysActiveThread) {
@@ -173,7 +172,6 @@ TEST(JobRunnerTest, AlwaysActiveThread) {
     EXPECT_EQ(runner.ActiveThreadNum(), kThreadNum);
 
     // After the active time, only "always acitve" number of threads are active.
-    std::this_thread::sleep_for(kActiveTime);
     EVENTUALLY_EQ(runner.ActiveThreadNum(), kAlwaysActiveThreadNum);
 }
 
