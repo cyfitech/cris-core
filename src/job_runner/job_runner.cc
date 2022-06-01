@@ -202,6 +202,9 @@ void JobRunnerWorker::WorkerLoop() {
         DLOG(INFO) << __func__ << ": JobRunnerWorker " << index_ << " is inactive.";
         std::unique_lock<std::mutex> lock(inactive_cv_mutex_);
         constexpr auto               kWorkerIdleTime = std::chrono::seconds(1);
+        if (shutdown_flag_.load()) {
+            break;
+        }
         inactive_cv_.wait_for(lock, kWorkerIdleTime);
         DLOG(INFO) << __func__ << ": JobRunnerWorker " << index_ << " is active.";
         runner_->active_workers_num_.fetch_add(1);
@@ -221,9 +224,6 @@ void JobRunnerWorker::Stop() {
 }
 
 void JobRunnerWorker::Join() {
-    while (!stopped_flag_.load()) {
-        inactive_cv_.notify_one();
-    }
     DLOG(INFO) << __func__ << ": JobRunnerWorker " << index_ << " is stopped.";
     thread_.join();
     std::atomic_thread_fence(std::memory_order::seq_cst);
