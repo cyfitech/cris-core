@@ -134,7 +134,7 @@ void JobRunner::NotifyOneWorker() {
         DLOG(FATAL) << __func__ << ": JobRunnerWorker " << idx << " is unexpectedly uninitialized.";
         return;
     }
-    workers_[idx]->inactive_cv_.notify_all();
+    workers_[idx]->inactive_cv_.notify_one();
 }
 
 std::size_t JobRunner::ThreadNum() const {
