@@ -1,0 +1,2 @@
+# Boost lockfree queue triggers the data race warning, which is a known issue.
+race:boost/lockfree/detail/tagged_ptr_ptrcompression.hpp

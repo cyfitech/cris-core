@@ -36,9 +36,20 @@ cris_cc_test (
     ],
 )
 
+filegroup(
+    name = "job_runner_test_tsan_suppressions",
+    srcs = ["job_runner_test_tsan_suppressions.txt"],
+)
+
 cris_cc_test (
     name = "job_runner_test",
     srcs = ["job_runner_test.cc"],
+    env = {
+        "TSAN_OPTIONS": "suppressions=$(execpath job_runner_test_tsan_suppressions)",
+    },
+    data = [
+        ":job_runner_test_tsan_suppressions",
+    ],
     deps = [
         "//:corelib",
         "@gtest//:gtest_main",
