@@ -62,7 +62,7 @@ TEST(JobRunnerTest, Basic) {
         for (std::size_t i = 0; i < kJobNum; ++i) {
             // Schedule the jobs to the same worker first, let the runner itself
             // do the load-balancing.
-            runner.AddJob(
+            auto result = runner.AddJob(
                 [&call_count, cv, worker_thread_ids, i]() {
                     std::this_thread::sleep_for(kSingleJobDuration);
                     (*worker_thread_ids)[i]->store(std::this_thread::get_id());
@@ -70,6 +70,7 @@ TEST(JobRunnerTest, Basic) {
                     cv->notify_all();
                 },
                 0);
+            EXPECT_TRUE(result);
         }
 
         if (!wait) {
@@ -115,7 +116,7 @@ TEST(JobRunnerTest, JobLocality) {
         static constexpr auto kSingleJobDuration = std::chrono::milliseconds(200);
         for (std::size_t i = 0; i < kThreadNum; ++i) {
             // Assign them to different workers
-            runner.AddJob([]() { std::this_thread::sleep_for(kSingleJobDuration); }, i);
+            EXPECT_TRUE(runner.AddJob([]() { std::this_thread::sleep_for(kSingleJobDuration); }, i));
         }
     };
 
@@ -125,7 +126,7 @@ TEST(JobRunnerTest, JobLocality) {
     auto spawning_job = [&runner, &call_count]() {
         const auto thread_id = std::this_thread::get_id();
 
-        runner.AddJob([thread_id, &call_count]() {
+        auto result = runner.AddJob([thread_id, &call_count]() {
             call_count.fetch_add(1);
             // When no other idle workers, by default the spawned job will be run on the same
             // worker as the spawner was.
@@ -134,6 +135,7 @@ TEST(JobRunnerTest, JobLocality) {
             // Keep the current worker busy for a while.
             std::this_thread::sleep_for(std::chrono::seconds(1));
         });
+        EXPECT_TRUE(result);
     };
 
     make_workers_busy();
@@ -143,7 +145,7 @@ TEST(JobRunnerTest, JobLocality) {
 
     for (std::size_t i = 0; i < kSpawningJobNum; ++i) {
         // Assign them to different workers
-        runner.AddJob(spawning_job, i);
+        EXPECT_TRUE(runner.AddJob(spawning_job, i));
     }
 
     EVENTUALLY_EQ(call_count.load(), kSpawningJobNum);

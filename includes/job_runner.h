@@ -40,9 +40,9 @@ class JobRunner {
     ///                       Same integer means the job will assign to the same worker.
     ///                       Note that the jobs are stealable, so the worker that runs the job
     ///                       may be different from the assigned worker.
-    void AddJob(job_t&& job, std::size_t scheduler_hint);
+    bool AddJob(job_t&& job, std::size_t scheduler_hint);
 
-    void AddJob(job_t&& job) { return AddJob(std::move(job), DefaultSchedulerHint()); }
+    bool AddJob(job_t&& job) { return AddJob(std::move(job), DefaultSchedulerHint()); }
 
     ///
     /// Randomly steal a job from the workers and run.

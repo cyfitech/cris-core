@@ -71,7 +71,7 @@ JobRunner::~JobRunner() {
     }
 }
 
-void JobRunner::AddJob(job_t&& job, std::size_t scheduler_hint) {
+bool JobRunner::AddJob(job_t&& job, std::size_t scheduler_hint) {
     // In default case, modulo operation is not needed because the RNG guarantee the output range.
     // Use conditions to avoid unnecessary modulos.
     const std::size_t worker_idx =
@@ -80,6 +80,7 @@ void JobRunner::AddJob(job_t&& job, std::size_t scheduler_hint) {
     if (!worker) [[unlikely]] {
         LOG(ERROR) << __func__ << ": Try to schedule to uninitialized worker " << worker_idx
                    << ", worker num: " << config_.thread_num_;
+        return false;
     }
 
     worker->job_queue_.push(new job_t(std::move(job)));
@@ -92,6 +93,7 @@ void JobRunner::AddJob(job_t&& job, std::size_t scheduler_hint) {
     if (!ready_for_stealing_.load()) {
         NotifyOneWorker();
     }
+    return true;
 }
 
 bool JobRunner::Steal() {
