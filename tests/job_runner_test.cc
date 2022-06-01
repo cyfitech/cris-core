@@ -11,6 +11,24 @@
 #include <thread>
 #include <vector>
 
+#define EVENTUALLY_EQ(lfs, rhs)                                            \
+    do {                                                                   \
+        constexpr std::size_t kMaxAttempts = 100;                          \
+        constexpr auto        kAttemptGap  = std::chrono::milliseconds(5); \
+        bool                  is_eq        = false;                        \
+        for (std::size_t i = 0; i < kMaxAttempts; ++i) {                   \
+            if ((lfs) == (rhs)) {                                          \
+                is_eq = true;                                              \
+                break;                                                     \
+            }                                                              \
+            std::this_thread::sleep_for(kAttemptGap);                      \
+        }                                                                  \
+        if (!is_eq) {                                                      \
+            /* Try a more time and print logs when mismatching */          \
+            EXPECT_EQ(lfs, rhs);                                           \
+        }                                                                  \
+    } while (0)
+
 namespace cris::core {
 
 TEST(JobRunnerTest, Basic) {
@@ -74,7 +92,7 @@ TEST(JobRunnerTest, Basic) {
         EXPECT_EQ(scheduled_worker_threads.size(), kThreadNum);
 
         EXPECT_EQ(runner.ThreadNum(), kThreadNum);
-        EXPECT_EQ(runner.ActiveThreadNum(), 0);
+        EVENTUALLY_EQ(runner.ActiveThreadNum(), 0);
     };
 
     for (std::size_t i = 0; i < kTestBatchNum; ++i) {
@@ -156,7 +174,7 @@ TEST(JobRunnerTest, AlwaysActiveThread) {
 
     // After the active time, only "always acitve" number of threads are active.
     std::this_thread::sleep_for(kActiveTime);
-    EXPECT_EQ(runner.ActiveThreadNum(), kAlwaysActiveThreadNum);
+    EVENTUALLY_EQ(runner.ActiveThreadNum(), kAlwaysActiveThreadNum);
 }
 
 }  // namespace cris::core
