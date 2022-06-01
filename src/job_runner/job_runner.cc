@@ -227,7 +227,7 @@ void JobRunnerWorker::Stop() {
     if (!shutdown_flag_.compare_exchange_strong(expected_shutdown_flag, true)) {
         return;
     }
-    inactive_cv_.notify_one();
+    inactive_cv_.notify_all();
     DLOG(INFO) << __func__ << ": JobRunnerWorker " << index_ << " is stopping.";
 }
 
