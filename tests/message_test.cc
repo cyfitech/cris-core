@@ -1,6 +1,5 @@
 #include "cris/core/message/base.h"
 #include "cris/core/node/multi_queue_node.h"
-#include "cris/core/node/single_queue_node.h"
 
 #include "gtest/gtest.h"
 
@@ -23,30 +22,17 @@ struct TestMessage : public CRMessage<TestMessage<idx>> {
     int value_;
 };
 
-struct SimpleTestNode : public CRSingleQueueNode<> {
-    explicit SimpleTestNode(std::size_t queue_capacity)
-        : CRSingleQueueNode<>(queue_capacity, std::bind(&SimpleTestNode::QueueCallback, this, std::placeholders::_1)) {}
+struct TestNode : public CRMultiQueueNode<> {
+    using Base = CRMultiQueueNode<>;
+    using Base::Base;
 
-    void Process() { queue_.PopAndProcess(false); }
-
-    void QueueCallback(const CRMessageBasePtr& message) {
-        auto callback_search = callbacks_.find(message->GetChannelId());
-        if (callback_search == callbacks_.end()) {
-            return;
+    void Process() {
+        for (auto& queue : GetNodeQueues()) {
+            while (!queue->IsEmpty()) {
+                queue->PopAndProcess(false);
+            }
         }
-        return callback_search->second(message);
     }
-
-   private:
-    using callback_map_t =
-        std::unordered_map<channel_id_t, std::function<void(const CRMessageBasePtr&)>, boost::hash<channel_id_t>>;
-
-    void SubscribeHandler(const channel_id_t channel_id, std::function<void(const CRMessageBasePtr&)>&& callback)
-        override {
-        callbacks_.emplace(channel_id, std::move(callback));
-    }
-
-    callback_map_t callbacks_;
 };
 
 TEST(MessageTest, Basics) {
@@ -67,9 +53,9 @@ TEST(MessageTest, Subscribe) {
 
     // Publishing message
     {
-        int            count = 0;
-        int            value = 0;
-        SimpleTestNode node(1);
+        int      count = 0;
+        int      value = 0;
+        TestNode node(1);
 
         // Different subid, never called
         node.Subscribe<TestMessage<1>>(999, [&](const CRMessageBasePtr&) {
@@ -99,25 +85,25 @@ TEST(MessageTest, Subscribe) {
 
     // multiple subscriber
     {
-        int            count1 = 0;
-        int            value1 = 0;
-        SimpleTestNode node1(1);
+        int      count1 = 0;
+        int      value1 = 0;
+        TestNode node1(1);
         node1.Subscribe<TestMessage<1>>(channel_subid, [&](const CRMessageBasePtr& message) {
             ++count1;
             value1 = static_pointer_cast<TestMessage<1>>(message)->value_;
         });
 
-        int            count2 = 0;
-        int            value2 = 0;
-        SimpleTestNode node2(1);
+        int      count2 = 0;
+        int      value2 = 0;
+        TestNode node2(1);
         node2.Subscribe<TestMessage<1>>(channel_subid, [&](const CRMessageBasePtr& message) {
             ++count2;
             value2 = static_pointer_cast<TestMessage<1>>(message)->value_;
         });
 
-        int            count3 = 0;
-        int            value3 = 0;
-        SimpleTestNode node3(1);
+        int      count3 = 0;
+        int      value3 = 0;
+        TestNode node3(1);
         node3.Subscribe<TestMessage<1>>(channel_subid, [&](const CRMessageBasePtr& message) {
             ++count3;
             value3 = static_pointer_cast<TestMessage<1>>(message)->value_;
@@ -173,9 +159,9 @@ TEST(MessageTest, DeliveredTime) {
     EXPECT_EQ(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(channel_subid_2), kDefaultTimestamp);
     EXPECT_EQ(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(channel_subid_2), kDefaultTimestamp);
 
-    SimpleTestNode node12(1);
-    SimpleTestNode node23(1);
-    SimpleTestNode node13(1);
+    TestNode node12(1);
+    TestNode node23(1);
+    TestNode node13(1);
 
     node12.Subscribe<TestMessage<100>>(channel_subid, [](auto&&) {});
     node12.Subscribe<TestMessage<200>>(channel_subid, [](auto&&) {});
@@ -229,7 +215,7 @@ TEST(MessageTest, DeliveredTime) {
     EXPECT_EQ(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(channel_subid_2), kDefaultTimestamp);
 
     {
-        SimpleTestNode node(1);
+        TestNode node(1);
         node.Subscribe<TestMessage<100>>(channel_subid_2, [](auto&&) {});
         auto start_time = GetSystemTimestampNsec();
         publisher.Publish(channel_subid_2, std::make_shared<TestMessage<100>>(0));

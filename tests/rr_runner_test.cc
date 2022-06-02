@@ -1,6 +1,5 @@
 #include "cris/core/message/base.h"
 #include "cris/core/node/multi_queue_node.h"
-#include "cris/core/node/single_queue_node.h"
 #include "cris/core/node_runner/runner.h"
 
 #include "gtest/gtest.h"
@@ -15,35 +14,6 @@ using namespace cris::core;
 static constexpr std::size_t kMessageTypeNum = 7;
 static constexpr std::size_t kMessageNum     = 100;
 static constexpr std::size_t kMainThreadNum  = 4;
-
-class CRSingleQueueNodeForTest : public CRSingleQueueNode<> {
-   public:
-    CRSingleQueueNodeForTest()
-        : CRSingleQueueNode<>(
-              kMessageTypeNum * kMessageNum,
-              std::bind(&CRSingleQueueNodeForTest::QueueProcessor, this, std::placeholders::_1))
-        , main_loopis_run_(kMainThreadNum, 0) {}
-
-    void MainLoop(const std::size_t thread_idx, const std::size_t /* thread_num */) override {
-        main_loopis_run_[thread_idx] = true;
-    }
-
-    bool IsMainLoopRun(std::size_t thread_idx) const { return main_loopis_run_[thread_idx]; }
-
-   private:
-    void SubscribeHandler(const channel_id_t channel, std::function<void(const CRMessageBasePtr&)>&& callback)
-        override {
-        subscriptions_.emplace(channel, std::move(callback));
-    }
-
-    void QueueProcessor(const CRMessageBasePtr& message) { return subscriptions_[message->GetChannelId()](message); }
-
-    using callback_map_t =
-        std::unordered_map<channel_id_t, std::function<void(const CRMessageBasePtr&)>, boost::hash<channel_id_t>>;
-
-    std::vector<bool> main_loopis_run_;
-    callback_map_t    subscriptions_;
-};
 
 class CRMultiQueueNodeForTest : public CRMultiQueueNode<> {
    public:
@@ -83,29 +53,7 @@ class RRRunnerTest : public testing::Test {
     unsigned count_[kMessageTypeNum][kMessageNum];
 };
 
-TEST_F(RRRunnerTest, SingleQueueSingleThread) {
-    static constexpr auto    kQueueProcessorThreadNum = 1;
-    CRSingleQueueNodeForTest node;
-    CRNodeRoundRobinRunner   node_runner(&node, kQueueProcessorThreadNum, kMainThreadNum);
-    TestImpl(&node, &node_runner);
-
-    for (std::size_t i = 0; i < kMainThreadNum; ++i) {
-        EXPECT_TRUE(node.IsMainLoopRun(i));
-    }
-}
-
-TEST_F(RRRunnerTest, SingleQueueMultiThread) {
-    static constexpr auto    kQueueProcessorThreadNum = 3;
-    CRSingleQueueNodeForTest node;
-    CRNodeRoundRobinRunner   node_runner(&node, kQueueProcessorThreadNum, kMainThreadNum);
-    TestImpl(&node, &node_runner);
-
-    for (std::size_t i = 0; i < kMainThreadNum; ++i) {
-        EXPECT_TRUE(node.IsMainLoopRun(i));
-    }
-}
-
-TEST_F(RRRunnerTest, MultiQueueSingleThread) {
+TEST_F(RRRunnerTest, SingleThread) {
     static constexpr auto   kQueueProcessorThreadNum = 1;
     CRMultiQueueNodeForTest node;
     CRNodeRoundRobinRunner  node_runner(&node, kQueueProcessorThreadNum, kMainThreadNum);
@@ -116,7 +64,7 @@ TEST_F(RRRunnerTest, MultiQueueSingleThread) {
     }
 }
 
-TEST_F(RRRunnerTest, MultiQueueMultiThread) {
+TEST_F(RRRunnerTest, MultiThread) {
     static constexpr auto   kQueueProcessorThreadNum = 3;
     CRMultiQueueNodeForTest node;
     CRNodeRoundRobinRunner  node_runner(&node, kQueueProcessorThreadNum, kMainThreadNum);
