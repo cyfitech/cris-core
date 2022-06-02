@@ -9,12 +9,8 @@ CRMessageQueue* CRNodeBase::MessageQueueMapper(const CRMessageBasePtr& message) 
 }
 
 void CRNodeBase::Publish(const CRNodeBase::channel_subid_t channel_subid, CRMessageBasePtr&& message) {
-    auto* message_manager = GetMessageManager();
-
     message->SetChannelSubId(channel_subid);
-
-    message_manager->MessageQueueMapper(message)->AddMessage(std::move(message));
-    message_manager->Kick();
+    CRMessageBase::Dispatch(std::move(message));
 }
 
 }  // namespace cris::core

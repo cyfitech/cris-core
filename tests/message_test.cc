@@ -1,4 +1,5 @@
 #include "cris/core/message/base.h"
+#include "cris/core/node/multi_queue_node.h"
 #include "cris/core/node/single_queue_node.h"
 
 #include "gtest/gtest.h"
@@ -49,20 +50,22 @@ struct SimpleTestNode : public CRSingleQueueNode<> {
 };
 
 TEST(MessageTest, Basics) {
+    CRMultiQueueNode publisher(0);
+
     // name
     CRMessageBasePtr message = std::make_shared<TestMessage<1>>(1);
     EXPECT_EQ(message->GetMessageTypeName(), GetTypeName<TestMessage<1>>());
 
-    // empty dispatch
-    CRMessageBase::Dispatch(message);
+    // Publishing while nobody subscribing.
+    publisher.Publish(CRMessageBase::kDefaultChannelSubID, std::move(message));
 }
 
 TEST(MessageTest, Subscribe) {
-    channel_subid_t  channel_subid = 1;
-    CRMessageBasePtr message       = std::make_shared<TestMessage<1>>(1);
-    message->SetChannelSubId(channel_subid);
+    CRMultiQueueNode publisher(0);
 
-    // Dispatch message
+    channel_subid_t channel_subid = 1;
+
+    // Publishing message
     {
         int            count = 0;
         int            value = 0;
@@ -85,14 +88,14 @@ TEST(MessageTest, Subscribe) {
             std::abort();
         });
 
-        CRMessageBase::Dispatch(message);
+        publisher.Publish(channel_subid, std::make_shared<TestMessage<1>>(1));
         node.Process();
         EXPECT_EQ(count, 1);
         EXPECT_EQ(value, 1);
     }
 
-    // empty dispatch
-    CRMessageBase::Dispatch(message);
+    // Publishing while nobody subscribing.
+    publisher.Publish(channel_subid, std::make_shared<TestMessage<1>>(1));
 
     // multiple subscriber
     {
@@ -120,44 +123,44 @@ TEST(MessageTest, Subscribe) {
             value3 = static_pointer_cast<TestMessage<1>>(message)->value_;
         });
 
-        CRMessageBasePtr message1 = std::make_shared<TestMessage<1>>(100);
-        message1->SetChannelSubId(channel_subid);
-        CRMessageBase::Dispatch(message1);
+        const int msg1_value = 100;
+        publisher.Publish(channel_subid, std::make_shared<TestMessage<1>>(msg1_value));
 
         node1.Process();
         EXPECT_EQ(count1, 1);
-        EXPECT_EQ(value1, static_pointer_cast<TestMessage<1>>(message1)->value_);
+        EXPECT_EQ(value1, msg1_value);
 
         node2.Process();
         EXPECT_EQ(count2, 1);
-        EXPECT_EQ(value2, static_pointer_cast<TestMessage<1>>(message1)->value_);
+        EXPECT_EQ(value2, msg1_value);
 
         node3.Process();
         EXPECT_EQ(count3, 1);
-        EXPECT_EQ(value3, static_pointer_cast<TestMessage<1>>(message1)->value_);
+        EXPECT_EQ(value3, msg1_value);
 
-        CRMessageBasePtr message2 = std::make_shared<TestMessage<1>>(200);
-        message2->SetChannelSubId(channel_subid);
-        CRMessageBase::Dispatch(message2);
+        const int msg2_value = 200;
+        publisher.Publish(channel_subid, std::make_shared<TestMessage<1>>(msg2_value));
 
         node1.Process();
         EXPECT_EQ(count1, 2);
-        EXPECT_EQ(value1, static_pointer_cast<TestMessage<1>>(message2)->value_);
+        EXPECT_EQ(value1, msg2_value);
 
         node2.Process();
         EXPECT_EQ(count2, 2);
-        EXPECT_EQ(value2, static_pointer_cast<TestMessage<1>>(message2)->value_);
+        EXPECT_EQ(value2, msg2_value);
 
         node3.Process();
         EXPECT_EQ(count3, 2);
-        EXPECT_EQ(value3, static_pointer_cast<TestMessage<1>>(message2)->value_);
+        EXPECT_EQ(value3, msg2_value);
     }
 
-    // empty dispatch
-    CRMessageBase::Dispatch(message);
+    // Publishing while nobody subscribing.
+    publisher.Publish(channel_subid, std::make_shared<TestMessage<1>>(1));
 }
 
 TEST(MessageTest, DeliveredTime) {
+    CRMultiQueueNode publisher(0);
+
     channel_subid_t               channel_subid     = 1;
     channel_subid_t               channel_subid_2   = 2;
     constexpr cr_timestamp_nsec_t kDefaultTimestamp = 0;
@@ -188,9 +191,7 @@ TEST(MessageTest, DeliveredTime) {
     for (int i = 0; i < kRepeatTime; ++i) {
         {
             auto start_time = GetSystemTimestampNsec();
-            auto message    = std::make_shared<TestMessage<100>>(0);
-            message->SetChannelSubId(channel_subid);
-            CRMessageBase::Dispatch(message);
+            publisher.Publish(channel_subid, std::make_shared<TestMessage<100>>(0));
             auto end_time = GetSystemTimestampNsec();
 
             EXPECT_GE(CRMessageBase::GetLatestDeliveredTime<TestMessage<100>>(channel_subid), start_time);
@@ -201,9 +202,7 @@ TEST(MessageTest, DeliveredTime) {
 
         {
             auto start_time = GetSystemTimestampNsec();
-            auto message    = std::make_shared<TestMessage<200>>(0);
-            message->SetChannelSubId(channel_subid);
-            CRMessageBase::Dispatch(message);
+            publisher.Publish(channel_subid, std::make_shared<TestMessage<200>>(0));
             auto end_time = GetSystemTimestampNsec();
 
             EXPECT_GE(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(channel_subid), start_time);
@@ -214,9 +213,7 @@ TEST(MessageTest, DeliveredTime) {
 
         {
             auto start_time = GetSystemTimestampNsec();
-            auto message    = std::make_shared<TestMessage<300>>(0);
-            message->SetChannelSubId(channel_subid);
-            CRMessageBase::Dispatch(message);
+            publisher.Publish(channel_subid, std::make_shared<TestMessage<300>>(0));
             auto end_time = GetSystemTimestampNsec();
 
             EXPECT_GE(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(channel_subid), start_time);
@@ -235,9 +232,7 @@ TEST(MessageTest, DeliveredTime) {
         SimpleTestNode node(1);
         node.Subscribe<TestMessage<100>>(channel_subid_2, [](auto&&) {});
         auto start_time = GetSystemTimestampNsec();
-        auto message    = std::make_shared<TestMessage<100>>(0);
-        message->SetChannelSubId(channel_subid_2);
-        CRMessageBase::Dispatch(message);
+        publisher.Publish(channel_subid_2, std::make_shared<TestMessage<100>>(0));
         auto end_time = GetSystemTimestampNsec();
 
         // The second subchannel was updated while the first one remains unchanged

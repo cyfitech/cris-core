@@ -129,6 +129,7 @@ TEST_F(RRRunnerTest, MultiQueueMultiThread) {
 
 void RRRunnerTest::TestImpl(CRNodeBase* node, CRNodeRunnerBase* node_runner) {
     constexpr CRMessageBase::channel_subid_t kChannelSubIDForTest = 1;
+    CRMultiQueueNode                         publisher(0);
 
     for (std::size_t i = 0; i < kMessageTypeNum; ++i) {
         for (std::size_t j = 0; j < kMessageNum; ++j) {
@@ -146,28 +147,13 @@ void RRRunnerTest::TestImpl(CRNodeBase* node, CRNodeRunnerBase* node_runner) {
     node_runner->Run();
 
     for (std::size_t i = 0; i < kMessageNum; ++i) {
-        auto message0 = std::make_shared<MessageForTest<0>>(i, this);
-        auto message1 = std::make_shared<MessageForTest<1>>(i, this);
-        auto message2 = std::make_shared<MessageForTest<2>>(i, this);
-        auto message3 = std::make_shared<MessageForTest<3>>(i, this);
-        auto message4 = std::make_shared<MessageForTest<4>>(i, this);
-        auto message5 = std::make_shared<MessageForTest<5>>(i, this);
-        auto message6 = std::make_shared<MessageForTest<6>>(i, this);
-
-        message0->SetChannelSubId(kChannelSubIDForTest);
-        CRMessageBase::Dispatch(message0);
-        message1->SetChannelSubId(kChannelSubIDForTest);
-        CRMessageBase::Dispatch(message1);
-        message2->SetChannelSubId(kChannelSubIDForTest);
-        CRMessageBase::Dispatch(message2);
-        message3->SetChannelSubId(kChannelSubIDForTest);
-        CRMessageBase::Dispatch(message3);
-        message4->SetChannelSubId(kChannelSubIDForTest);
-        CRMessageBase::Dispatch(message4);
-        message5->SetChannelSubId(kChannelSubIDForTest);
-        CRMessageBase::Dispatch(message5);
-        message6->SetChannelSubId(kChannelSubIDForTest);
-        CRMessageBase::Dispatch(message6);
+        publisher.Publish(kChannelSubIDForTest, std::make_shared<MessageForTest<0>>(i, this));
+        publisher.Publish(kChannelSubIDForTest, std::make_shared<MessageForTest<1>>(i, this));
+        publisher.Publish(kChannelSubIDForTest, std::make_shared<MessageForTest<2>>(i, this));
+        publisher.Publish(kChannelSubIDForTest, std::make_shared<MessageForTest<3>>(i, this));
+        publisher.Publish(kChannelSubIDForTest, std::make_shared<MessageForTest<4>>(i, this));
+        publisher.Publish(kChannelSubIDForTest, std::make_shared<MessageForTest<5>>(i, this));
+        publisher.Publish(kChannelSubIDForTest, std::make_shared<MessageForTest<6>>(i, this));
     }
 
     std::this_thread::sleep_for(std::chrono::seconds(1));
