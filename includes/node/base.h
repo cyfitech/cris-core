@@ -49,8 +49,6 @@ class CRNodeBase {
 
     CRMessageQueue* MessageQueueMapper(const CRMessageBasePtr& message);
 
-    static CRNodeBase* GetMessageManager();
-
    protected:
     virtual void WaitForMessageImpl(std::chrono::nanoseconds timeout) = 0;
 
