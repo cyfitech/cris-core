@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cris/core/job_runner.h"
 #include "cris/core/message/lock_queue.h"
 #include "cris/core/message/queue.h"
 
@@ -10,6 +11,7 @@
 #include <functional>
 #include <map>
 #include <mutex>
+#include <optional>
 #include <typeindex>
 #include <vector>
 
@@ -19,6 +21,8 @@ class CRNode {
    public:
     using channel_subid_t = CRMessageBase::channel_subid_t;
     using channel_id_t    = CRMessageBase::channel_id_t;
+    using msg_callback_t  = std::function<void(const CRMessageBasePtr&)>;
+    using job_t           = JobRunner::job_t;
 
     explicit CRNode(std::size_t queue_capacity) : CRNode("noname", queue_capacity) {}
 
@@ -33,6 +37,10 @@ class CRNode {
     virtual void StopMainLoop() {}
 
     std::string GetName() const { return name_; }
+
+    std::optional<msg_callback_t> GetCallback(const CRMessageBasePtr& message);
+
+    std::optional<job_t> GenerateJob(const CRMessageBasePtr& message);
 
     void Kick();
 
@@ -52,19 +60,17 @@ class CRNode {
     CRMessageQueue* MessageQueueMapper(const CRMessageBasePtr& message);
 
    protected:
-    using queue_callback_t = std::function<void(const CRMessageBasePtr&)>;
-    using queue_map_t = std::unordered_map<channel_id_t, std::unique_ptr<CRMessageQueue>, boost::hash<channel_id_t>>;
+    using queue_map_t    = std::unordered_map<channel_id_t, std::unique_ptr<CRMessageQueue>, boost::hash<channel_id_t>>;
+    using callback_map_t = std::unordered_map<channel_id_t, msg_callback_t, boost::hash<channel_id_t>>;
 
     void WaitForMessageImpl(std::chrono::nanoseconds timeout);
 
     void SubscribeImpl(const channel_id_t channel, std::function<void(const CRMessageBasePtr&)>&& callback);
 
-    void SubscribeHandler(const channel_id_t channel, std::function<void(const CRMessageBasePtr&)>&& callback);
-
     std::vector<CRMessageQueue*> GetNodeQueues();
 
     // TODO(hao.chen): Message queue is deprecating, we add this for compatibility for now.
-    std::unique_ptr<CRMessageQueue> MakeMessageQueue(queue_callback_t&& callback) {
+    std::unique_ptr<CRMessageQueue> MakeMessageQueue(msg_callback_t callback) {
         return std::make_unique<CRMessageLockQueue>(queue_capacity_, this, std::move(callback));
     }
 
@@ -74,6 +80,7 @@ class CRNode {
     std::vector<channel_id_t> subscribed_;
     std::mutex                wait_message_mutex_;
     std::condition_variable   wait_message_cv_;
+    callback_map_t            callbacks_;
     std::size_t               queue_capacity_;
     queue_map_t               queues_;
 };
