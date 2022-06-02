@@ -48,7 +48,7 @@ TEST(JobRunnerTest, Basic) {
 
         std::unique_lock lock(mtx);
 
-        std::atomic<std::size_t> call_count{0};
+        auto call_count = std::make_shared<std::atomic<std::size_t>>(0);
 
         using worker_thread_id_record_t     = std::atomic<std::thread::id>;
         using worker_thread_id_record_ptr_t = std::unique_ptr<worker_thread_id_record_t>;
@@ -63,10 +63,10 @@ TEST(JobRunnerTest, Basic) {
             // Schedule the jobs to the same worker first, let the runner itself
             // do the load-balancing.
             auto result = runner.AddJob(
-                [&call_count, cv, worker_thread_ids, i]() {
+                [call_count, cv, worker_thread_ids, i]() {
                     std::this_thread::sleep_for(kSingleJobDuration);
                     (*worker_thread_ids)[i]->store(std::this_thread::get_id());
-                    call_count.fetch_add(1);
+                    call_count->fetch_add(1);
                     cv->notify_all();
                 },
                 0);
@@ -77,7 +77,7 @@ TEST(JobRunnerTest, Basic) {
             return;
         }
 
-        while (call_count.load() < kJobNum) {
+        while (call_count->load() < kJobNum) {
             cv->wait_for(lock, std::chrono::milliseconds(100));
         }
 
@@ -87,7 +87,7 @@ TEST(JobRunnerTest, Basic) {
         }
 
         // All jobs are executed.
-        EXPECT_EQ(call_count.load(), kJobNum);
+        EXPECT_EQ(call_count->load(), kJobNum);
 
         // All workers had jobs.
         EXPECT_EQ(scheduled_worker_threads.size(), kThreadNum);
@@ -120,14 +120,14 @@ TEST(JobRunnerTest, JobLocality) {
         }
     };
 
-    constexpr std::size_t    kSpawningJobNum = kThreadNum;
-    std::atomic<std::size_t> call_count{0};
+    constexpr std::size_t kSpawningJobNum = kThreadNum;
+    auto                  call_count      = std::make_shared<std::atomic<std::size_t>>(0);
 
-    auto spawning_job = [&runner, &call_count]() {
+    auto spawning_job = [&runner, call_count]() {
         const auto thread_id = std::this_thread::get_id();
 
-        auto result = runner.AddJob([thread_id, &call_count]() {
-            call_count.fetch_add(1);
+        auto result = runner.AddJob([thread_id, call_count]() {
+            call_count->fetch_add(1);
             // When no other idle workers, by default the spawned job will be run on the same
             // worker as the spawner was.
             EXPECT_EQ(std::this_thread::get_id(), thread_id);
@@ -148,7 +148,7 @@ TEST(JobRunnerTest, JobLocality) {
         EXPECT_TRUE(runner.AddJob(spawning_job, i));
     }
 
-    EVENTUALLY_EQ(call_count.load(), kSpawningJobNum);
+    EVENTUALLY_EQ(call_count->load(), kSpawningJobNum);
 }
 
 TEST(JobRunnerTest, AlwaysActiveThread) {
