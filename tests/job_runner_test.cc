@@ -11,22 +11,23 @@
 #include <thread>
 #include <vector>
 
-#define EVENTUALLY_EQ(lfs, rhs)                                            \
-    do {                                                                   \
-        constexpr std::size_t kMaxAttempts = 1000;                         \
-        constexpr auto        kAttemptGap  = std::chrono::milliseconds(5); \
-        bool                  is_eq        = false;                        \
-        for (std::size_t i = 0; i < kMaxAttempts; ++i) {                   \
-            if ((lfs) == (rhs)) {                                          \
-                is_eq = true;                                              \
-                break;                                                     \
-            }                                                              \
-            std::this_thread::sleep_for(kAttemptGap);                      \
-        }                                                                  \
-        if (!is_eq) {                                                      \
-            /* Try a more time and print logs when mismatching */          \
-            EXPECT_EQ(lfs, rhs);                                           \
-        }                                                                  \
+#define EVENTUALLY_EQ(lfs, rhs)                                   \
+    do {                                                          \
+        using namespace std::literals::chrono_literals;           \
+        constexpr std::size_t kMaxAttempts = 1000;                \
+        constexpr auto        kAttemptGap  = 5ms;                 \
+        bool                  is_eq        = false;               \
+        for (std::size_t i = 0; i < kMaxAttempts; ++i) {          \
+            if ((lfs) == (rhs)) {                                 \
+                is_eq = true;                                     \
+                break;                                            \
+            }                                                     \
+            std::this_thread::sleep_for(kAttemptGap);             \
+        }                                                         \
+        if (!is_eq) {                                             \
+            /* Try a more time and print logs when mismatching */ \
+            EXPECT_EQ(lfs, rhs);                                  \
+        }                                                         \
     } while (0)
 
 namespace cris::core {
@@ -115,7 +116,7 @@ TEST(JobRunnerTest, JobLocality) {
     auto make_workers_busy = [&runner]() {
         static constexpr auto kSingleJobDuration = std::chrono::milliseconds(200);
         for (std::size_t i = 0; i < kThreadNum; ++i) {
-            // Assign them to different workers
+            // Assign them to different workers.
             EXPECT_TRUE(runner.AddJob([]() { std::this_thread::sleep_for(kSingleJobDuration); }, i));
         }
     };
@@ -140,11 +141,11 @@ TEST(JobRunnerTest, JobLocality) {
 
     make_workers_busy();
 
-    // Let the workers become busy
+    // Let the workers become busy.
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
     for (std::size_t i = 0; i < kSpawningJobNum; ++i) {
-        // Assign them to different workers
+        // Assign them to different workers.
         EXPECT_TRUE(runner.AddJob(spawning_job, i));
     }
 
@@ -163,7 +164,7 @@ TEST(JobRunnerTest, AlwaysActiveThread) {
     };
     JobRunner runner(config);
 
-    // Let the workers start
+    // Let the workers start.
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     EXPECT_EQ(runner.ThreadNum(), kThreadNum);
@@ -173,7 +174,7 @@ TEST(JobRunnerTest, AlwaysActiveThread) {
     std::this_thread::sleep_for(kActiveTime / 2);
     EXPECT_EQ(runner.ActiveThreadNum(), kThreadNum);
 
-    // After the active time, only "always acitve" number of threads are active.
+    // After the active time, only "always acitve" numbeggr of threads are active.
     EVENTUALLY_EQ(runner.ActiveThreadNum(), kAlwaysActiveThreadNum);
 }
 
