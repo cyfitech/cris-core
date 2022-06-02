@@ -10,7 +10,7 @@ class CRMessageQueue {
    public:
     using message_processor_t = std::function<void(const CRMessageBasePtr&)>;
 
-    CRMessageQueue(CRNodeBase* node, message_processor_t&& processor);
+    CRMessageQueue(CRNode* node, message_processor_t&& processor);
 
     CRMessageQueue(const CRMessageQueue&) = delete;
 
@@ -35,7 +35,7 @@ class CRMessageQueue {
     virtual bool IsFull() = 0;
 
    protected:
-    CRNodeBase*                                  node_;
+    CRNode*                                      node_;
     std::function<void(const CRMessageBasePtr&)> processor_;
 };
 

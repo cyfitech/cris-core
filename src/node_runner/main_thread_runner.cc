@@ -3,7 +3,7 @@
 
 namespace cris::core {
 
-CRNodeMainThreadRunner::CRNodeMainThreadRunner(CRNodeBase* node, std::size_t thread_num, bool auto_run)
+CRNodeMainThreadRunner::CRNodeMainThreadRunner(CRNode* node, std::size_t thread_num, bool auto_run)
     : CRMultiThreadNodeRunner(node, thread_num) {
     LOG(INFO) << __func__ << ": " << this << " initialized";
     if (auto_run) {
