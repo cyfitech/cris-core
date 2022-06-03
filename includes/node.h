@@ -1,18 +1,18 @@
 #pragma once
 
 #include "cris/core/job_runner.h"
-#include "cris/core/message/lock_queue.h"
-#include "cris/core/message/queue.h"
+#include "cris/core/message.h"
 
 #include <boost/functional/hash.hpp>
 
-#include <condition_variable>
 #include <cstddef>
 #include <functional>
-#include <map>
-#include <mutex>
+#include <memory>
 #include <optional>
+#include <string>
 #include <typeindex>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace cris::core {
@@ -24,74 +24,50 @@ class CRNode {
     using msg_callback_t  = std::function<void(const CRMessageBasePtr&)>;
     using job_t           = JobRunner::job_t;
 
-    explicit CRNode(std::size_t queue_capacity) : CRNode("noname", queue_capacity) {}
+    explicit CRNode() : CRNode("noname") {}
 
-    explicit CRNode(std::string name, std::size_t queue_capacity)
-        : name_(std::move(name))
-        , queue_capacity_(queue_capacity) {}
+    explicit CRNode(std::string name) : name_(std::move(name)) {}
 
     virtual ~CRNode();
 
-    virtual void MainLoop(const std::size_t /* thread_idx */, const std::size_t /* thread_num */) {}
+    // Some long lasting works that are not event-driven.
+    virtual void MainLoop() {}
 
     virtual void StopMainLoop() {}
 
     std::string GetName() const { return name_; }
 
-    std::optional<msg_callback_t> GetCallback(const CRMessageBasePtr& message);
+    void SetRunner(std::shared_ptr<JobRunner> runner) { runner_ = std::move(runner); }
 
-    std::optional<job_t> GenerateJob(const CRMessageBasePtr& message);
+    bool AddJobToRunner(job_t&& job);
 
-    void Kick();
-
-    template<class duration_t>
-    void WaitForMessage(duration_t&& timeout);
+    bool AddMessageToRunner(const CRMessageBasePtr& message);
 
     // Not thread-safe, do not call concurrently nor call it
-    // when messages are coming, nor call it after Node Runner
-    // is Running
+    // when messages are coming, nor call it after runner
+    // is running
     template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
     void Subscribe(const channel_subid_t channel_subid, callback_t&& callback);
 
     void Publish(const channel_subid_t channel_subid, CRMessageBasePtr&& message);
 
-    CRMessageQueue* MessageQueueMapper(const channel_id_t channel);
-
-    CRMessageQueue* MessageQueueMapper(const CRMessageBasePtr& message);
-
    protected:
-    using queue_map_t    = std::unordered_map<channel_id_t, std::unique_ptr<CRMessageQueue>, boost::hash<channel_id_t>>;
     using callback_map_t = std::unordered_map<channel_id_t, msg_callback_t, boost::hash<channel_id_t>>;
 
-    void WaitForMessageImpl(std::chrono::nanoseconds timeout);
+    std::optional<msg_callback_t> GetCallback(const CRMessageBasePtr& message);
+
+    std::optional<job_t> GenerateJob(const CRMessageBasePtr& message);
 
     void SubscribeImpl(const channel_id_t channel, std::function<void(const CRMessageBasePtr&)>&& callback);
 
-    std::vector<CRMessageQueue*> GetNodeQueues();
-
-    // TODO(hao.chen): Message queue is deprecating, we add this for compatibility for now.
-    std::unique_ptr<CRMessageQueue> MakeMessageQueue(msg_callback_t callback) {
-        return std::make_unique<CRMessageLockQueue>(queue_capacity_, this, std::move(callback));
-    }
-
-    friend class CRNodeRunnerBase;
-
-    std::string               name_;
-    std::vector<channel_id_t> subscribed_;
-    std::mutex                wait_message_mutex_;
-    std::condition_variable   wait_message_cv_;
-    callback_map_t            callbacks_;
-    std::size_t               queue_capacity_;
-    queue_map_t               queues_;
+    std::string                name_;
+    std::vector<channel_id_t>  subscribed_;
+    callback_map_t             callbacks_;
+    std::shared_ptr<JobRunner> runner_{nullptr};
 };
 
 template<class node_t>
 concept CRNodeType = std::is_base_of_v<CRNode, node_t>;
-
-template<class duration_t>
-void CRNode::WaitForMessage(duration_t&& timeout) {
-    return WaitForMessageImpl(std::chrono::duration_cast<std::chrono::nanoseconds>(std::forward<duration_t>(timeout)));
-}
 
 template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
 void CRNode::Subscribe(const channel_subid_t channel_subid, callback_t&& callback) {

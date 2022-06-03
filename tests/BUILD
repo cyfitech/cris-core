@@ -19,15 +19,6 @@ cris_cc_test (
 )
 
 cris_cc_test (
-    name = "lock_queue_test",
-    srcs = ["lock_queue_test.cc"],
-    deps = [
-        "//:corelib",
-        "@gtest//:gtest_main",
-    ],
-)
-
-cris_cc_test (
     name = "node_test",
     srcs = ["node_test.cc"],
     deps = [
@@ -36,14 +27,14 @@ cris_cc_test (
     ],
 )
 
-cris_cc_test (
-    name = "rr_runner_test",
-    srcs = ["rr_runner_test.cc"],
-    deps = [
-        "//:corelib",
-        "@gtest//:gtest_main",
-    ],
-)
+# cris_cc_test (
+#     name = "rr_runner_test",
+#     srcs = ["rr_runner_test.cc"],
+#     deps = [
+#         "//:corelib",
+#         "@gtest//:gtest_main",
+#     ],
+# )
 
 cris_cc_test (
     name = "timer_test",
