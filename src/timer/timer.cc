@@ -1,4 +1,4 @@
-#include "cris/core/timer/timer.h"
+#include "cris/core/timer.h"
 
 #ifdef _MSC_VER
 #include <intrin.h>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cris/core/defs.h"
-#include "cris/core/timer/timer.h"
+#include "cris/core/timer.h"
 
 #include <atomic>
 #include <cstdint>

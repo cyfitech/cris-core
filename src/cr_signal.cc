@@ -7,7 +7,7 @@ extern "C" {
 }
 
 #include "cris/core/cr_signal.h"
-#include "cris/core/timer/timer.h"
+#include "cris/core/timer.h"
 
 #include <atomic>
 #include <cinttypes>
