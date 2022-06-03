@@ -1,11 +1,11 @@
 #include "cris/core/message/queue.h"
 
 #include "cris/core/logging.h"
-#include "cris/core/node/base.h"
+#include "cris/core/node.h"
 
 namespace cris::core {
 
-CRMessageQueue::CRMessageQueue(CRNodeBase* node, message_processor_t&& processor)
+CRMessageQueue::CRMessageQueue(CRNode* node, message_processor_t&& processor)
     : node_(node)
     , processor_(std::move(processor)) {
     auto node_name = node_ ? node_->GetName() : "null";

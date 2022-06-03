@@ -1,5 +1,4 @@
-#include "cris/core/node/base.h"
-#include "cris/core/node/multi_queue_node.h"
+#include "cris/core/node.h"
 
 #include "gtest/gtest.h"
 
@@ -7,23 +6,12 @@
 
 namespace cris::core {
 
-class TrivialNodeForTest : public CRNode {
-    CRMessageQueue* MessageQueueMapper(const channel_id_t /* channel */) override { return nullptr; }
-
-   private:
-    void SubscribeHandler(
-        const channel_id_t /* channel */,
-        std::function<void(const CRMessageBasePtr&)>&& /* callback */) override {}
-
-    std::vector<CRMessageQueue*> GetNodeQueues() override { return {}; }
-};
-
 TEST(NodeTest, WaitAndUnblock) {
     std::atomic<int>         unblocked{0};
     std::vector<std::thread> threads{};
     constexpr std::size_t    kThreadNum = 4;
 
-    TrivialNodeForTest node;
+    CRNode node(1);
 
     for (std::size_t i = 0; i < kThreadNum; ++i) {
         threads.emplace_back([&unblocked, &node]() {
@@ -47,7 +35,7 @@ TEST(NodeTest, WaitAndTimeout) {
     std::vector<std::thread> threads{};
     constexpr std::size_t    kThreadNum = 4;
 
-    TrivialNodeForTest node;
+    CRNode node(1);
 
     for (std::size_t i = 0; i < kThreadNum; ++i) {
         threads.emplace_back([&unblocked, &node]() {
@@ -68,8 +56,8 @@ TEST(NodeTest, WaitAndTimeout) {
 template<int idx>
 struct TestMessage : public CRMessage<TestMessage<idx>> {};
 
-TEST(NodeTest, MultiQueueNode) {
-    CRMultiQueueNode<>    node(1);
+TEST(NodeTest, Basic) {
+    CRNode                node(1);
     constexpr std::size_t kNumOfTopics     = 4;
     constexpr std::size_t kNumOfSubChannel = 4;
 

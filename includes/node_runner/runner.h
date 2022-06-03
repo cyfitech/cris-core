@@ -1,6 +1,6 @@
 #pragma once
 
-#include "cris/core/node/base.h"
+#include "cris/core/node.h"
 
 #include <atomic>
 #include <mutex>
@@ -20,7 +20,7 @@ class CRNodeRunnerBase {
 
     virtual ~CRNodeRunnerBase() = default;
 
-    virtual CRNodeBase* GetNode() const = 0;
+    virtual CRNode* GetNode() const = 0;
 
     std::vector<CRMessageQueue*> GetNodeQueues();
 
@@ -33,11 +33,11 @@ class CRNodeRunnerBase {
 
 class CRMultiThreadNodeRunner : public CRNodeRunnerBase {
    public:
-    CRMultiThreadNodeRunner(CRNodeBase* node, std::size_t thread_num);
+    CRMultiThreadNodeRunner(CRNode* node, std::size_t thread_num);
 
     ~CRMultiThreadNodeRunner();
 
-    CRNodeBase* GetNode() const override;
+    CRNode* GetNode() const override;
 
     std::size_t GetThreadNum() const;
 
@@ -54,7 +54,7 @@ class CRMultiThreadNodeRunner : public CRNodeRunnerBase {
     virtual void NotifyWorkersToStop() = 0;
 
    private:
-    CRNodeBase*              node_;
+    CRNode*                  node_;
     std::size_t              thread_num_;
     std::vector<std::thread> worker_threads_;
     bool                     is_running_{false};
@@ -64,7 +64,7 @@ class CRMultiThreadNodeRunner : public CRNodeRunnerBase {
 
 class CRNodeMainThreadRunner : public CRMultiThreadNodeRunner {
    public:
-    CRNodeMainThreadRunner(CRNodeBase* node, std::size_t thread_num, bool auto_run = false);
+    CRNodeMainThreadRunner(CRNode* node, std::size_t thread_num, bool auto_run = false);
 
     ~CRNodeMainThreadRunner();
 
@@ -77,7 +77,7 @@ class CRNodeMainThreadRunner : public CRMultiThreadNodeRunner {
 
 class CRNodeRoundRobinQueueProcessor : public CRMultiThreadNodeRunner {
    public:
-    CRNodeRoundRobinQueueProcessor(CRNodeBase* node, std::size_t thread_num, bool auto_run = false);
+    CRNodeRoundRobinQueueProcessor(CRNode* node, std::size_t thread_num, bool auto_run = false);
 
     ~CRNodeRoundRobinQueueProcessor();
 
@@ -101,7 +101,7 @@ template<CRNodeRunnerType queue_processor_t, CRNodeRunnerType main_thread_runner
 class CRNodeRunner : public CRNodeRunnerBase {
    public:
     CRNodeRunner(
-        CRNodeBase* node,
+        CRNode*     node,
         std::size_t queue_processor_thread_num,
         std::size_t main_thread_num = 1,
         bool        auto_run        = false)
@@ -124,10 +124,10 @@ class CRNodeRunner : public CRNodeRunnerBase {
         main_thread_runner_.Join();
     }
 
-    CRNodeBase* GetNode() const override { return node_; }
+    CRNode* GetNode() const override { return node_; }
 
    private:
-    CRNodeBase*          node_;
+    CRNode*              node_;
     queue_processor_t    queue_processor_;
     main_thread_runner_t main_thread_runner_;
 };

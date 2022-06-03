@@ -1,6 +1,6 @@
 #include "cris/core/logging.h"
 #include "cris/core/message/base.h"
-#include "cris/core/node/base.h"
+#include "cris/core/node.h"
 
 #include <boost/functional/hash.hpp>
 
@@ -15,7 +15,7 @@ namespace {
 class SubscriptionInfo {
    public:
     std::atomic<cr_timestamp_nsec_t> latest_delivered_time_{0};
-    std::vector<CRNodeBase*>         sub_list_;
+    std::vector<CRNode*>             sub_list_;
 };
 
 }  // namespace
@@ -60,7 +60,7 @@ void CRMessageBase::Dispatch(const CRMessageBasePtr& message) {
     subscription_info->latest_delivered_time_.store(GetSystemTimestampNsec());
 }
 
-bool CRMessageBase::Subscribe(const channel_id_t channel, CRNodeBase* node) {
+bool CRMessageBase::Subscribe(const channel_id_t channel, CRNode* node) {
     auto& subscription_list = GetSubscriptionMap()[channel].sub_list_;
 
     if (std::find(subscription_list.begin(), subscription_list.end(), node) != subscription_list.end()) {
@@ -72,7 +72,7 @@ bool CRMessageBase::Subscribe(const channel_id_t channel, CRNodeBase* node) {
     return true;
 }
 
-void CRMessageBase::Unsubscribe(const channel_id_t channel, CRNodeBase* node) {
+void CRMessageBase::Unsubscribe(const channel_id_t channel, CRNode* node) {
     auto& subscription_map        = GetSubscriptionMap();
     auto  subscription_map_search = subscription_map.find(channel);
     if (subscription_map_search == subscription_map.end()) {

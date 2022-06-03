@@ -15,7 +15,7 @@
 namespace cris::core {
 
 class CRMessageBase;
-class CRNodeBase;
+class CRNode;
 
 template<class message_t>
 concept CRMessageType = std::is_base_of_v<CRMessageBase, message_t>;
@@ -61,11 +61,11 @@ class CRMessageBase {
    private:
     // Not thread-safe, do not call concurrently nor call it
     // when messages are coming
-    static bool Subscribe(const channel_id_t channel, CRNodeBase* node);
+    static bool Subscribe(const channel_id_t channel, CRNode* node);
 
     // Not thread-safe, do not call concurrently nor call it
     // when messages are coming
-    static void Unsubscribe(const channel_id_t channel, CRNodeBase* node);
+    static void Unsubscribe(const channel_id_t channel, CRNode* node);
 
     friend class CRNode;
 

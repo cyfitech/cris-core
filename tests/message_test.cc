@@ -1,5 +1,5 @@
 #include "cris/core/message/base.h"
-#include "cris/core/node/multi_queue_node.h"
+#include "cris/core/node.h"
 
 #include "gtest/gtest.h"
 
@@ -22,8 +22,8 @@ struct TestMessage : public CRMessage<TestMessage<idx>> {
     int value_;
 };
 
-struct TestNode : public CRMultiQueueNode<> {
-    using Base = CRMultiQueueNode<>;
+struct TestNode : public CRNode {
+    using Base = CRNode;
     using Base::Base;
 
     void Process() {
@@ -36,7 +36,7 @@ struct TestNode : public CRMultiQueueNode<> {
 };
 
 TEST(MessageTest, Basics) {
-    CRMultiQueueNode publisher(0);
+    CRNode publisher(0);
 
     // name
     CRMessageBasePtr message = std::make_shared<TestMessage<1>>(1);
@@ -47,7 +47,7 @@ TEST(MessageTest, Basics) {
 }
 
 TEST(MessageTest, Subscribe) {
-    CRMultiQueueNode publisher(0);
+    CRNode publisher(0);
 
     channel_subid_t channel_subid = 1;
 
@@ -145,7 +145,7 @@ TEST(MessageTest, Subscribe) {
 }
 
 TEST(MessageTest, DeliveredTime) {
-    CRMultiQueueNode publisher(0);
+    CRNode publisher(0);
 
     channel_subid_t               channel_subid     = 1;
     channel_subid_t               channel_subid_2   = 2;

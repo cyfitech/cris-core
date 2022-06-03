@@ -7,7 +7,7 @@ std::vector<CRMessageQueue*> CRNodeRunnerBase::GetNodeQueues() {
     return GetNode()->GetNodeQueues();
 }
 
-CRMultiThreadNodeRunner::CRMultiThreadNodeRunner(CRNodeBase* node, std::size_t thread_num)
+CRMultiThreadNodeRunner::CRMultiThreadNodeRunner(CRNode* node, std::size_t thread_num)
     : CRNodeRunnerBase()
     , node_(node)
     , thread_num_(thread_num) {
@@ -19,7 +19,7 @@ CRMultiThreadNodeRunner::~CRMultiThreadNodeRunner() {
     Join();
 }
 
-CRNodeBase* CRMultiThreadNodeRunner::GetNode() const {
+CRNode* CRMultiThreadNodeRunner::GetNode() const {
     return node_;
 }
 

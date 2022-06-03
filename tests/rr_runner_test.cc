@@ -1,5 +1,5 @@
 #include "cris/core/message/base.h"
-#include "cris/core/node/multi_queue_node.h"
+#include "cris/core/node.h"
 #include "cris/core/node_runner/runner.h"
 
 #include "gtest/gtest.h"
@@ -15,9 +15,9 @@ static constexpr std::size_t kMessageTypeNum = 7;
 static constexpr std::size_t kMessageNum     = 100;
 static constexpr std::size_t kMainThreadNum  = 4;
 
-class CRMultiQueueNodeForTest : public CRMultiQueueNode<> {
+class CRNodeForTest : public CRNode {
    public:
-    CRMultiQueueNodeForTest() : CRMultiQueueNode<>(kMessageNum), main_loopis_run_(kMainThreadNum, 0) {}
+    CRNodeForTest() : CRNode(kMessageNum), main_loopis_run_(kMainThreadNum, 0) {}
 
     void MainLoop(const std::size_t thread_idx, const std::size_t /* thread_num */) {
         main_loopis_run_[thread_idx] = true;
@@ -48,15 +48,15 @@ class RRRunnerTest : public testing::Test {
         message->Process();
     }
 
-    void TestImpl(CRNodeBase* node, CRNodeRunnerBase* node_runner);
+    void TestImpl(CRNode* node, CRNodeRunnerBase* node_runner);
 
     unsigned count_[kMessageTypeNum][kMessageNum];
 };
 
 TEST_F(RRRunnerTest, SingleThread) {
-    static constexpr auto   kQueueProcessorThreadNum = 1;
-    CRMultiQueueNodeForTest node;
-    CRNodeRoundRobinRunner  node_runner(&node, kQueueProcessorThreadNum, kMainThreadNum);
+    static constexpr auto  kQueueProcessorThreadNum = 1;
+    CRNodeForTest          node;
+    CRNodeRoundRobinRunner node_runner(&node, kQueueProcessorThreadNum, kMainThreadNum);
     TestImpl(&node, &node_runner);
 
     for (std::size_t i = 0; i < kMainThreadNum; ++i) {
@@ -65,9 +65,9 @@ TEST_F(RRRunnerTest, SingleThread) {
 }
 
 TEST_F(RRRunnerTest, MultiThread) {
-    static constexpr auto   kQueueProcessorThreadNum = 3;
-    CRMultiQueueNodeForTest node;
-    CRNodeRoundRobinRunner  node_runner(&node, kQueueProcessorThreadNum, kMainThreadNum);
+    static constexpr auto  kQueueProcessorThreadNum = 3;
+    CRNodeForTest          node;
+    CRNodeRoundRobinRunner node_runner(&node, kQueueProcessorThreadNum, kMainThreadNum);
     TestImpl(&node, &node_runner);
 
     for (std::size_t i = 0; i < kMainThreadNum; ++i) {
@@ -75,9 +75,9 @@ TEST_F(RRRunnerTest, MultiThread) {
     }
 }
 
-void RRRunnerTest::TestImpl(CRNodeBase* node, CRNodeRunnerBase* node_runner) {
+void RRRunnerTest::TestImpl(CRNode* node, CRNodeRunnerBase* node_runner) {
     constexpr CRMessageBase::channel_subid_t kChannelSubIDForTest = 1;
-    CRMultiQueueNode                         publisher(0);
+    CRNode                                   publisher(0);
 
     for (std::size_t i = 0; i < kMessageTypeNum; ++i) {
         for (std::size_t j = 0; j < kMessageNum; ++j) {
