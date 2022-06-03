@@ -3,6 +3,7 @@
 #include "gtest/gtest.h"
 
 #include <condition_variable>
+#include <memory>
 #include <mutex>
 #include <thread>
 
@@ -28,8 +29,8 @@ TEST(NodeTest, Basic) {
 
     {
         CRNode subscriber;
-        auto   runner = std::make_shared<JobRunner>(JobRunner::Config{});
-        subscriber.SetRunner(runner);
+        auto   runner = std::make_unique<JobRunner>(JobRunner::Config{});
+        subscriber.SetRunner(runner.get());
 
         std::mutex cv_mutex;
         auto       cv       = std::make_shared<std::condition_variable>();
@@ -79,8 +80,8 @@ TEST(NodeTest, MultipleChannels) {
 
     CRNode publisher;
     CRNode subscriber;
-    auto   runner = std::make_shared<JobRunner>(JobRunner::Config{});
-    subscriber.SetRunner(runner);
+    auto   runner = std::make_unique<JobRunner>(JobRunner::Config{});
+    subscriber.SetRunner(runner.get());
 
     struct Received {
         std::array<std::array<std::atomic<int>, kNumOfSubChannel>, kNumOfMsgTypes> data_{};
@@ -199,23 +200,23 @@ TEST(NodeTest, MultipleSubscriber) {
         std::atomic<int> received_{0};
     };
 
-    std::vector<std::shared_ptr<Subscriber>> subscribers;
+    std::vector<std::unique_ptr<Subscriber>> subscribers;
 
-    auto runner = std::make_shared<JobRunner>(JobRunner::Config{});
+    auto runner = std::make_unique<JobRunner>(JobRunner::Config{});
 
     std::mutex cv_mutex;
     auto       cv = std::make_shared<std::condition_variable>();
 
     for (std::size_t i = 0; i < kNumOfSubscribers; ++i) {
-        auto subscriber = std::make_shared<Subscriber>();
-        subscriber->SetRunner(runner);
+        auto subscriber = std::make_unique<Subscriber>();
+        subscriber->SetRunner(runner.get());
         subscriber->Subscribe<TestMessageType>(
             channel_subid,
-            [subscriber, cv](const std::shared_ptr<TestMessageType>& message) {
+            [subscriber = subscriber.get(), cv](const std::shared_ptr<TestMessageType>& message) {
                 subscriber->received_.store(message->value_);
                 cv->notify_all();
             });
-        subscribers.push_back(subscriber);
+        subscribers.push_back(std::move(subscriber));
     }
 
     {
@@ -228,7 +229,7 @@ TEST(NodeTest, MultipleSubscriber) {
         std::unique_lock lock(cv_mutex);
 
         for (auto& subscriber : subscribers) {
-            cv->wait(lock, [subscriber]() { return subscriber->received_.load() != 0; });
+            cv->wait(lock, [subscriber = subscriber.get()]() { return subscriber->received_.load() != 0; });
             EXPECT_EQ(subscriber->received_.load(), message_value);
         }
     }
@@ -243,7 +244,7 @@ TEST(NodeTest, MultipleSubscriber) {
         std::unique_lock lock(cv_mutex);
 
         for (auto& subscriber : subscribers) {
-            cv->wait(lock, [subscriber]() { return subscriber->received_.load() != 0; });
+            cv->wait(lock, [subscriber = subscriber.get()]() { return subscriber->received_.load() != 0; });
             EXPECT_EQ(subscriber->received_.load(), message_value);
         }
     }

@@ -37,7 +37,7 @@ class CRNode {
 
     std::string GetName() const { return name_; }
 
-    void SetRunner(std::shared_ptr<JobRunner> runner) { runner_ = std::move(runner); }
+    void SetRunner(JobRunner* runner) { runner_ = runner; }
 
     bool AddJobToRunner(job_t&& job);
 
@@ -63,7 +63,7 @@ class CRNode {
     std::string                name_;
     std::vector<channel_id_t>  subscribed_;
     callback_map_t             callbacks_;
-    std::shared_ptr<JobRunner> runner_{nullptr};
+    JobRunner*                 runner_{nullptr};
 };
 
 template<class node_t>
