@@ -27,15 +27,6 @@ cris_cc_test (
     ],
 )
 
-# cris_cc_test (
-#     name = "rr_runner_test",
-#     srcs = ["rr_runner_test.cc"],
-#     deps = [
-#         "//:corelib",
-#         "@gtest//:gtest_main",
-#     ],
-# )
-
 cris_cc_test (
     name = "timer_test",
     srcs = ["timer_test.cc"],

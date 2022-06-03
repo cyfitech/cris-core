@@ -2,8 +2,6 @@
 
 #include "cris/core/logging.h"
 
-#include <mutex>
-
 namespace cris::core {
 
 CRNode::~CRNode() {
