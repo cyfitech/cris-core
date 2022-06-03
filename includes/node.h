@@ -60,10 +60,10 @@ class CRNode {
 
     void SubscribeImpl(const channel_id_t channel, std::function<void(const CRMessageBasePtr&)>&& callback);
 
-    std::string                name_;
-    std::vector<channel_id_t>  subscribed_;
-    callback_map_t             callbacks_;
-    JobRunner*                 runner_{nullptr};
+    std::string               name_;
+    std::vector<channel_id_t> subscribed_;
+    callback_map_t            callbacks_;
+    JobRunner*                runner_{nullptr};
 };
 
 template<class node_t>
