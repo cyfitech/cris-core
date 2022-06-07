@@ -2,10 +2,12 @@
 
 #include "cris/core/logging.h"
 
+#include <utility>
+
 namespace cris::core {
 
 CRNode::~CRNode() {
-    for (auto&& subscribed : subscribed_) {
+    for (const auto& subscribed : subscribed_) {
         CRMessageBase::Unsubscribe(subscribed, this);
     }
 }
@@ -37,7 +39,7 @@ std::optional<CRNode::msg_callback_t> CRNode::GetCallback(const CRMessageBasePtr
 
     const auto channel = message->GetChannelId();
 
-    auto callback_search_result = callbacks_.find(channel);
+    const auto callback_search_result = callbacks_.find(channel);
     if (callback_search_result == callbacks_.end()) {
         LOG(ERROR) << __func__ << ": message channel (" << channel.first.name() << ", " << channel.second << ") "
                    << "is not subscribed by node " << GetName() << "(" << this << ").";

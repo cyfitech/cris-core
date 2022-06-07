@@ -43,9 +43,8 @@ class CRNode {
 
     bool AddMessageToRunner(const CRMessageBasePtr& message);
 
-    // Not thread-safe, do not call concurrently nor call it
-    // when messages are coming, nor call it after runner
-    // is running
+    // Not thread-safe, do not call concurrently nor call it when messages are coming,
+    // nor call it after runner is running.
     template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
     void Subscribe(const channel_subid_t channel_subid, callback_t&& callback);
 

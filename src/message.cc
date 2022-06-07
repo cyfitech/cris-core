@@ -49,7 +49,7 @@ void CRMessageBase::Dispatch(const CRMessageBasePtr& message) {
         return;
     }
     for (auto& node : subscription_info->sub_list_) {
-        [[maybe_unused]] bool success = node->AddMessageToRunner(std::move(message));
+        [[maybe_unused]] const bool success = node->AddMessageToRunner(std::move(message));
         DCHECK(success);
     }
     subscription_info->latest_delivered_time_.store(GetSystemTimestampNsec());
