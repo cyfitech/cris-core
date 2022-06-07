@@ -14,10 +14,16 @@ pushd "$(dirname "$0")/.."
 if which ccache >/dev/null 2>&1 && ([ -d 'run' ] && [ -w 'run' ] || [ -w '.' ]); then
     rm -rf 'run/toolchain'
     mkdir -p 'run/toolchain'
-    ln -sf "$(which ccache)" "run/toolchain/$CC"
-    ln -sf "$(which ccache)" "run/toolchain/$CXX"
-    export CC="$( realpath -e "run/toolchain")/$CC"
-    export CXX="$(realpath -e "run/toolchain")/$CXX"
+    NEW_CC_DIR="$( realpath -e "run/toolchain")"
+
+    for compiler in $CC $CXX; do
+        echo """#!/bin/bash
+$(which ccache) $(which $compiler) \$@
+        """ > "$NEW_CC_DIR"/$compiler
+    done
+
+    chmod +x "$NEW_CC_DIR"/*
+    export PATH="$NEW_CC_DIR":$PATH
 fi
 
 popd
