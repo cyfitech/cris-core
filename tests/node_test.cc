@@ -7,6 +7,7 @@
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <utility>
 
 namespace cris::core {
 
