@@ -1,7 +1,7 @@
 #include "cris/core/job_runner.h"
 
 #include "cris/core/logging.h"
-#include "cris/core/timer/timer.h"
+#include "cris/core/timer.h"
 
 #include <boost/lockfree/queue.hpp>
 

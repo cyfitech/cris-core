@@ -1,5 +1,6 @@
+#include "cris/core/message.h"
+
 #include "cris/core/logging.h"
-#include "cris/core/message/base.h"
 #include "cris/core/node.h"
 
 #include <boost/functional/hash.hpp>
@@ -47,15 +48,9 @@ void CRMessageBase::Dispatch(const CRMessageBasePtr& message) {
     if (!subscription_info) {
         return;
     }
-    for (auto&& node : subscription_info->sub_list_) {
-        auto* queue = node->MessageQueueMapper(message);
-        if (!queue) [[unlikely]] {
-            LOG(ERROR) << __func__ << ": node: " << node << ", no queue for message " << message->GetMessageTypeName()
-                       << ", skipping";
-            continue;
-        }
-        queue->AddMessage(CRMessageBasePtr(message));
-        node->Kick();
+    for (auto& node : subscription_info->sub_list_) {
+        [[maybe_unused]] const bool success = node->AddMessageToRunner(std::move(message));
+        DCHECK(success);
     }
     subscription_info->latest_delivered_time_.store(GetSystemTimestampNsec());
 }

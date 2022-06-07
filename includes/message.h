@@ -1,7 +1,7 @@
 #pragma once
 
 #include "cris/core/defs.h"
-#include "cris/core/timer/timer.h"
+#include "cris/core/timer.h"
 
 #include <atomic>
 #include <cstdint>
@@ -45,8 +45,6 @@ class CRMessageBase {
 
     channel_subid_t GetChannelSubId() const { return sub_id_; }
 
-    void SetChannelSubId(const channel_subid_t sub_id) { sub_id_ = sub_id; }
-
     channel_id_t GetChannelId() const;
 
     template<CRMessageType message_t>
@@ -54,11 +52,13 @@ class CRMessageBase {
 
     static cr_timestamp_nsec_t GetLatestDeliveredTime(const channel_id_t channel);
 
-    static void Dispatch(const std::shared_ptr<CRMessageBase>& message);
-
     constexpr static channel_subid_t kDefaultChannelSubID = 0;
 
    private:
+    void SetChannelSubId(const channel_subid_t sub_id) { sub_id_ = sub_id; }
+
+    static void Dispatch(const std::shared_ptr<CRMessageBase>& message);
+
     // Not thread-safe, do not call concurrently nor call it
     // when messages are coming
     static bool Subscribe(const channel_id_t channel, CRNode* node);

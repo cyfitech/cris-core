@@ -1,7 +1,7 @@
 #ifdef ENABLE_PROFILING
 
 #include "cris/core/logging.h"
-#include "cris/core/timer/timer.h"
+#include "cris/core/timer.h"
 
 #include <array>
 #include <atomic>
