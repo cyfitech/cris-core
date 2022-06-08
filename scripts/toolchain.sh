@@ -17,6 +17,8 @@ if which ccache >/dev/null 2>&1 && ([ -d 'run' ] && [ -w 'run' ] || [ -w '.' ]);
     export CR_CCACHE_CC_DIR="$( realpath -e "run/toolchain")"
 
     for compiler in $CC $CXX; do
+        # Bazel may dereference the ccache symlink, so we use wrapper scripts instead.
+        # See https://github.com/bazelbuild/rules_cc/issues/130
         cat << EOF > "$CR_CCACHE_CC_DIR/$compiler"
 #!/bin/bash
 $(which ccache) $(which $compiler) \$@
