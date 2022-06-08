@@ -31,6 +31,7 @@ build:rel --copt="-O3"
 
 build:tsan --copt="-fsanitize=thread"
 build:tsan --linkopt="-fsanitize=thread"
+build:tsan --linkopt="-fsanitize-link-c++-runtime"
 
 build:ubsan --copt="-fsanitize=undefined"
 build:ubsan --linkopt="-fsanitize=undefined"
