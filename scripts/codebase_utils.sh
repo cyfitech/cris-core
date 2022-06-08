@@ -13,5 +13,6 @@ export CRIS_CODE_DIRS="$(sed 's/^[[:space:]]*//' <<< "
 " | grep '[^[:space:]]')"
 
 function bazel_common_all () {
-    bazel "$@" '//...'
+    echo "$CR_CCACHE_CC_DIR:$PATH"
+    PATH="$CR_CCACHE_CC_DIR:$PATH" bazel "$@" '//...'
 }
