@@ -1,13 +1,9 @@
-#include "cris/core/logging.h"
-
-extern "C" {
-
-#define UNW_LOCAL_ONLY
-#include <libunwind.h>
-}
-
 #include "cris/core/cr_signal.h"
+
+#include "cris/core/logging.h"
 #include "cris/core/timer.h"
+
+#include <boost/stacktrace.hpp>
 
 #include <atomic>
 #include <cinttypes>
@@ -67,57 +63,12 @@ static void DumpSignalInfo(int signal_number, siginfo_t* siginfo) {
     LOG(ERROR) << buffer;
 }
 
-static void DumpStackFrame(int level, unw_cursor_t* stack_cursor) {
-    constexpr std::size_t kBufferLen    = 1024;
-    constexpr std::size_t kMaxCmdLen    = 256;
-    constexpr std::size_t kMaxSymbolLen = 256;
-    constexpr std::size_t kFileInfoLen  = 256;
-    char                  buffer[kBufferLen];
-    char                  symbol[kMaxSymbolLen];
-    char                  fileinfo[kFileInfoLen];
-    unw_word_t            function_offset;
-    unw_word_t            pc;
-    unw_word_t            sp;
-
-    unw_get_proc_name(stack_cursor, symbol, kMaxSymbolLen, &function_offset);
-    unw_get_reg(stack_cursor, UNW_REG_IP, &pc);
-    unw_get_reg(stack_cursor, UNW_REG_SP, &sp);
-
-    --pc;
-
-    char cmd[kMaxCmdLen];
-
-    snprintf(cmd, kMaxCmdLen, "addr2line %p -e /proc/%d/exe", reinterpret_cast<void*>(pc), getpid());
-
-    FILE* cmd_fd = popen(cmd, "r");
-    if (cmd_fd) {
-        auto res = fgets(fileinfo, kFileInfoLen, cmd_fd);
-        if (!res || !std::strncmp(res, "??:", 3)) {
-            std::strcpy(fileinfo, "<unknown>");
-        }
-        pclose(cmd_fd);
-    }
-
-    snprintf(buffer, kBufferLen, "  %d: (%s+%lu) %s", level, symbol, function_offset, fileinfo);
-    LOG(ERROR) << buffer;
-}
-
 static void DumpStacktrace() {
     LOG(ERROR);
     LOG(ERROR) << "******************************************************";
     LOG(ERROR) << "*******************   STACKTRACE   *******************";
     LOG(ERROR) << "******************************************************";
-    LOG(ERROR);
-    unw_cursor_t  stack_cursor;
-    unw_context_t context;
-
-    unw_getcontext(&context);
-    unw_init_local(&stack_cursor, &context);
-
-    int level = 0;
-    while (unw_step(&stack_cursor)) {
-        DumpStackFrame(++level, &stack_cursor);
-    }
+    LOG(ERROR) << "\n" << boost::stacktrace::stacktrace();
 }
 
 static std::atomic<pthread_t*> current_thread_in_handler{nullptr};

@@ -9,8 +9,11 @@ cris_cc_library (
     include_prefix = "cris/core",
     strip_include_prefix = "includes",
     hdrs = glob(["includes/**/*.h"]),
+    copts = [
+        "-DBOOST_STACKTRACE_USE_ADDR2LINE",
+    ],
     linkopts = [
-        "-lunwind",
+        "-ldl",
     ],
     deps = [
         "@com_github_google_glog//:glog",
