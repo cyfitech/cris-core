@@ -16,14 +16,14 @@ if which ccache >/dev/null 2>&1 && ([ -d 'run' ] && [ -w 'run' ] || [ -w '.' ]);
     mkdir -p 'run/toolchain'
     export CR_CCACHE_CC_DIR="$(realpath -e "run/toolchain")"
 
-    for compiler in $CC $CXX; do
+    for compiler in "$CC"; do
         # Bazel may dereference the ccache symlink, so we use wrapper scripts instead.
         # See https://github.com/bazelbuild/rules_cc/issues/130
-        cat << ____________EOF | sed 's/^            //' > "$CR_CCACHE_CC_DIR/$compiler"
+        cat << ____________EOF | sed 's/^            //' > "$CR_CCACHE_CC_DIR/$(basename "$compiler")"
             #!/bin/bash
             '$(which ccache)' '$(which $compiler)' "\$@"
 ____________EOF
-        chmod +x "$CR_CCACHE_CC_DIR/$compiler"
+        chmod +x "$CR_CCACHE_CC_DIR/$(basename "$compiler")"
     done
 fi
 
