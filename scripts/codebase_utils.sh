@@ -13,5 +13,6 @@ export CRIS_CODE_DIRS="$(sed 's/^[[:space:]]*//' <<< "
 " | grep '[^[:space:]]')"
 
 function bazel_common_all () {
-    bazel "$@" '//...'
+    # Need to set PATH instead of CC because Bazel does not like '/'s in the CC value.
+    PATH="$(dirname "$CC"):$PATH" CC="$(basename "$CC")" bazel "$@" '//...'
 }
