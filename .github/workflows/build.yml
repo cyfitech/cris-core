@@ -18,7 +18,7 @@ jobs:
     - name: Config
       run: export HOME=/root && git config --global --add safe.directory "$(pwd)"
     - name: Run linter
-      run: export HOME=/root && CLANG_FORMAT_BIN=clang-format-12 scripts/format_all.sh
+      run: export HOME=/root && CLANG_FORMAT=clang-format-12 scripts/format_all.sh
     - name: Check diff
       run: export HOME=/root && git --no-pager diff --exit-code
 

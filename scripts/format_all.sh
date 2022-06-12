@@ -4,9 +4,9 @@ set -e
 
 cd "$(dirname "$0")/.."
 
-CLANG_FORMAT_BIN="${CLANG_FORMAT_BIN:-clang-format}"
+CLANG_FORMAT="${CLANG_FORMAT:-clang-format}"
 
-for cmd in "$CLANG_FORMAT_BIN" find grep python3 sed xargs; do
+for cmd in "$CLANG_FORMAT" find grep python3 sed xargs; do
     which "$cmd" >/dev/null
 done
 
@@ -43,7 +43,7 @@ python3 -c "import black" &> /dev/null || python3 -m pip install -U black
 
 for dir in $CRIS_CODE_DIRS; do
     # clang-format files
-    printf '%s\n' '*.'{c{,c,pp},h{,pp},proto} | xargs -rI{} find "$dir" -name "{}" | sort -u | xargs -rI{} "$CLANG_FORMAT_BIN" -i {}
+    printf '%s\n' '*.'{c{,c,pp},h{,pp},proto} | xargs -rI{} find "$dir" -name "{}" | sort -u | xargs -rI{} "$CLANG_FORMAT" -i {}
 
     # python files
     python3 -m black "$dir" 2>/dev/null
