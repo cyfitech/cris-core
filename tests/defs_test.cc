@@ -15,7 +15,7 @@ TEST(DefsTest, TypeNameTest) {
     EXPECT_EQ(GetTypeName<TestType2<int>>(), "cris::core::TestType2<int>");
 
     using TestType3 = TestType1;
-    EXPECT_EQ(GetTypeName<TestType3>(), "cris::core::TestType1");
+    EXPECT_EQ(GetTypeName<TestType3>(), GetTypeName<TestType1>());
 }
 
 }  // namespace cris::core
