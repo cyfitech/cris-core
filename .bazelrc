@@ -10,9 +10,6 @@ build:asan --linkopt="-fsanitize=address"
 build:asan --linkopt="-fsanitize=leak"
 build:asan --linkopt="-fsanitize-link-c++-runtime"
 
-build:lld --linkopt="-fuse-ld=lld"
-build:lld --linkopt="--ld-path=ld.lld-12"
-
 build:lto --copt="-flto=thin"
 build:lto --linkopt="-flto=thin"
 

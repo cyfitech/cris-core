@@ -84,8 +84,8 @@ class TimerSection {
     // cannot be constructed externally.
     TimerSection(const std::string& name, std::size_t collector_index, CtorPermission);
 
-    TimerSection(const TimerSection&) = delete;
-    TimerSection(TimerSection&&)      = default;
+    TimerSection(const TimerSection&)            = delete;
+    TimerSection(TimerSection&&)                 = default;
     TimerSection& operator=(const TimerSection&) = delete;
 
     [[nodiscard]] TimerSession StartTimerSession();

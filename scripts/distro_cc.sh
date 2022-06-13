@@ -2,5 +2,5 @@
 
 set -e
 
-[ "$CC"  ] || export CC='clang-12'
-[ "$CXX" ] || export CXX='clang++-12'
+[ "$CC"  ] || export CC='clang-14'
+[ "$CXX" ] || export CXX='clang++-14'
