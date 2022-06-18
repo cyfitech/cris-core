@@ -15,7 +15,7 @@ std::string TimerReport::GetSectionName() const {
     return "";
 }
 
-std::uint64_t TimerReport::GetTotalHits() const {
+unsigned long long TimerReport::GetTotalHits() const {
     return 0;
 }
 
@@ -61,14 +61,15 @@ std::unique_ptr<TimerReport> TimerSection::GetReport(bool /* recursive */) {
     return std::make_unique<TimerReport>();
 }
 
+std::unique_ptr<TimerReport> TimerSection::GetAllReports(bool /* clear */) {
+    return std::make_unique<TimerReport>();
+}
+
 TimerSection* TimerSection::SubSection(const std::string& /* name */) {
     return this;
 }
 
 void TimerSection::ReportDurationNsec(cr_timestamp_nsec_t) {
-}
-
-void TimerSection::FlushCollectedStats() {
 }
 
 }  // namespace cris::core
