@@ -61,7 +61,9 @@ TEST(TimerTest, Basic) {
         std::chrono::duration_cast<std::chrono::nanoseconds>(kTestSessionDuration).count());
 #endif  // ENABLE_PROFILING
 
-    TimerSection::GetMainSection()->GetReport()->PrintToLog();
+    TimerSection::GetAllReports(/*clear = */ true)->PrintToLog();
+
+    EXPECT_EQ(section1->GetReport(false)->GetTotalHits(), 0);
 }
 
 TEST(TimerTest, PercentileTest) {

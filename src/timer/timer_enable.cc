@@ -79,7 +79,7 @@ class TimerStatCollector {
 
     std::unique_ptr<TimerReport> GetReport(TimerSection* section, bool recursive) const;
 
-    static std::vector<TimerStatCollector>& GetCollectors();
+    static std::array<TimerStatCollector, kCollectorNum>& GetCollectors();
 
     static TimerStatCollector& GetCollector();
 
@@ -108,14 +108,15 @@ TimerStatCollector::TimerStatCollector(const TimerStatCollector& another)
     }
 }
 
-std::vector<TimerStatCollector>& TimerStatCollector::GetCollectors() {
-    static std::vector<TimerStatCollector> collectors(kCollectorNum);
+std::array<TimerStatCollector, TimerStatCollector::kCollectorNum>& TimerStatCollector::GetCollectors() {
+    static std::array<TimerStatCollector, kCollectorNum> collectors;
     return collectors;
 }
 
 TimerStatCollector& TimerStatCollector::GetCollector() {
     static const thread_local auto collector_idx =
-        std::hash<std::thread::id>()(std::this_thread::get_id()) % kCollectorNum;
+        std::hash<std::thread::id>()(std::this_thread::get_id()) % GetCollectors().size();
+
     return GetCollectors()[collector_idx];
 }
 
