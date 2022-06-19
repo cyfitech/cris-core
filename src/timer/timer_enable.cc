@@ -86,26 +86,24 @@ class TimerStatCollector {
     static TimerStatCollector& GetTotalStats();
 
    private:
-    mutable std::mutex                           mutex_;
-    cr_timestamp_nsec_t                          last_clear_time_;
-    cr_timestamp_nsec_t                          last_merge_time_;
-    std::vector<std::unique_ptr<CollectorEntry>> collector_entries_;
+    using collector_entries_t = std::array<CollectorEntry, kCollectorSize>;
+
+    mutable std::mutex                   mutex_;
+    cr_timestamp_nsec_t                  last_clear_time_;
+    cr_timestamp_nsec_t                  last_merge_time_;
+    std::unique_ptr<collector_entries_t> collector_entries_;
 };
 
 TimerStatCollector::TimerStatCollector()
     : last_clear_time_(GetSystemTimestampNsec())
-    , last_merge_time_(last_clear_time_) {
-    for (std::size_t i = 0; i < kCollectorSize; ++i) {
-        collector_entries_.push_back(std::make_unique<CollectorEntry>());
-    }
+    , last_merge_time_(last_clear_time_)
+    , collector_entries_(std::make_unique<collector_entries_t>()) {
 }
 
 TimerStatCollector::TimerStatCollector(const TimerStatCollector& another)
     : last_clear_time_(another.last_clear_time_)
-    , last_merge_time_(another.last_merge_time_) {
-    for (auto& entry : another.collector_entries_) {
-        collector_entries_.push_back(std::make_unique<CollectorEntry>(*entry));
-    }
+    , last_merge_time_(another.last_merge_time_)
+    , collector_entries_(std::make_unique<collector_entries_t>(*another.collector_entries_)) {
 }
 
 std::array<TimerStatCollector, TimerStatCollector::kCollectorNum>& TimerStatCollector::GetCollectors() {
@@ -163,7 +161,7 @@ void TimerStatCollector::Report(std::size_t index, cr_duration_nsec_t duration) 
         return;
     }
 
-    auto& bucket = collector_entries_[index]->duration_buckets_[bucket_idx];
+    auto& bucket = collector_entries_->at(index).duration_buckets_[bucket_idx];
     ++bucket.hits_;
     bucket.total_duration_ns_ += duration;
 }
@@ -171,14 +169,14 @@ void TimerStatCollector::Report(std::size_t index, cr_duration_nsec_t duration) 
 void TimerStatCollector::Merge(const TimerStatCollector& another) {
     std::scoped_lock lock(mutex_, another.mutex_);
     for (std::size_t i = 0; i < kCollectorSize; ++i) {
-        collector_entries_[i]->Merge(*another.collector_entries_[i]);
+        collector_entries_->at(i).Merge(another.collector_entries_->at(i));
     }
     last_merge_time_ = GetSystemTimestampNsec();
 }
 
 void TimerStatCollector::UnsafeClear() {
-    for (auto& entry : collector_entries_) {
-        for (auto& bucket : entry->duration_buckets_) {
+    for (auto& entry : *collector_entries_) {
+        for (auto& bucket : entry.duration_buckets_) {
             bucket.Clear();
         }
     }
@@ -199,7 +197,7 @@ TimerStatCollector TimerStatCollector::Collect(bool clear) {
 
 std::unique_ptr<TimerReport> TimerStatCollector::GetReport(TimerSection* section, bool recursive) const {
     auto        report = std::make_unique<TimerReport>();
-    const auto& entry  = *collector_entries_[section->collector_index_];
+    const auto& entry  = collector_entries_->at(section->collector_index_);
 
     report->section_name_    = section->name_;
     report->timing_duration_ = last_merge_time_ - last_clear_time_;
