@@ -56,7 +56,6 @@ static_assert(kBucketUpperNsec[kTimerEntryBucketNum - 1] > 10000 * std::nano::de
 
 class TimerStatCollector {
    public:
-    static constexpr std::size_t kCollectorNum  = 64;
     static constexpr std::size_t kCollectorSize = 8192;
 
     TimerStatCollector();
@@ -79,8 +78,6 @@ class TimerStatCollector {
 
     std::unique_ptr<TimerReport> GetReport(TimerSection* section, bool recursive) const;
 
-    static std::array<TimerStatCollector, kCollectorNum>& GetCollectors();
-
     static TimerStatCollector& GetCollector();
 
     static TimerStatCollector& GetTotalStats();
@@ -88,6 +85,21 @@ class TimerStatCollector {
     static void FlushCollectedStats();
 
    private:
+    struct CollectorList {
+        using collectors_t = std::vector<std::unique_ptr<TimerStatCollector>>;
+
+        template<class Func>
+        auto LockAndThen(Func&& f) -> decltype(f(std::declval<collectors_t&>())) {
+            std::lock_guard lock(mtx_);
+            return f(collectors_);
+        }
+
+        std::mutex                                       mtx_;
+        std::vector<std::unique_ptr<TimerStatCollector>> collectors_;
+    };
+
+    static CollectorList& GetCollectorList();
+
     using collector_entries_t = std::array<CollectorEntry, kCollectorSize>;
 
     mutable std::mutex                   mutex_;
@@ -108,16 +120,17 @@ TimerStatCollector::TimerStatCollector(const TimerStatCollector& another)
     , collector_entries_(std::make_unique<collector_entries_t>(*another.collector_entries_)) {
 }
 
-std::array<TimerStatCollector, TimerStatCollector::kCollectorNum>& TimerStatCollector::GetCollectors() {
-    static std::array<TimerStatCollector, kCollectorNum> collectors;
-    return collectors;
+TimerStatCollector::CollectorList& TimerStatCollector::GetCollectorList() {
+    static TimerStatCollector::CollectorList collector_list;
+    return collector_list;
 }
 
 TimerStatCollector& TimerStatCollector::GetCollector() {
-    static const thread_local auto collector_idx =
-        std::hash<std::thread::id>()(std::this_thread::get_id()) % GetCollectors().size();
-
-    return GetCollectors()[collector_idx];
+    static thread_local auto* const collector = []() {
+        return GetCollectorList().LockAndThen(
+            [](auto& collectors) { return collectors.emplace_back(new TimerStatCollector()).get(); });
+    }();
+    return *collector;
 }
 
 TimerStatCollector& TimerStatCollector::GetTotalStats() {
@@ -126,9 +139,11 @@ TimerStatCollector& TimerStatCollector::GetTotalStats() {
 }
 
 void TimerStatCollector::FlushCollectedStats() {
-    for (auto& collector : GetCollectors()) {
-        GetTotalStats().Merge(collector.Collect(/*clear = */ true));
-    }
+    GetCollectorList().LockAndThen([](auto& collectors) {
+        for (auto& collector : collectors) {
+            GetTotalStats().Merge(collector->Collect(/*clear = */ true));
+        }
+    });
 }
 
 void TimerStatCollector::CollectorEntry::Merge(const TimerStatCollector::CollectorEntry& another) {
@@ -159,8 +174,7 @@ void TimerStatCollector::Report(std::size_t index, cr_duration_nsec_t duration) 
         }
     }
 
-    // If another thread is collecting data, or it happens to be a collision in reporting,
-    // we simply skip this data point.
+    // If another thread is collecting data, then we simply skip this data point.
     std::unique_lock lock(mutex_, std::defer_lock);
     if (!lock.try_lock()) {
         return;
