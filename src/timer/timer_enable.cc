@@ -333,8 +333,8 @@ TimerSession::~TimerSession() {
 TimerSection* TimerSection::GetMainSection() {
     static TimerSection main_section("main", collector_index_count.fetch_add(1), {});
 
-    // Initializing stat total to record the start time of profiling.
-    [[maybe_unused]] static auto& total = TimerStatCollector::GetTotalStats();
+    // Initializing stat total and all collectors by calling an empty flush.
+    TimerStatCollector::FlushCollectedStats();
 
     return &main_section;
 }
