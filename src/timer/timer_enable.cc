@@ -85,6 +85,8 @@ class TimerStatCollector {
 
     static TimerStatCollector& GetTotalStats();
 
+    static void FlushCollectedStats();
+
    private:
     using collector_entries_t = std::array<CollectorEntry, kCollectorSize>;
 
@@ -120,10 +122,13 @@ TimerStatCollector& TimerStatCollector::GetCollector() {
 
 TimerStatCollector& TimerStatCollector::GetTotalStats() {
     static TimerStatCollector total;
-    for (auto& collector : GetCollectors()) {
-        total.Merge(collector.Collect(/*clear = */ true));
-    }
     return total;
+}
+
+void TimerStatCollector::FlushCollectedStats() {
+    for (auto& collector : GetCollectors()) {
+        GetTotalStats().Merge(collector.Collect(/*clear = */ true));
+    }
 }
 
 void TimerStatCollector::CollectorEntry::Merge(const TimerStatCollector::CollectorEntry& another) {
@@ -353,10 +358,12 @@ TimerSession TimerSection::StartTimerSession() {
 }
 
 std::unique_ptr<TimerReport> TimerSection::GetReport(bool recursive) {
+    TimerStatCollector::FlushCollectedStats();
     return TimerStatCollector::GetTotalStats().Collect(/* clear = */ false).GetReport(this, recursive);
 }
 
 std::unique_ptr<TimerReport> TimerSection::GetAllReports(bool clear) {
+    TimerStatCollector::FlushCollectedStats();
     return TimerStatCollector::GetTotalStats().Collect(clear).GetReport(GetMainSection(), /* recursive = */ true);
 }
 
