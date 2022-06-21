@@ -30,6 +30,25 @@ cr_timestamp_nsec_t GetUnixTimestampNsec();
 #define PRIVATE_MAYBE_UNUSED
 #endif
 
+namespace impl {
+
+struct TimerStatEntryBucket {
+    void Merge(const TimerStatEntryBucket& another) {
+        hits_ += another.hits_;
+        total_duration_ns_ += another.total_duration_ns_;
+    }
+
+    void Clear() {
+        hits_              = 0;
+        total_duration_ns_ = 0;
+    }
+
+    unsigned long long hits_{0};
+    cr_duration_nsec_t total_duration_ns_{0};
+};
+
+}  // namespace impl
+
 class TimerReport {
    public:
     TimerReport() = default;
@@ -38,7 +57,7 @@ class TimerReport {
 
     std::string GetSectionName() const;
 
-    std::uint64_t GetTotalHits() const;
+    unsigned long long GetTotalHits() const;
 
     double GetFreq() const;
 
@@ -48,14 +67,9 @@ class TimerReport {
 
     void PrintToLog(unsigned indent_level = 0) const;
 
-    struct TimerReportBucket {
-        std::uint64_t      hits_;
-        cr_duration_nsec_t session_duration_sum_;
-    };
-
     std::string                                         section_name_;
     cr_duration_nsec_t                                  timing_duration_;
-    std::vector<TimerReportBucket>                      report_buckets_;
+    std::vector<impl::TimerStatEntryBucket>             report_buckets_;
     std::map<std::string, std::unique_ptr<TimerReport>> subsections_;
 };
 
@@ -101,10 +115,7 @@ class TimerSection {
 
     static TimerSection* GetMainSection();
 
-    // When profiling, some of the stats may be cached in a separate data structure
-    // to increase performance. This call flush those data so that they appear on the
-    // report.
-    static void FlushCollectedStats();
+    static std::unique_ptr<TimerReport> GetAllReports(bool clear);
 
    private:
     std::string          name_;
@@ -112,6 +123,8 @@ class TimerSection {
     std::map<std::string, std::unique_ptr<TimerSection>> subsections_;
 
     static std::atomic<std::size_t> collector_index_count;
+
+    friend class TimerStatCollector;
 };
 
 #undef PRIVATE_MAYBE_UNUSED

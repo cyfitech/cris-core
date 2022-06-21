@@ -31,13 +31,6 @@ TEST(TimerTest, Basic) {
 
     auto timer1 = section1->StartTimerSession();
 
-    std::atomic<bool> stop_flushing{false};
-    auto              crazy_flushing_thread = std::thread([&stop_flushing]() {
-        while (!stop_flushing.load()) {
-            TimerSection::FlushCollectedStats();
-        }
-    });
-
     for (std::size_t i = 0; i < kTestHits; ++i) {
         auto timer2 = section2->StartTimerSession();
         std::this_thread::sleep_for(kTestSessionDuration);
@@ -46,11 +39,6 @@ TEST(TimerTest, Basic) {
     timer1.EndSession();
 
     section3->ReportDuration(kTestSessionDuration);
-
-    // make sure flush after end-of-session
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    stop_flushing.store(true);
-    crazy_flushing_thread.join();
 
     auto report1 = section1->GetReport(true);
     auto report3 = section3->GetReport(false);
@@ -73,8 +61,9 @@ TEST(TimerTest, Basic) {
         std::chrono::duration_cast<std::chrono::nanoseconds>(kTestSessionDuration).count());
 #endif  // ENABLE_PROFILING
 
-    TimerSection::FlushCollectedStats();
-    TimerSection::GetMainSection()->GetReport()->PrintToLog();
+    TimerSection::GetAllReports(/*clear = */ true)->PrintToLog();
+
+    EXPECT_EQ(section1->GetReport(false)->GetTotalHits(), 0);
 }
 
 TEST(TimerTest, PercentileTest) {
@@ -100,7 +89,6 @@ TEST(TimerTest, PercentileTest) {
         section->ReportDuration(std::chrono::microseconds(10 * (1 << i) - 2));
         section->ReportDuration(std::chrono::microseconds(10 * (1 << i) - 3));
     }
-    TimerSection::FlushCollectedStats();
 
     {
         auto report = section->GetReport();
