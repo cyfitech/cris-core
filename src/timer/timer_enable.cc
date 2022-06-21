@@ -175,6 +175,9 @@ void TimerStatCollector::Report(std::size_t index, cr_duration_nsec_t duration) 
     }
 
     // If another thread is collecting data, then we simply skip this data point.
+    //
+    // Data collection is triggered by TimerSection::GetReport and TimerSection::GetAllReports
+    // and either of them should not happen frequently.
     std::unique_lock lock(mutex_, std::defer_lock);
     if (!lock.try_lock()) {
         return;
