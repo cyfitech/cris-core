@@ -2,6 +2,14 @@
 
 #include <string>
 
+#if !__has_cpp_attribute(likely)
+#define likely
+#endif
+
+#if !__has_cpp_attribute(unlikely)
+#define unlikely
+#endif
+
 namespace cris::core::impl {
 
 std::string GetTypeNameFromPrettyFunction(const std::string& pretty_function);

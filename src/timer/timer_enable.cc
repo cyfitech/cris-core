@@ -1,5 +1,6 @@
 #ifdef ENABLE_PROFILING
 
+#include "cris/core/defs.h"
 #include "cris/core/logging.h"
 #include "cris/core/timer.h"
 
