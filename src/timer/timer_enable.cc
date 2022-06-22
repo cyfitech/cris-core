@@ -312,14 +312,14 @@ void TimerReport::PrintToLog(unsigned indent_level) const {
     using std::chrono::duration_cast;
     using std::chrono::nanoseconds;
     const std::string indent(4 * indent_level, ' ');
-    LOG(WARNING) << indent << "Section '" << GetSectionName() << "':";
+    LOG(INFO) << indent << "Section '" << GetSectionName() << "':";
     if (GetTotalHits() > 0) {
-        LOG(WARNING) << indent << "    hits    : " << GetTotalHits() << " times, freq: " << GetFreq() << " Hz";
-        LOG(WARNING) << indent << "    avg time: " << std::fixed << std::setprecision(3)
-                     << duration_cast<duration<double, std::micro>>(nanoseconds(GetAverageDurationNsec())).count()
-                     << " us";
+        LOG(INFO) << indent << "    hits    : " << GetTotalHits() << " times, freq: " << GetFreq() << " Hz";
+        LOG(INFO) << indent << "    avg time: " << std::fixed << std::setprecision(3)
+                  << duration_cast<duration<double, std::micro>>(nanoseconds(GetAverageDurationNsec())).count()
+                  << " us";
         auto print_percentile = [&](int percent) {
-            LOG(WARNING)
+            LOG(INFO)
                 << indent << "    " << percent << "p time: " << std::fixed << std::setprecision(3)
                 << duration_cast<duration<double, std::micro>>(nanoseconds(GetPercentileDurationNsec(percent))).count()
                 << " us";
@@ -328,11 +328,11 @@ void TimerReport::PrintToLog(unsigned indent_level) const {
         print_percentile(90);
         print_percentile(95);
         print_percentile(99);
-        LOG(WARNING);
+        LOG(INFO);
     }
     if (!subsections_.empty()) {
-        LOG(WARNING) << indent << "Subsections:";
-        LOG(WARNING);
+        LOG(INFO) << indent << "Subsections:";
+        LOG(INFO);
         for (auto&& subsection : subsections_) {
             subsection.second->PrintToLog(indent_level + 1);
         }
