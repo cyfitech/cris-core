@@ -59,7 +59,7 @@ JobRunner::JobRunner(JobRunner::Config config) : config_(std::move(config)) {
               << " initialized with " << config_.thread_num_ << " worker(s). " << config_.always_active_thread_num_
               << " of them always stay active, others go to sleep if stay idle for more than "
               << std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(config_.active_time_).count()
-              << " ms.";
+              << " ms." << std::dec;
     workers_.reserve(config_.thread_num_);
     for (std::size_t idx = 0; idx < config_.thread_num_; ++idx) {
         workers_.push_back(std::make_unique<JobRunnerWorker>(this, idx));

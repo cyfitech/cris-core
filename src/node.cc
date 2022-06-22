@@ -17,7 +17,7 @@ CRNode::~CRNode() {
 void CRNode::SetRunner(JobRunner* runner) {
     LOG(INFO) << __func__ << ": Binding node " << GetName() << "(at 0x" << std::hex
               << reinterpret_cast<std::uintptr_t>(this) << ") to runner at 0x"
-              << reinterpret_cast<std::uintptr_t>(runner);
+              << reinterpret_cast<std::uintptr_t>(runner) << std::dec;
     runner_ = runner;
 }
 
@@ -31,7 +31,7 @@ bool CRNode::AddMessageToRunner(const CRMessageBasePtr& message) {
 bool CRNode::AddJobToRunner(job_t&& job) {
     if (!runner_) {
         LOG(WARNING) << __func__ << ": Node " << GetName() << "(at 0x" << std::hex
-                     << reinterpret_cast<std::uintptr_t>(this) << ") has not bound with a runner yet.";
+                     << reinterpret_cast<std::uintptr_t>(this) << ") has not bound with a runner yet." << std::dec;
         return false;
     }
     return runner_->AddJob(std::move(job));
