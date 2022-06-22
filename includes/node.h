@@ -37,7 +37,7 @@ class CRNode {
 
     std::string GetName() const { return name_; }
 
-    void SetRunner(JobRunner* runner) { runner_ = runner; }
+    void SetRunner(JobRunner* runner);
 
     bool AddJobToRunner(job_t&& job);
 
