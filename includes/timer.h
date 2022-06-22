@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -25,7 +26,7 @@ cr_timestamp_nsec_t GetUnixTimestampNsec();
 // Clang has the unused check for private field,
 // while GCC does not allow [[maybe_unused]] attribute on private fields
 #ifdef __clang__
-#define PRIVATE_MAYBE_UNUSED [[maybe_unused]]
+#define PRIVATE_MAYBE_UNUSED maybe_unused
 #else
 #define PRIVATE_MAYBE_UNUSED
 #endif
@@ -84,9 +85,9 @@ class TimerSession {
     void EndSession();
 
    private:
-    PRIVATE_MAYBE_UNUSED bool                is_ended_{false};
-    PRIVATE_MAYBE_UNUSED cr_timestamp_nsec_t started_timestamp_;
-    PRIVATE_MAYBE_UNUSED std::size_t collector_index_;
+    [[PRIVATE_MAYBE_UNUSED]] bool                is_ended_{false};
+    [[PRIVATE_MAYBE_UNUSED]] cr_timestamp_nsec_t started_timestamp_;
+    [[PRIVATE_MAYBE_UNUSED]] std::size_t         collector_index_;
 };
 
 class TimerSection {
@@ -106,6 +107,8 @@ class TimerSection {
 
     std::unique_ptr<TimerReport> GetReport(bool recursive = true);
 
+    // Try to get subsections in initializtion. This function tries to grab a lock,
+    // which may lead to performance degradation.
     TimerSection* SubSection(const std::string& name);
 
     template<class duration_t>
@@ -118,8 +121,9 @@ class TimerSection {
     static std::unique_ptr<TimerReport> GetAllReports(bool clear);
 
    private:
-    std::string          name_;
-    PRIVATE_MAYBE_UNUSED std::size_t                     collector_index_;
+    std::string                                          name_;
+    [[PRIVATE_MAYBE_UNUSED]] std::size_t                 collector_index_;
+    [[PRIVATE_MAYBE_UNUSED]] std::shared_mutex           shared_mtx_;
     std::map<std::string, std::unique_ptr<TimerSection>> subsections_;
 
     static std::atomic<std::size_t> collector_index_count;
