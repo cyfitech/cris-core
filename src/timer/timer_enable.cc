@@ -330,7 +330,6 @@ void TimerReport::PrintToLog(unsigned indent_level) const {
         print_percentile(99);
         LOG(WARNING);
     }
-    std::shared_lock lock(section->shared_mtx_);
     if (!subsections_.empty()) {
         LOG(WARNING) << indent << "Subsections:";
         LOG(WARNING);
@@ -388,14 +387,14 @@ std::unique_ptr<TimerReport> TimerSection::GetAllReports(bool clear) {
 
 TimerSection* TimerSection::SubSection(const std::string& name) {
     {
-        std::shared_lock lock(section->shared_mtx_);
+        std::shared_lock lock(shared_mtx_);
         auto             search = subsections_.find(name);
         if (search != subsections_.end()) {
             return search->second.get();
         }
     }
 
-    std::unique_lock lock(section->shared_mtx_);
+    std::unique_lock lock(shared_mtx_);
     auto             insert = subsections_.emplace(
         name,
         std::make_unique<TimerSection>(name, collector_index_count.fetch_add(1), CtorPermission()));
