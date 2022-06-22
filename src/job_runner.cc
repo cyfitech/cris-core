@@ -6,6 +6,7 @@
 
 #include <boost/lockfree/queue.hpp>
 
+#include <chrono>
 #include <condition_variable>
 #include <cstddef>
 #include <cstdint>
@@ -54,6 +55,11 @@ class JobRunnerWorker {
 };
 
 JobRunner::JobRunner(JobRunner::Config config) : config_(std::move(config)) {
+    LOG(INFO) << __func__ << ": JobRunner at 0x" << std::hex << reinterpret_cast<std::uintptr_t>(this)
+              << " initialized with " << config_.thread_num_ << " worker(s). " << config_.always_active_thread_num_
+              << " of them always stay active, others go to sleep if stay idle for more than "
+              << std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(config_.active_time_).count()
+              << " ms." << std::dec;
     workers_.reserve(config_.thread_num_);
     for (std::size_t idx = 0; idx < config_.thread_num_; ++idx) {
         workers_.push_back(std::make_unique<JobRunnerWorker>(this, idx));
