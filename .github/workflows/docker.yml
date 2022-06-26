@@ -24,13 +24,22 @@ jobs:
       packages: write
     steps:
     - uses: actions/checkout@v3
+    - name: Fetch submodules
+      run: |
+        GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
     - name: Build
       env:
         JOB:  ${{ github.job }}
         REPO: ${{ github.repository }}
       run: |
         set -e
-        docker build                                                \
+        git submodule foreach --recursive -q pwd                    \
+        | cat <(pwd) -                                              \
+        | sed -n 's/\(\/cris\-core\)\/*$/\1/p'                      \
+        | xargs -I{} find {} -maxdepth 1 -name docker -type d       \
+        | sort -u                                                   \
+        | head -n1                                                  \
+        | xargs -I{} docker build                                   \
             --build-arg BASE_IMAGE="$(cut -d- -f2- <<< "$JOB"       \
                     | sed 's/\([0-9]\)/:\1/'                        \
                     | sed 's/\([0-9][0-9]\)\([0-9]\)/\1\.\2/'       \
@@ -39,7 +48,7 @@ jobs:
             --pull                                                  \
             --rm                                                    \
             -t "ghcr.io/$REPO-build-$(cut -d- -f2- <<< "$JOB"):ci"  \
-            docker
+            {}
     - name: Login
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -59,13 +68,22 @@ jobs:
       packages: write
     steps:
     - uses: actions/checkout@v3
+    - name: Fetch submodules
+      run: |
+        GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
     - name: Build
       env:
         JOB:  ${{ github.job }}
         REPO: ${{ github.repository }}
       run: |
         set -e
-        docker build                                                \
+        git submodule foreach --recursive -q pwd                    \
+        | cat <(pwd) -                                              \
+        | sed -n 's/\(\/cris\-core\)\/*$/\1/p'                      \
+        | xargs -I{} find {} -maxdepth 1 -name docker -type d       \
+        | sort -u                                                   \
+        | head -n1                                                  \
+        | xargs -I{} docker build                                   \
             --build-arg BASE_IMAGE="$(cut -d- -f2- <<< "$JOB"       \
                     | sed 's/\([0-9]\)/:\1/'                        \
                     | sed 's/\([0-9][0-9]\)\([0-9]\)/\1\.\2/'       \
@@ -74,7 +92,7 @@ jobs:
             --pull                                                  \
             --rm                                                    \
             -t "ghcr.io/$REPO-build-$(cut -d- -f2- <<< "$JOB"):ci"  \
-            docker
+            {}
     - name: Login
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -94,13 +112,22 @@ jobs:
       packages: write
     steps:
     - uses: actions/checkout@v3
+    - name: Fetch submodules
+      run: |
+        GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
     - name: Build
       env:
         JOB:  ${{ github.job }}
         REPO: ${{ github.repository }}
       run: |
         set -e
-        docker build                                                \
+        git submodule foreach --recursive -q pwd                    \
+        | cat <(pwd) -                                              \
+        | sed -n 's/\(\/cris\-core\)\/*$/\1/p'                      \
+        | xargs -I{} find {} -maxdepth 1 -name docker -type d       \
+        | sort -u                                                   \
+        | head -n1                                                  \
+        | xargs -I{} docker build                                   \
             --build-arg BASE_IMAGE="$(cut -d- -f2- <<< "$JOB"       \
                     | sed 's/\([0-9]\)/:\1/'                        \
                     | sed 's/\([0-9][0-9]\)\([0-9]\)/\1\.\2/'       \
@@ -109,7 +136,7 @@ jobs:
             --pull                                                  \
             --rm                                                    \
             -t "ghcr.io/$REPO-build-$(cut -d- -f2- <<< "$JOB"):ci"  \
-            docker
+            {}
     - name: Login
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
