@@ -19,7 +19,39 @@ def cris_deps_gtest(prefix = "."):
             path = prefix + "/external/googletest",
         )
 
+def cris_deps_fmt(prefix = "."):
+    if not native.existing_rule("fmt"):
+        native.new_local_repository(
+            name = "fmt",
+            path = prefix + "/external/fmt",
+            build_file_content = """
+load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
+
+filegroup(
+    name = "all_content",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:private"],
+)
+
+cmake(
+    name = "libfmt",
+    lib_source = ":all_content",
+    cache_entries = {
+        "CMAKE_C_FLAGS" : "-Wno-fuse-ld-path",
+        "CMAKE_CXX_FLAGS" : "-Wno-fuse-ld-path",
+        "FMT_MASTER_PROJECT": "OFF",
+        "FMT_INSTALL": "ON",
+    },
+    generate_args = [
+        "-G Ninja",
+    ],
+    visibility = ["//visibility:public"],
+)
+            """,
+        )
+
 def cris_core_deps(prefix = "."):
     cris_deps_gflags(prefix)
     cris_deps_glog(prefix)
     cris_deps_gtest(prefix)
+    cris_deps_fmt(prefix)
