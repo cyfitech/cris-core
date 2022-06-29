@@ -4,11 +4,11 @@ set -e
 
 cd "$(dirname "$0")/.."
 
-. scripts/codebase_utils.sh
 . scripts/toolchain.sh
 
 ! which ccache >/dev/null 2>&1 || ccache -z
 
-bazel_common_all build "$@"
+# Need to set PATH instead of CC because Bazel does not like '/'s in the CC value.
+PATH="$(dirname "$CC"):$PATH" CC="$(basename "$CC")" bazel "$@"
 
 ! which ccache >/dev/null 2>&1 || ccache -s
