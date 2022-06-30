@@ -23,6 +23,7 @@ if which ccache >/dev/null 2>&1 && ([ -d 'run' ] && [ -w 'run' ] || [ -w '.' ]);
         # See https://github.com/bazelbuild/rules_cc/issues/130
         cat << ____________EOF | sed 's/^            //' > "$ccache_wrapper"
             #!/bin/bash
+            set -e
             '$(which ccache)' '$(which "$compiler")' "\$@"
 ____________EOF
         chmod +x "$ccache_wrapper"

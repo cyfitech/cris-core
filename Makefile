@@ -59,12 +59,12 @@ lint: scripts/format_all.sh
 	$<
 
 .PHONY: build
-build: scripts/build_all.sh scripts/distro_cc.sh
-	$<
+build: scripts/bazel_wrapper.sh scripts/distro_cc.sh
+	$< build //...
 
 .PHONY: test
-test: scripts/test_all.sh scripts/distro_cc.sh
-	$< $$(. scripts/distro_cc.sh >/dev/null && "$$($(SHELL) -c 'echo "$$CC"')" --version | grep -i 'clang version' >/dev/null && echo '--config=lto') --copt='-O3' --nocache_test_results --test_output=errors
+test: scripts/bazel_wrapper.sh scripts/distro_cc.sh
+	$< test $$(. scripts/distro_cc.sh >/dev/null && "$$($(SHELL) -c 'echo "$$CC"')" --version | grep -i 'clang version' >/dev/null && echo '--config=lto') --copt='-O3' --nocache_test_results --test_output=errors //...
 
 .PHONY: sync
 sync: scripts/bazel_pull.sh

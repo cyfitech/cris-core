@@ -12,354 +12,205 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build:20220613
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20220627
     steps:
     - uses: actions/checkout@v3
     - name: Config
       run: export HOME=/root && git config --global --add safe.directory "$(pwd)"
     - name: Run linter
-      run: export HOME=/root && CLANG_FORMAT=clang-format-14 scripts/format_all.sh
+      run: export HOME=/root && CLANG_FORMAT=clang-format-12 scripts/format_all.sh
     - name: Check diff
       run: export HOME=/root && git --no-pager diff --exit-code
 
-  llvm:
+  llvm11-debian11:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build:20220613
+      image: ghcr.io/cyfitech/cris-build-debian11:20220627
+    env:
+      CC: clang-11
+      CXX: clang++-11
     steps:
-    - name: Date
-      id: date
-      run: |
-        date -u '+%F' | xargs printf '::set-output name=date::%s\n'
-        seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
     - uses: actions/checkout@v3
-    - uses: actions/cache@v3
+    - uses: ./.github/actions/ci-env-setup
       with:
-        path: |
-          /root/.cache/bazel
-          /root/.cache/pip
-          /root/.ccache
-        key: llvm:${{ steps.date.outputs.date }}
-        restore-keys: |
-          llvm:${{ steps.date.outputs.date-0 }}
-          llvm:${{ steps.date.outputs.date-1 }}
-          llvm:${{ steps.date.outputs.date-2 }}
-          llvm:${{ steps.date.outputs.date-3 }}
-          llvm:${{ steps.date.outputs.date-4 }}
-          llvm:${{ steps.date.outputs.date-5 }}
-          llvm:${{ steps.date.outputs.date-6 }}
-          llvm:${{ steps.date.outputs.date-7 }}
-          llvm
-    - name: Config
-      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx && git config --global --add safe.directory "$(pwd)"
-    - name: Auth
-      env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
-      run: |
-        # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
-        export HOME=/root
-        for repo in 'cris-base' 'cris-xchg'; do
-            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
-            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
-        done
-        scripts/auth_github_ssh.sh
-        # Re-route public access to HTTPS and private to SSH.
-        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
-        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
-        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
-    - name: Fetch submodules
-      run: |
-        export HOME=/root
-        GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
-    - name: Build
-      run: export HOME=/root && CC=clang-14 CXX=clang++-14 scripts/build_all.sh --config=rel -s
-    - name: Test
-      run: export HOME=/root && CC=clang-14 CXX=clang++-14 scripts/test_all.sh --config=rel --nocache_test_results --test_output=all -s
+        key: ${{ github.job }}
+        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
+    - name: Build and Test
+      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=rel --config=prof --nocache_test_results --test_output=all -s //...
     - name: Summary
       run: export HOME=/root && ccache -X5 && ccache -svx
 
-  gcc:
+  llvm12-ubuntu2004:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build:20220613
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20220627
+    env:
+      CC: clang-12
+      CXX: clang++-12
     steps:
-    - name: Date
-      id: date
-      run: |
-        date -u '+%F' | xargs printf '::set-output name=date::%s'
-        seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
     - uses: actions/checkout@v3
-    - uses: actions/cache@v3
+    - uses: ./.github/actions/ci-env-setup
       with:
-        path: |
-          /root/.cache/bazel
-          /root/.cache/pip
-          /root/.ccache
-        key: gcc:${{ steps.date.outputs.date }}
-        restore-keys: |
-          gcc:${{ steps.date.outputs.date-0 }}
-          gcc:${{ steps.date.outputs.date-1 }}
-          gcc:${{ steps.date.outputs.date-2 }}
-          gcc:${{ steps.date.outputs.date-3 }}
-          gcc:${{ steps.date.outputs.date-4 }}
-          gcc:${{ steps.date.outputs.date-5 }}
-          gcc:${{ steps.date.outputs.date-6 }}
-          gcc:${{ steps.date.outputs.date-7 }}
-          gcc
-    - name: Config
-      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx && git config --global --add safe.directory "$(pwd)"
-    - name: Auth
-      env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
-      run: |
-        # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
-        export HOME=/root
-        for repo in 'cris-base' 'cris-xchg'; do
-            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
-            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
-        done
-        scripts/auth_github_ssh.sh
-        # Re-route public access to HTTPS and private to SSH.
-        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
-        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
-        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
-    - name: Fetch submodules
-      run: |
-        export HOME=/root
-        GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
-    - name: Build
-      run: export HOME=/root && CC=gcc-12 CXX=g++-12 scripts/build_all.sh --copt='-O3' -s
-    - name: Test
-      run: export HOME=/root && CC=gcc-12 CXX=g++-12 scripts/test_all.sh --copt='-O3' --nocache_test_results --test_output=all -s
+        key: ${{ github.job }}
+        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
+    - name: Build and Test
+      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=rel --config=prof --nocache_test_results --test_output=all -s //...
+    - name: Summary
+      run: export HOME=/root && ccache -X5 && ccache -svx
+
+  llvm14-ubuntu2204:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20220627
+    env:
+      CC: clang-14
+      CXX: clang++-14
+    steps:
+    - uses: actions/checkout@v3
+    - uses: ./.github/actions/ci-env-setup
+      with:
+        key: ${{ github.job }}
+        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
+    - name: Build and Test
+      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=rel --config=prof --nocache_test_results --test_output=all -s //...
+    - name: Summary
+      run: export HOME=/root && ccache -X5 && ccache -svx
+
+  gcc10-debian11:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyfitech/cris-build-debian11:20220627
+    env:
+      CC: gcc-10
+      CXX: g++-10
+    steps:
+    - uses: actions/checkout@v3
+    - uses: ./.github/actions/ci-env-setup
+      with:
+        key: ${{ github.job }}
+        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
+    - name: Build and Test
+      run: export HOME=/root && scripts/bazel_wrapper.sh test --copt='-O3' --config=prof --nocache_test_results --test_output=all -s //...
+    - name: Summary
+      run: export HOME=/root && ccache -X5 && ccache -svx
+
+  gcc10-ubuntu2004:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20220627
+    env:
+      CC: gcc-10
+      CXX: g++-10
+    steps:
+    - uses: actions/checkout@v3
+    - uses: ./.github/actions/ci-env-setup
+      with:
+        key: ${{ github.job }}
+        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
+    - name: Build and Test
+      run: export HOME=/root && scripts/bazel_wrapper.sh test --copt='-O3' --config=prof --nocache_test_results --test_output=all -s //...
+    - name: Summary
+      run: export HOME=/root && ccache -X5 && ccache -svx
+
+  gcc11-ubuntu2204:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20220627
+    env:
+      # Cannot use gcc-12 because of https://github.com/protocolbuffers/protobuf/issues/9948 (requires protobuf v3.21.0 or gcc 12.2)
+      # https://github.com/protocolbuffers/protobuf/pull/10118 is needed for upgrading protobuf
+      CC: gcc-11
+      CXX: g++-11
+    steps:
+    - uses: actions/checkout@v3
+    - uses: ./.github/actions/ci-env-setup
+      with:
+        key: ${{ github.job }}
+        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
+    - name: Build and Test
+      run: export HOME=/root && scripts/bazel_wrapper.sh test --copt='-O3' --config=prof --nocache_test_results --test_output=all -s //...
     - name: Summary
       run: export HOME=/root && ccache -X5 && ccache -svx
 
   asan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build:20220613
+      image: ghcr.io/cyfitech/cris-build-debian11:20220627
+    env:
+      CC: clang-11
+      CXX: clang++-11
     steps:
-    - name: Date
-      id: date
-      run: |
-        date -u '+%F' | xargs printf '::set-output name=date::%s'
-        seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
     - uses: actions/checkout@v3
-    - uses: actions/cache@v3
+    - uses: ./.github/actions/ci-env-setup
       with:
-        path: |
-          /root/.cache/bazel
-          /root/.cache/pip
-          /root/.ccache
-        key: asan:${{ steps.date.outputs.date }}
-        restore-keys: |
-          asan:${{ steps.date.outputs.date-0 }}
-          asan:${{ steps.date.outputs.date-1 }}
-          asan:${{ steps.date.outputs.date-2 }}
-          asan:${{ steps.date.outputs.date-3 }}
-          asan:${{ steps.date.outputs.date-4 }}
-          asan:${{ steps.date.outputs.date-5 }}
-          asan:${{ steps.date.outputs.date-6 }}
-          asan:${{ steps.date.outputs.date-7 }}
-          asan
-    - name: Config
-      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx && git config --global --add safe.directory "$(pwd)"
-    - name: Auth
-      env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
-      run: |
-        # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
-        export HOME=/root
-        for repo in 'cris-base' 'cris-xchg'; do
-            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
-            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
-        done
-        scripts/auth_github_ssh.sh
-        # Re-route public access to HTTPS and private to SSH.
-        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
-        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
-        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
-    - name: Fetch submodules
-      run: |
-        export HOME=/root
-        GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
-    - name: Test
-      run: export HOME=/root && CC=clang-14 CXX=clang++-14 scripts/test_all.sh --config=asan --nocache_test_results --test_output=all -s
-    - name: Summary
-      run: export HOME=/root && ccache -X5 && ccache -svx
-
-  tsan:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/cyfitech/cris-build:20220613
-    steps:
-    - name: Date
-      id: date
-      run: |
-        date -u '+%F' | xargs printf '::set-output name=date::%s'
-        seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
-    - uses: actions/checkout@v3
-    - uses: actions/cache@v3
-      with:
-        path: |
-          /root/.cache/bazel
-          /root/.cache/pip
-          /root/.ccache
-        key: tsan:${{ steps.date.outputs.date }}
-        restore-keys: |
-          tsan:${{ steps.date.outputs.date-0 }}
-          tsan:${{ steps.date.outputs.date-1 }}
-          tsan:${{ steps.date.outputs.date-2 }}
-          tsan:${{ steps.date.outputs.date-3 }}
-          tsan:${{ steps.date.outputs.date-4 }}
-          tsan:${{ steps.date.outputs.date-5 }}
-          tsan:${{ steps.date.outputs.date-6 }}
-          tsan:${{ steps.date.outputs.date-7 }}
-          tsan
-    - name: Config
-      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx && git config --global --add safe.directory "$(pwd)"
-    - name: Auth
-      env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
-      run: |
-        # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
-        export HOME=/root
-        for repo in 'cris-base' 'cris-xchg'; do
-            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
-            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
-        done
-        scripts/auth_github_ssh.sh
-        # Re-route public access to HTTPS and private to SSH.
-        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
-        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
-        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
-    - name: Fetch submodules
-      run: |
-        export HOME=/root
-        GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
-    - name: Test
-      run: export HOME=/root && CC=clang-14 CXX=clang++-14 scripts/test_all.sh --config=tsan --nocache_test_results --test_output=all -s
+        key: ${{ github.job }}
+        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
+    - name: Build and Test
+      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=asan --config=prof --nocache_test_results --test_output=all -s //...
     - name: Summary
       run: export HOME=/root && ccache -X5 && ccache -svx
 
   ubsan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build:20220613
+      image: ghcr.io/cyfitech/cris-build-debian11:20220627
+    env:
+      CC: clang-11
+      CXX: clang++-11
     steps:
-    - name: Date
-      id: date
-      run: |
-        date -u '+%F' | xargs printf '::set-output name=date::%s'
-        seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
     - uses: actions/checkout@v3
-    - uses: actions/cache@v3
+    - uses: ./.github/actions/ci-env-setup
       with:
-        path: |
-          /root/.cache/bazel
-          /root/.cache/pip
-          /root/.ccache
-        key: ubsan:${{ steps.date.outputs.date }}
-        restore-keys: |
-          ubsan:${{ steps.date.outputs.date-0 }}
-          ubsan:${{ steps.date.outputs.date-1 }}
-          ubsan:${{ steps.date.outputs.date-2 }}
-          ubsan:${{ steps.date.outputs.date-3 }}
-          ubsan:${{ steps.date.outputs.date-4 }}
-          ubsan:${{ steps.date.outputs.date-5 }}
-          ubsan:${{ steps.date.outputs.date-6 }}
-          ubsan:${{ steps.date.outputs.date-7 }}
-          ubsan
-    - name: Config
-      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx && git config --global --add safe.directory "$(pwd)"
-    - name: Auth
-      env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
-      run: |
-        # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
-        export HOME=/root
-        for repo in 'cris-base' 'cris-xchg'; do
-            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
-            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
-        done
-        scripts/auth_github_ssh.sh
-        # Re-route public access to HTTPS and private to SSH.
-        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
-        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
-        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
-    - name: Fetch submodules
-      run: |
-        export HOME=/root
-        GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
-    - name: Test
-      run: export HOME=/root && CC=clang-14 CXX=clang++-14 scripts/test_all.sh --compiler=clang --config=ubsan --nocache_test_results --test_output=all -s
+        key: ${{ github.job }}
+        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
+    - name: Build and Test
+      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=ubsan --config=prof --nocache_test_results --test_output=all -s //...
+    - name: Summary
+      run: export HOME=/root && ccache -X5 && ccache -svx
+
+  tsan:
+    runs-on: ubuntu-latest
+    # Using ubuntu 20.04/clang-12 for tsan because of https://github.com/google/sanitizers/issues/1259
+    container:
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20220627
+    env:
+      CC: clang-12
+      CXX: clang++-12
+    steps:
+    - uses: actions/checkout@v3
+    - uses: ./.github/actions/ci-env-setup
+      with:
+        key: ${{ github.job }}
+        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
+    - name: Build and Test
+      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=tsan --config=prof --nocache_test_results --test_output=all -s //...
     - name: Summary
       run: export HOME=/root && ccache -X5 && ccache -svx
 
   make-llvm:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build:20220613
+      image: ghcr.io/cyfitech/cris-build-debian11:20220627
+    env:
+      CC: clang-11
+      CXX: clang++-11
     steps:
-    - name: Date
-      id: date
-      run: |
-        date -u '+%F' | xargs printf '::set-output name=date::%s'
-        seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
     - uses: actions/checkout@v3
-    - uses: actions/cache@v3
+    - uses: ./.github/actions/ci-env-setup
       with:
-        path: |
-          /root/.cache/bazel
-          /root/.cache/pip
-          /root/.ccache
-        key: make-llvm:${{ steps.date.outputs.date }}
-        restore-keys: |
-          make-llvm:${{ steps.date.outputs.date-0 }}
-          make-llvm:${{ steps.date.outputs.date-1 }}
-          make-llvm:${{ steps.date.outputs.date-2 }}
-          make-llvm:${{ steps.date.outputs.date-3 }}
-          make-llvm:${{ steps.date.outputs.date-4 }}
-          make-llvm:${{ steps.date.outputs.date-5 }}
-          make-llvm:${{ steps.date.outputs.date-6 }}
-          make-llvm:${{ steps.date.outputs.date-7 }}
-          make-llvm
-    - name: Config
-      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx && git config --global --add safe.directory "$(pwd)"
-    - name: Auth
-      env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
-      run: |
-        # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
-        export HOME=/root
-        for repo in 'cris-base' 'cris-xchg'; do
-            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
-            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
-        done
-        scripts/auth_github_ssh.sh
-        # Re-route public access to HTTPS and private to SSH.
-        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
-        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
-        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
-    - name: Fetch submodules
-      run: |
-        export HOME=/root
-        GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
-    - name: LLVM
-      run: export HOME=/root && CC=clang-14 CXX=clang++-14 make build
-    - name: Default
+        key: ${{ github.job }}
+        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
+    - name: Build
       run: export HOME=/root && make build
     - name: Summary
       run: export HOME=/root && ccache -X5 && ccache -svx
@@ -367,55 +218,18 @@ jobs:
   make-gcc:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build:20220613
+      image: ghcr.io/cyfitech/cris-build-debian11:20220627
+    env:
+      CC: gcc-10
+      CXX: g++-10
     steps:
-    - name: Date
-      id: date
-      run: |
-        date -u '+%F' | xargs printf '::set-output name=date::%s'
-        seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
     - uses: actions/checkout@v3
-    - uses: actions/cache@v3
+    - uses: ./.github/actions/ci-env-setup
       with:
-        path: |
-          /root/.cache/bazel
-          /root/.cache/pip
-          /root/.ccache
-        key: make-gcc:${{ steps.date.outputs.date }}
-        restore-keys: |
-          make-gcc:${{ steps.date.outputs.date-0 }}
-          make-gcc:${{ steps.date.outputs.date-1 }}
-          make-gcc:${{ steps.date.outputs.date-2 }}
-          make-gcc:${{ steps.date.outputs.date-3 }}
-          make-gcc:${{ steps.date.outputs.date-4 }}
-          make-gcc:${{ steps.date.outputs.date-5 }}
-          make-gcc:${{ steps.date.outputs.date-6 }}
-          make-gcc:${{ steps.date.outputs.date-7 }}
-          make-gcc
-    - name: Config
-      run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx && git config --global --add safe.directory "$(pwd)"
-    - name: Auth
-      env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
-      run: |
-        # Overwrite custom home dir set by GitHub Action because SSH does not respect that.
-        export HOME=/root
-        for repo in 'cris-base' 'cris-xchg'; do
-            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
-            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
-        done
-        scripts/auth_github_ssh.sh
-        # Re-route public access to HTTPS and private to SSH.
-        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
-        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
-        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
-    - name: Fetch submodules
-      run: |
-        export HOME=/root
-        GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
-    - name: GCC
-      run: export HOME=/root && CC=gcc-12 CXX=g++-12 make build
+        key: ${{ github.job }}
+        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
+    - name: Build
+      run: export HOME=/root && make build
     - name: Summary
       run: export HOME=/root && ccache -X5 && ccache -svx
