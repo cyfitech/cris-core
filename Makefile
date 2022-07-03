@@ -20,7 +20,7 @@ env:
 	set -e;                                                                 \
 	! which git >/dev/null 2>&1                                             \
 	|| ! git rev-parse --git-dir >/dev/null 2>&1                            \
-	|| repo="$$(realpath -e "$$(git rev-parse --git-dir)/..")";             \
+	|| repo="$$(realpath -e "$$(git rev-parse --git-dir)" | sed 's/$$/\//' | sed 's/\(.*\)\/\.git\/.*/\1/')";   \
 	[ "$$repo" ] || repo="$$(pwd)";                                         \
 	vol_cache="cache_$$(tr '[:punct:]' '_' <<< '$(DOCKER_IMAGE)')";         \
 	sudo_docker="$$([ -w '/var/run/docker.sock' ] || echo sudo) docker";    \
