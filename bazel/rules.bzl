@@ -4,7 +4,6 @@ CRIS_CXXOPTS = [
     "-Werror",
     "-Wextra",
     "-g3",
-    "-std=c++20",
     "-fno-sanitize-recover=all",
 ]
 
