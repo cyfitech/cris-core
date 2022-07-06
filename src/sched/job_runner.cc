@@ -3,6 +3,7 @@
 #include "cris/core/utils/defs.h"
 #include "cris/core/utils/logging.h"
 #include "cris/core/utils/time.h"
+#include "cris/core/sched/spin_mutex.h"
 
 #include <boost/lockfree/queue.hpp>
 
@@ -42,7 +43,10 @@ class JobRunnerWorker {
 
     void Join();
 
-    JobRunner*              runner_;
+    // JobRunnerWorker is internal helpers for JobRunner, so their lifecycle
+    // always shorter than the bound runner, so raw pointer is OK here.
+    JobRunner* runner_;
+
     std::size_t             index_;
     std::atomic<bool>       shutdown_flag_{false};
     std::atomic<bool>       stopped_flag_{false};
@@ -53,6 +57,68 @@ class JobRunnerWorker {
 
     static constexpr std::size_t kInitialQueueCapacity = 8192;
 };
+
+class JobRunnerStrand : public std::enable_shared_from_this<JobRunnerStrand> {
+   public:
+    using job_t       = JobRunner::job_t;
+    using job_queue_t = boost::lockfree::queue<job_t*>;
+
+    JobRunnerStrand(std::weak_ptr<JobRunner> runner) : runner_weak_(runner) {}
+
+    bool AddJob(job_t&& job);
+
+    std::weak_ptr<JobRunner> runner_weak_;
+    HybridSpinMutex          hybrid_spin_mtx_;
+    bool                     has_ready_job_{false};
+    job_queue_t              pending_jobs_{kInitialQueueCapacity};
+
+    static constexpr std::size_t kInitialQueueCapacity = 8192;
+};
+
+bool JobRunnerStrand::AddJob(JobRunnerStrand::job_t&& job) {
+    auto runner = runner_weak_.lock();
+    if (!runner) {
+        LOG(WARNING) << __func__ << ": Not bound to an active runner.";
+        return false;
+    }
+
+    auto serialized_job = [job = std::move(job), strand_weak = weak_from_this()] {
+        job();
+
+        auto strand = strand_weak.lock();
+        if (!strand) {
+            return;
+        }
+
+        std::unique_lock lock(strand->hybrid_spin_mtx_);
+
+        // Try to push one pending job to runner.
+        bool result = strand->pending_jobs_.consume_one([strand](job_t* const job_ptr) {
+            std::unique_ptr<job_t> next_ready_job(job_ptr);
+            if (auto runner = strand->runner_weak_.lock()) {
+                runner->AddJob(std::move(*next_ready_job));
+            }
+        });
+
+        if (!result) {
+            strand->has_ready_job_ = false;
+        }
+    };
+
+    {
+        std::unique_lock lock(hybrid_spin_mtx_, std::try_to_lock);
+        if (!lock.owns_lock() || has_ready_job_) {
+            pending_jobs_.push(new job_t(std::move(serialized_job)));
+            return true;
+        }
+        has_ready_job_ = true;
+        // At this point, there are no ready jobs in the runner, and we just set the has_ready_job_ flag,
+        // so other AddJob threads can only push the jobs to the pending queue. Therefore it is safe here
+        // to release the lock before pushing the job to the runner.
+    }
+
+    return runner->AddJob(std::move(serialized_job));
+}
 
 JobRunner::JobRunner(JobRunner::Config config) : config_(std::move(config)) {
     LOG(INFO) << __func__ << ": JobRunner at 0x" << std::hex << reinterpret_cast<std::uintptr_t>(this)
@@ -78,6 +144,10 @@ JobRunner::~JobRunner() {
     }
 }
 
+std::shared_ptr<JobRunnerStrand> JobRunner::MakeStrand() {
+    return std::make_shared<JobRunnerStrand>(weak_from_this());
+}
+
 bool JobRunner::AddJob(job_t&& job, std::size_t scheduler_hint) {
     // In default case, modulo operation is not needed because the RNG guarantee the output range.
     // Use conditions to avoid unnecessary modulos.
@@ -101,6 +171,10 @@ bool JobRunner::AddJob(job_t&& job, std::size_t scheduler_hint) {
         NotifyOneWorker();
     }
     return true;
+}
+
+bool JobRunner::AddJob(job_t&& job, std::shared_ptr<JobRunnerStrand> strand) {
+    return strand->AddJob(std::move(job));
 }
 
 bool JobRunner::Steal() {
@@ -159,6 +233,10 @@ std::size_t JobRunner::DefaultSchedulerHint() {
 
     return kCurrentThreadJobRunner == reinterpret_cast<std::uintptr_t>(this) ? kCurrentThreadWorkerIndex
                                                                              : random_worker_selector(random_engine);
+}
+
+std::shared_ptr<JobRunner> JobRunner::MakeJobRunner(Config config) {
+    return std::shared_ptr<JobRunner>(new JobRunner(std::move(config)));
 }
 
 JobRunnerWorker::JobRunnerWorker(JobRunner* runner, std::size_t idx)

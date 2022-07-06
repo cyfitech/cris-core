@@ -11,7 +11,10 @@ namespace cris::core {
 
 class JobRunnerWorker;
 
-class JobRunner {
+// An object for serialized jobs. The jobs bound to the same strand object must run sequentially.
+class JobRunnerStrand;
+
+class JobRunner : public std::enable_shared_from_this<JobRunner> {
    public:
     using Self = JobRunner;
 
@@ -21,8 +24,6 @@ class JobRunner {
         std::chrono::nanoseconds active_time_{0};
     };
 
-    explicit JobRunner(Config config);
-
     ~JobRunner();
 
     JobRunner(const Self&) = delete;
@@ -31,6 +32,8 @@ class JobRunner {
     Self& operator=(Self&&) = delete;
 
     using job_t = std::function<void()>;
+
+    [[nodiscard]] std::shared_ptr<JobRunnerStrand> MakeStrand();
 
     ///
     /// Add a job to run
@@ -43,6 +46,8 @@ class JobRunner {
     bool AddJob(job_t&& job, std::size_t scheduler_hint);
 
     bool AddJob(job_t&& job) { return AddJob(std::move(job), DefaultSchedulerHint()); }
+
+    bool AddJob(job_t&& job, std::shared_ptr<JobRunnerStrand> strand);
 
     ///
     /// Randomly steal a job from the workers and run.
@@ -58,10 +63,14 @@ class JobRunner {
 
     std::size_t DefaultSchedulerHint();
 
+    static std::shared_ptr<JobRunner> MakeJobRunner(Config config);
+
    private:
     friend class JobRunnerWorker;
 
     using worker_list_t = std::vector<std::unique_ptr<JobRunnerWorker>>;
+
+    explicit JobRunner(Config config);
 
     Config                   config_;
     std::atomic<bool>        ready_for_stealing_{false};
