@@ -63,7 +63,7 @@ class JobRunnerStrand : public std::enable_shared_from_this<JobRunnerStrand> {
     using job_t       = JobRunner::job_t;
     using job_queue_t = boost::lockfree::queue<job_t*>;
 
-    JobRunnerStrand(std::weak_ptr<JobRunner> runner) : runner_weak_(runner) {}
+    explicit JobRunnerStrand(std::weak_ptr<JobRunner> runner) : runner_weak_(runner) {}
 
     bool AddJob(job_t&& job);
 
@@ -77,7 +77,7 @@ class JobRunnerStrand : public std::enable_shared_from_this<JobRunnerStrand> {
 
 bool JobRunnerStrand::AddJob(JobRunnerStrand::job_t&& job) {
     auto runner = runner_weak_.lock();
-    if (!runner) {
+    if (!runner) [[unlikely]] {
         LOG(WARNING) << __func__ << ": Not bound to an active runner.";
         return false;
     }
@@ -93,16 +93,12 @@ bool JobRunnerStrand::AddJob(JobRunnerStrand::job_t&& job) {
         std::unique_lock lock(strand->hybrid_spin_mtx_);
 
         // Try to push one pending job to runner.
-        bool result = strand->pending_jobs_.consume_one([strand](job_t* const job_ptr) {
+        strand->has_ready_job_ = strand->pending_jobs_.consume_one([strand](job_t* const job_ptr) {
             std::unique_ptr<job_t> next_ready_job(job_ptr);
             if (auto runner = strand->runner_weak_.lock()) {
                 runner->AddJob(std::move(*next_ready_job));
             }
         });
-
-        if (!result) {
-            strand->has_ready_job_ = false;
-        }
     };
 
     {
