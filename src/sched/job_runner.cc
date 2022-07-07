@@ -1,8 +1,8 @@
-#include "cris/core/job_runner.h"
+#include "cris/core/sched/job_runner.h"
 
-#include "cris/core/defs.h"
-#include "cris/core/logging.h"
-#include "cris/core/timer.h"
+#include "cris/core/utils/defs.h"
+#include "cris/core/utils/logging.h"
+#include "cris/core/utils/time.h"
 
 #include <boost/lockfree/queue.hpp>
 

@@ -1,4 +1,4 @@
-#include "cris/core/node.h"
+#include "cris/core/msg/node.h"
 
 #include "gtest/gtest.h"
 

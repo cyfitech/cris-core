@@ -4,7 +4,7 @@ cris_cc_test (
     name = "defs_test",
     srcs = ["defs_test.cc"],
     deps = [
-        "//:corelib",
+        "//:utils",
         "@gtest//:gtest_main",
     ],
 )
@@ -13,7 +13,7 @@ cris_cc_test (
     name = "message_test",
     srcs = ["message_test.cc"],
     deps = [
-        "//:corelib",
+        "//:msg",
         "@gtest//:gtest_main",
     ],
 )
@@ -22,7 +22,7 @@ cris_cc_test (
     name = "node_test",
     srcs = ["node_test.cc"],
     deps = [
-        "//:corelib",
+        "//:msg",
         "@gtest//:gtest_main",
     ],
 )
@@ -31,7 +31,7 @@ cris_cc_test (
     name = "timer_test",
     srcs = ["timer_test.cc"],
     deps = [
-        "//:corelib",
+        "//:timer",
         "@gtest//:gtest_main",
     ],
 )
@@ -51,7 +51,7 @@ cris_cc_test (
         ":job_runner_test_tsan_suppressions",
     ],
     deps = [
-        "//:corelib",
+        "//:sched",
         "@gtest//:gtest_main",
     ],
 )

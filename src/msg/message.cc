@@ -1,7 +1,7 @@
-#include "cris/core/message.h"
+#include "cris/core/msg/message.h"
 
-#include "cris/core/logging.h"
-#include "cris/core/node.h"
+#include "cris/core/msg/node.h"
+#include "cris/core/utils/logging.h"
 
 #include <boost/functional/hash.hpp>
 

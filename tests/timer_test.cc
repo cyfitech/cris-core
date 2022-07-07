@@ -1,4 +1,4 @@
-#include "cris/core/timer.h"
+#include "cris/core/timer/timer.h"
 
 #include "gtest/gtest.h"
 
