@@ -1,5 +1,7 @@
 #pragma once
 
+#include "cris/core/utils/time.h"
+
 #include <atomic>
 #include <chrono>
 #include <cstdint>
@@ -10,18 +12,6 @@
 #include <vector>
 
 namespace cris::core {
-
-using cr_timestamp_nsec_t = std::int64_t;
-using cr_duration_nsec_t  = std::int64_t;
-
-// CPU Timestamp counter tick
-unsigned long long GetTSCTick(unsigned& aux);
-
-// monotonic timestamp
-cr_timestamp_nsec_t GetSystemTimestampNsec();
-
-// real-world timestamp
-cr_timestamp_nsec_t GetUnixTimestampNsec();
 
 // Clang has the unused check for private field,
 // while GCC does not allow [[maybe_unused]] attribute on private fields

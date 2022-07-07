@@ -1,6 +1,6 @@
-#include "cris/core/node.h"
+#include "cris/core/msg/node.h"
 
-#include "cris/core/logging.h"
+#include "cris/core/utils/logging.h"
 
 #include <cstdint>
 #include <ios>

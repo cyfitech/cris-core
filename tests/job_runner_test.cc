@@ -1,4 +1,4 @@
-#include "cris/core/job_runner.h"
+#include "cris/core/sched/job_runner.h"
 
 #include "gtest/gtest.h"
 

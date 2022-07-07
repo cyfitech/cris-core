@@ -1,7 +1,7 @@
-#include "cris/core/cr_signal.h"
+#include "cris/core/signal/cr_signal.h"
 
-#include "cris/core/logging.h"
-#include "cris/core/timer.h"
+#include "cris/core/timer/timer.h"
+#include "cris/core/utils/logging.h"
 
 #include <boost/stacktrace.hpp>
 

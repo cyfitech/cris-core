@@ -1,6 +1,6 @@
-#include "cris/core/message.h"
+#include "cris/core/msg/message.h"
 
-#include "cris/core/node.h"
+#include "cris/core/msg/node.h"
 
 #include "gtest/gtest.h"
 

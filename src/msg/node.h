@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cris/core/job_runner.h"
-#include "cris/core/message.h"
+#include "cris/core/msg/message.h"
+#include "cris/core/sched/job_runner.h"
 
 #include <boost/functional/hash.hpp>
 
