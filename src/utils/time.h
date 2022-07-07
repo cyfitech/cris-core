@@ -7,13 +7,13 @@ namespace cris::core {
 using cr_timestamp_nsec_t = std::int64_t;
 using cr_duration_nsec_t  = std::int64_t;
 
-// CPU Timestamp counter tick
+// CPU timestamp counter tick.
 unsigned long long GetTSCTick(unsigned& aux);
 
-// monotonic timestamp
+// Monotonic timestamp.
 cr_timestamp_nsec_t GetSystemTimestampNsec();
 
-// real-world timestamp
+// Real-world timestamp.
 cr_timestamp_nsec_t GetUnixTimestampNsec();
 
 }  // namespace cris::core
