@@ -1,4 +1,4 @@
-#include "cris/core/spin_mutex.h"
+#include "cris/core/sched/spin_mutex.h"
 
 #include <cstddef>
 #include <thread>
