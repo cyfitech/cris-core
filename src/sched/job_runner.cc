@@ -1,9 +1,9 @@
 #include "cris/core/sched/job_runner.h"
 
+#include "cris/core/sched/spin_mutex.h"
 #include "cris/core/utils/defs.h"
 #include "cris/core/utils/logging.h"
 #include "cris/core/utils/time.h"
-#include "cris/core/sched/spin_mutex.h"
 
 #include <boost/lockfree/queue.hpp>
 
