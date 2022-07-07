@@ -22,6 +22,8 @@ namespace cris::core {
 
 void HybridSpinMutex::lock() {
     // Spinning for about 500us@3GHz.
+    //
+    // TODO(hao.chen, xkszltl): Check clock every 10-100us for better accuracy.
     constexpr std::size_t kSpinningCheckLimit = 500;
     for (std::size_t i = 0; i < kSpinningCheckLimit; ++i) {
         if (try_lock()) {
