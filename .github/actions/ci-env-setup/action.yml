@@ -17,18 +17,18 @@ runs:
   - name: Date
     id: date
     shell: bash
+    # Cache action only accepts up to 10 keys.
     run: |
-      date -u '+%F' | xargs printf '::set-output name=date::%s\n'
-      seq 0 1 30 | xargs -rI{} expr "$(date -u '+%s')" - '(' {} '*' 86400 ')' | xargs -rI{} date -d @{} -u '+%F' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
+      set -e
+      seq 0 1 9 | xargs -rI{} expr '(' "$(date -u '+%s')" '/' 3600 '/' 8 - {} ')' '*' 3600 '*' 8 | xargs -rI{} date -d @{} -u '+%FT%H' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
   - uses: actions/cache@v3
     with:
       path: |
-        /root/.cache/bazel
+        /root/.cache/ccache
         /root/.cache/pip
         /root/.ccache
-      key: ${{ inputs.key }}:${{ steps.date.outputs.date }}
+      key: ${{ inputs.key }}:${{ steps.date.outputs.date-0 }}
       restore-keys: |
-        ${{ inputs.key }}:${{ steps.date.outputs.date-0 }}
         ${{ inputs.key }}:${{ steps.date.outputs.date-1 }}
         ${{ inputs.key }}:${{ steps.date.outputs.date-2 }}
         ${{ inputs.key }}:${{ steps.date.outputs.date-3 }}
@@ -36,9 +36,17 @@ runs:
         ${{ inputs.key }}:${{ steps.date.outputs.date-5 }}
         ${{ inputs.key }}:${{ steps.date.outputs.date-6 }}
         ${{ inputs.key }}:${{ steps.date.outputs.date-7 }}
+        ${{ inputs.key }}:${{ steps.date.outputs.date-8 }}
+        ${{ inputs.key }}:${{ steps.date.outputs.date-9 }}
   - name: Config
     shell: bash
-    run: export HOME=/root && ccache -M 1GiB -o compression=true -o compression_level=5 && ccache -svx && git config --global --add safe.directory "$(pwd)"
+    run: |
+      set -xe
+      export HOME=/root
+      ccache -M 1GiB -o compression=true -o compression_level=5
+      ccache -svx
+      git config --global --add safe.directory "$(pwd)"
+      mkdir -p ~/root/{.cache/{ccache,pip},.ccache}
   - name: Auth
     env:
       CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ inputs.cris_base_ssh_token }}

@@ -1,0 +1,20 @@
+name: Clean up CI Environment
+
+runs:
+  using: "composite"
+  steps:
+  - name: Summary
+    shell: bash
+    run: |
+      set -e
+      export HOME=/root
+      ccache -X5
+      ccache -svx
+  - name: Prune cache
+    shell: bash
+    run: |
+      set -e
+      export HOME=/root
+      ccache -M 512MiB
+      ccache -X5
+      ccache -svx

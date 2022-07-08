@@ -38,8 +38,7 @@ jobs:
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
       run: export HOME=/root && scripts/bazel_wrapper.sh test --config=rel --config=prof --nocache_test_results --test_output=all -s //...
-    - name: Summary
-      run: export HOME=/root && ccache -X5 && ccache -svx
+    - uses: ./.github/actions/ci-env-cleanup
 
   llvm12-ubuntu2004:
     runs-on: ubuntu-latest
@@ -57,8 +56,7 @@ jobs:
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
       run: export HOME=/root && scripts/bazel_wrapper.sh test --config=rel --config=prof --nocache_test_results --test_output=all -s //...
-    - name: Summary
-      run: export HOME=/root && ccache -X5 && ccache -svx
+    - uses: ./.github/actions/ci-env-cleanup
 
   llvm14-ubuntu2204:
     runs-on: ubuntu-latest
@@ -76,8 +74,7 @@ jobs:
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
       run: export HOME=/root && scripts/bazel_wrapper.sh test --config=rel --config=prof --nocache_test_results --test_output=all -s //...
-    - name: Summary
-      run: export HOME=/root && ccache -X5 && ccache -svx
+    - uses: ./.github/actions/ci-env-cleanup
 
   gcc10-debian11:
     runs-on: ubuntu-latest
@@ -95,8 +92,7 @@ jobs:
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
       run: export HOME=/root && scripts/bazel_wrapper.sh test --copt='-O3' --config=prof --nocache_test_results --test_output=all -s //...
-    - name: Summary
-      run: export HOME=/root && ccache -X5 && ccache -svx
+    - uses: ./.github/actions/ci-env-cleanup
 
   gcc10-ubuntu2004:
     runs-on: ubuntu-latest
@@ -114,8 +110,7 @@ jobs:
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
       run: export HOME=/root && scripts/bazel_wrapper.sh test --copt='-O3' --config=prof --nocache_test_results --test_output=all -s //...
-    - name: Summary
-      run: export HOME=/root && ccache -X5 && ccache -svx
+    - uses: ./.github/actions/ci-env-cleanup
 
   gcc11-ubuntu2204:
     runs-on: ubuntu-latest
@@ -135,8 +130,7 @@ jobs:
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
       run: export HOME=/root && scripts/bazel_wrapper.sh test --copt='-O3' --config=prof --nocache_test_results --test_output=all -s //...
-    - name: Summary
-      run: export HOME=/root && ccache -X5 && ccache -svx
+    - uses: ./.github/actions/ci-env-cleanup
 
   asan:
     runs-on: ubuntu-latest
@@ -154,8 +148,7 @@ jobs:
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
       run: export HOME=/root && scripts/bazel_wrapper.sh test --config=asan --config=prof --nocache_test_results --test_output=all -s //...
-    - name: Summary
-      run: export HOME=/root && ccache -X5 && ccache -svx
+    - uses: ./.github/actions/ci-env-cleanup
 
   ubsan:
     runs-on: ubuntu-latest
@@ -173,8 +166,7 @@ jobs:
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
       run: export HOME=/root && scripts/bazel_wrapper.sh test --config=ubsan --config=prof --nocache_test_results --test_output=all -s //...
-    - name: Summary
-      run: export HOME=/root && ccache -X5 && ccache -svx
+    - uses: ./.github/actions/ci-env-cleanup
 
   tsan:
     runs-on: ubuntu-latest
@@ -193,8 +185,7 @@ jobs:
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
       run: export HOME=/root && scripts/bazel_wrapper.sh test --config=tsan --config=prof --nocache_test_results --test_output=all -s //...
-    - name: Summary
-      run: export HOME=/root && ccache -X5 && ccache -svx
+    - uses: ./.github/actions/ci-env-cleanup
 
   make-llvm:
     runs-on: ubuntu-latest
@@ -212,8 +203,7 @@ jobs:
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build
       run: export HOME=/root && make build
-    - name: Summary
-      run: export HOME=/root && ccache -X5 && ccache -svx
+    - uses: ./.github/actions/ci-env-cleanup
 
   make-gcc:
     runs-on: ubuntu-latest
@@ -231,5 +221,4 @@ jobs:
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build
       run: export HOME=/root && make build
-    - name: Summary
-      run: export HOME=/root && ccache -X5 && ccache -svx
+    - uses: ./.github/actions/ci-env-cleanup
