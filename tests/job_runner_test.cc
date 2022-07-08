@@ -41,9 +41,9 @@ TEST(JobRunnerTest, Basic) {
     JobRunner::Config config = {
         .thread_num_ = kThreadNum,
     };
-    JobRunner runner(config);
+    auto runner = JobRunner::MakeJobRunner(config);
 
-    auto test_batch = [&runner](const bool wait) {
+    auto test_batch = [runner](const bool wait) {
         std::mutex mtx;
         auto       cv = std::make_shared<std::condition_variable>();
 
@@ -63,7 +63,7 @@ TEST(JobRunnerTest, Basic) {
         for (std::size_t i = 0; i < kJobNum; ++i) {
             // Schedule the jobs to the same worker first, let the runner itself
             // do the load-balancing.
-            auto result = runner.AddJob(
+            auto result = runner->AddJob(
                 [call_count, cv, worker_thread_ids, i]() {
                     std::this_thread::sleep_for(kSingleJobDuration);
                     (*worker_thread_ids)[i]->store(std::this_thread::get_id());
@@ -93,8 +93,8 @@ TEST(JobRunnerTest, Basic) {
         // All workers had jobs.
         EXPECT_EQ(scheduled_worker_threads.size(), kThreadNum);
 
-        EXPECT_EQ(runner.ThreadNum(), kThreadNum);
-        EVENTUALLY_EQ(runner.ActiveThreadNum(), 0);
+        EXPECT_EQ(runner->ThreadNum(), kThreadNum);
+        EVENTUALLY_EQ(runner->ActiveThreadNum(), 0);
     };
 
     for (std::size_t i = 0; i < kTestBatchNum; ++i) {
@@ -111,23 +111,23 @@ TEST(JobRunnerTest, JobLocality) {
     JobRunner::Config config = {
         .thread_num_ = kThreadNum,
     };
-    JobRunner runner(config);
+    auto runner = JobRunner::MakeJobRunner(config);
 
-    auto make_workers_busy = [&runner]() {
+    auto make_workers_busy = [runner]() {
         static constexpr auto kSingleJobDuration = std::chrono::milliseconds(200);
         for (std::size_t i = 0; i < kThreadNum; ++i) {
             // Assign them to different workers.
-            EXPECT_TRUE(runner.AddJob([]() { std::this_thread::sleep_for(kSingleJobDuration); }, i));
+            EXPECT_TRUE(runner->AddJob([]() { std::this_thread::sleep_for(kSingleJobDuration); }, i));
         }
     };
 
     constexpr std::size_t kSpawningJobNum = kThreadNum;
     auto                  call_count      = std::make_shared<std::atomic<std::size_t>>(0);
 
-    auto spawning_job = [&runner, call_count]() {
+    auto spawning_job = [runner, call_count]() {
         const auto thread_id = std::this_thread::get_id();
 
-        auto result = runner.AddJob([thread_id, call_count]() {
+        auto result = runner->AddJob([thread_id, call_count]() {
             call_count->fetch_add(1);
             // When no other idle workers, by default the spawned job will be run on the same
             // worker as the spawner was.
@@ -146,7 +146,7 @@ TEST(JobRunnerTest, JobLocality) {
 
     for (std::size_t i = 0; i < kSpawningJobNum; ++i) {
         // Assign them to different workers.
-        EXPECT_TRUE(runner.AddJob(spawning_job, i));
+        EXPECT_TRUE(runner->AddJob(spawning_job, i));
     }
 
     EVENTUALLY_EQ(call_count->load(), kSpawningJobNum);
@@ -162,20 +162,46 @@ TEST(JobRunnerTest, AlwaysActiveThread) {
         .always_active_thread_num_ = kAlwaysActiveThreadNum,
         .active_time_              = kActiveTime,
     };
-    JobRunner runner(config);
+    auto runner = JobRunner::MakeJobRunner(config);
 
     // Let the workers start.
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    EXPECT_EQ(runner.ThreadNum(), kThreadNum);
-    EXPECT_EQ(runner.ActiveThreadNum(), kThreadNum);
+    EXPECT_EQ(runner->ThreadNum(), kThreadNum);
+    EXPECT_EQ(runner->ActiveThreadNum(), kThreadNum);
 
     // Within the active time, all threads are still active.
     std::this_thread::sleep_for(kActiveTime / 2);
-    EXPECT_EQ(runner.ActiveThreadNum(), kThreadNum);
+    EXPECT_EQ(runner->ActiveThreadNum(), kThreadNum);
 
     // After the active time, only "always acitve" numbeggr of threads are active.
-    EVENTUALLY_EQ(runner.ActiveThreadNum(), kAlwaysActiveThreadNum);
+    EVENTUALLY_EQ(runner->ActiveThreadNum(), kAlwaysActiveThreadNum);
+}
+
+TEST(JobRunnerTest, StrandTest) {
+    static constexpr std::size_t kThreadNum = 4;
+    static constexpr std::size_t kJobNum    = 50000;
+
+    JobRunner::Config config = {
+        .thread_num_ = kThreadNum,
+    };
+    auto runner = JobRunner::MakeJobRunner(config);
+    auto strand = runner->MakeStrand();
+
+    // Strand guarantees order, so no need to use lock/atomic variables.
+    std::size_t expected_current_job_idx = 0;
+    for (std::size_t job_idx = 0; job_idx < kJobNum; ++job_idx) {
+        EXPECT_TRUE(runner->AddJob(
+            [job_idx, &expected_current_job_idx]() { EXPECT_EQ(job_idx, expected_current_job_idx++); },
+            strand));
+    }
+
+    // Use a different atomic flag for completion instead of the counter,
+    // because TSAN might catch the data race on counter if we accidentally have concurrency on serialized jobs.
+    std::atomic<bool> finish{false};
+    EXPECT_TRUE(runner->AddJob([&finish]() { finish.store(true); }, strand));
+
+    EVENTUALLY_EQ(finish.load(), true);
 }
 
 }  // namespace cris::core
