@@ -58,6 +58,8 @@ class Config : public ConfigBase {
    public:
     const data_t& operator*() const { return data_; }
 
+    const data_t* operator->() const { return &**this; }
+
     std::string GetName() const override { return name_; }
 
    protected:

@@ -55,3 +55,13 @@ cris_cc_test (
         "@gtest//:gtest_main",
     ],
 )
+
+cris_cc_test (
+    name = "config_test",
+    srcs = ["config_test.cc"],
+    deps = [
+        "//:config",
+        "@fmt//:libfmt",
+        "@gtest//:gtest_main",
+    ],
+)
