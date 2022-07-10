@@ -14,21 +14,23 @@ ConfigFile::ConfigFile(const std::string& filepath) : filepath_(filepath) {
     InitConfigJsonContext();
 }
 
-ConfigBase* ConfigFile::RegisterOrGet(const std::string& config_name, std::unique_ptr<ConfigBase>&& config) {
+std::shared_ptr<ConfigBase> ConfigFile::RegisterOrGet(
+    const std::string&            config_name,
+    std::shared_ptr<ConfigBase>&& config) {
     std::lock_guard<std::mutex> lock(map_mutex_);
 
     auto config_search = config_map_.find(config_name);
     if (config_search != config_map_.end()) {
-        return config_search->second.get();
+        return config_search->second;
     }
 
     simdjson::ondemand::value val;
     if (json_context_.doc_[config_name].get(val) == simdjson::error_code::SUCCESS) {
         config->InitValue(val);
-        return config_map_.emplace(config_name, std::move(config)).first->second.get();
-    } else {
-        return tmp_config_list_.emplace_back(std::move(config)).get();
+        return config_map_.emplace(config_name, std::move(config)).first->second;
     }
+
+    return std::move(config);
 }
 
 void ConfigFile::InitConfigJsonContext() {

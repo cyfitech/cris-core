@@ -65,16 +65,16 @@ TEST_F(ConfigTest, Configs) {
         int_config_with_default_2_name,
         int_config_with_default_2_value));
 
-    EXPECT_EQ(*config_file.Get<int>(int_config_name), int_config_value);
-    EXPECT_NEAR(*config_file.Get<double>(double_config_name), double_config_value, kEps);
+    EXPECT_EQ(config_file.Get<int>(int_config_name)->GetValue(), int_config_value);
+    EXPECT_NEAR(config_file.Get<double>(double_config_name)->GetValue(), double_config_value, kEps);
 
     // No value in the config file, so the value passed to Register will be picked up.
     EXPECT_EQ(
-        *config_file.Get<int>(int_config_with_default_1_name, int(int_config_with_default_1_value)),
+        config_file.Get<int>(int_config_with_default_1_name, int(int_config_with_default_1_value))->GetValue(),
         int_config_with_default_1_value);
 
     // There is a value in the config file, the value here will be ignored.
-    EXPECT_EQ(*config_file.Get<int>(int_config_with_default_2_name, 0), int_config_with_default_2_value);
+    EXPECT_EQ(config_file.Get<int>(int_config_with_default_2_name, 0)->GetValue(), int_config_with_default_2_value);
 }
 
 // Create extra namespace to make sure ADL find the Parser correctly
@@ -130,19 +130,20 @@ TEST_F(ConfigTest, NonCopyableTypeTest) {
     const std::int64_t defualt_int_value = 100;
     EXPECT_EQ(
         config_file.Get<inner::NonCopyableType>("Do not care about name", inner::NonCopyableType(defualt_int_value))
-            ->value_,
+            ->GetValue()
+            .value_,
         defualt_int_value);
     EXPECT_EQ(
         config_file
             .Get<inner::NonCopyableTypePtr>(
                 "Do not care about name",
                 std::make_shared<inner::NonCopyableType>(defualt_int_value))
-            ->get()
+            ->GetValue()
             ->value_,
         defualt_int_value);
 
-    EXPECT_EQ(config_file.Get<inner::NonCopyableType>(custom_type1_config_name)->value_, value1);
-    EXPECT_EQ(config_file.Get<inner::NonCopyableTypePtr>(custom_type2_config_name)->get()->value_, value2);
+    EXPECT_EQ(config_file.Get<inner::NonCopyableType>(custom_type1_config_name)->GetValue().value_, value1);
+    EXPECT_EQ(config_file.Get<inner::NonCopyableTypePtr>(custom_type2_config_name)->GetValue()->value_, value2);
 }
 
 TEST_F(ConfigTest, ConfigDataGetStringRep) {

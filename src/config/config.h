@@ -18,18 +18,17 @@
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
-#include <vector>
 
 namespace cris::core {
 
 // To read configuration from file.
 //
 // ConfigFile config_file("my_config.json");
-// auto       my_value = *config_file.Get<my_value_t>("my_key");
+// auto       my_value = config_file.Get<my_value_t>("my_key")->GetValue();
 //
 // or,
 //
-// auto my_value = *config_file.Get<my_value_t>("my_key", default_value);
+// auto my_value = *config_file.Get<my_value_t>("my_key", default_value)->GetValue();
 
 class ConfigFile;
 
@@ -56,11 +55,9 @@ class ConfigBase {
 template<class data_t>
 class Config : public ConfigBase {
    public:
-    const data_t& operator*() const { return data_; }
-
-    const data_t* operator->() const { return &**this; }
-
     std::string GetName() const override { return name_; }
+
+    const data_t& GetValue() const { return data_; }
 
    protected:
     explicit Config(const std::string& name);
@@ -79,15 +76,14 @@ class ConfigFile {
     explicit ConfigFile(const std::string& filepath);
 
     template<class data_t>
-    const Config<data_t>& Get(const std::string& config_name);
+    std::shared_ptr<Config<data_t>> Get(const std::string& config_name);
 
     template<class data_t>
-    const Config<data_t>& Get(const std::string& config_name, data_t&& default_value);
+    std::shared_ptr<Config<data_t>> Get(const std::string& config_name, data_t&& default_value);
 
    private:
-    using config_base_ptr_t = std::unique_ptr<ConfigBase>;
+    using config_base_ptr_t = std::shared_ptr<ConfigBase>;
     using config_map_t      = std::unordered_map<std::string, config_base_ptr_t>;
-    using tmp_config_list_t = std::vector<config_base_ptr_t>;
 
     struct JsonParsingContext {
         simdjson::ondemand::parser   parser_;
@@ -95,7 +91,7 @@ class ConfigFile {
         simdjson::ondemand::document doc_;
     };
 
-    ConfigBase* RegisterOrGet(const std::string& config_name, std::unique_ptr<ConfigBase>&& config);
+    std::shared_ptr<ConfigBase> RegisterOrGet(const std::string& config_name, std::shared_ptr<ConfigBase>&& config);
 
     void InitConfigJsonContext();
 
@@ -103,7 +99,6 @@ class ConfigFile {
     JsonParsingContext json_context_;
     std::mutex         map_mutex_;
     config_map_t       config_map_;
-    tmp_config_list_t  tmp_config_list_;
 };
 
 template<class data_t>
@@ -171,16 +166,16 @@ std::string ConfigDataGetStringRep(const data_t& data) {
 }  // namespace impl
 
 template<class data_t>
-const Config<data_t>& ConfigFile::Get(const std::string& config_name) {
+std::shared_ptr<Config<data_t>> ConfigFile::Get(const std::string& config_name) {
     return Get(config_name, data_t{});
 }
 
 template<class data_t>
-const Config<data_t>& ConfigFile::Get(const std::string& config_name, data_t&& default_value) {
-    std::unique_ptr<ConfigBase> new_config_ptr(new Config<data_t>(config_name));
+std::shared_ptr<Config<data_t>> ConfigFile::Get(const std::string& config_name, data_t&& default_value) {
+    std::shared_ptr<ConfigBase> new_config_ptr(new Config<data_t>(config_name));
 
-    auto* config_base_ptr = RegisterOrGet(config_name, std::move(new_config_ptr));
-    auto* config_ptr      = dynamic_cast<Config<data_t>*>(config_base_ptr);
+    auto config_base_ptr = RegisterOrGet(config_name, std::move(new_config_ptr));
+    auto config_ptr      = std::dynamic_pointer_cast<Config<data_t>>(config_base_ptr);
     if (!config_ptr) {
         LOG(FATAL) << __func__ << ": Config " << config_name << " is registered, but not " << GetTypeName<data_t>();
     }
@@ -191,7 +186,7 @@ const Config<data_t>& ConfigFile::Get(const std::string& config_name, data_t&& d
         config_ptr->data_ = std::move(default_value);
     }
 
-    return *config_ptr;
+    return config_ptr;
 }
 
 template<class data_t>
