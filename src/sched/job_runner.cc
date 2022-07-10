@@ -215,7 +215,7 @@ bool JobRunner::AddJob(job_t&& job, std::size_t scheduler_hint) {
 }
 
 bool JobRunner::AddJob(job_t&& job, std::shared_ptr<JobRunnerStrand> strand) {
-    return strand->AddJob(std::move(job));
+    return strand ? strand->AddJob(std::move(job)) : AddJob(std::move(job));
 }
 
 bool JobRunner::Steal() {

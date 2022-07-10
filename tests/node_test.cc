@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <memory>
 #include <mutex>
+#include <numeric>
 #include <thread>
 #include <utility>
 
@@ -247,6 +248,53 @@ TEST(NodeTest, MultipleSubscriber) {
             EXPECT_EQ(subscriber->received_, message_value);
         }
     }
+}
+
+TEST(NodeTest, StrandSubscriber) {
+    static constexpr std::size_t kThreadNum       = 4;
+    constexpr std::size_t        kNumOfSubChannel = 4;
+    constexpr std::size_t        kMessageNumber   = 50000;
+
+    using TestMessageType = TestMessage<11>;
+
+    CRNode publisher;
+    CRNode subscriber;
+
+    auto runner = JobRunner::MakeJobRunner(JobRunner::Config{
+        .thread_num_ = kThreadNum,
+    });
+    subscriber.SetRunner(runner);
+
+    std::mutex                                cv_mutex;
+    std::condition_variable                   cv;
+    std::array<std::size_t, kNumOfSubChannel> channel_counter{0};
+    std::array<bool, kNumOfSubChannel>        complete{0};
+
+    for (std::size_t channel_subid = 0; channel_subid < kNumOfSubChannel; ++channel_subid) {
+        subscriber.Subscribe<TestMessageType>(
+            channel_subid,
+            [&counter = channel_counter[channel_subid], &complete = complete[channel_subid], &cv_mutex, &cv](
+                const std::shared_ptr<TestMessageType>& message) {
+                EXPECT_EQ(counter++, message->value_);
+                if (counter == kMessageNumber) {
+                    std::unique_lock cv_lock(cv_mutex);
+                    complete = true;
+                    cv.notify_all();
+                }
+            },
+            /* allow_concurrency = */ false);
+    }
+
+    for (std::size_t msg_idx = 0; msg_idx < kMessageNumber; ++msg_idx) {
+        for (std::size_t channel_subid = 0; channel_subid < kNumOfSubChannel; ++channel_subid) {
+            publisher.Publish(channel_subid, std::make_shared<TestMessageType>(msg_idx));
+        }
+    }
+
+    std::unique_lock cv_lock(cv_mutex);
+    cv.wait(cv_lock, [&complete]() {
+        return std::reduce(complete.begin(), complete.end(), true, std::logical_and<void>());
+    });
 }
 
 }  // namespace cris::core
