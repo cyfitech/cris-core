@@ -12,7 +12,7 @@ namespace cris::core {
 template<class data_t>
 inline void ConfigDataParser(data_t& /* data */, simdjson::ondemand::value& /* val */) {
     static_assert(!std::is_same_v<data_t, data_t>, "Unimplemented data parser.");
-    // Never reach here
+    // Never reach here.
     std::abort();
 }
 

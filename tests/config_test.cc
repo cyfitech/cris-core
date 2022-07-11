@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include <fmt/core.h>
+#include <unistd.h>
 
 #include <chrono>
 #include <cstdint>
@@ -21,12 +22,9 @@ class ConfigTest : public testing::Test {
    public:
     ConfigTest()
         : testing::Test()
-        , test_config_dir_(std::tmpnam(nullptr))
-        , test_config_path_(test_config_dir_ / "test.config") {
-        EXPECT_TRUE(fs::create_directory(test_config_dir_));
-    }
+        , test_config_path_(fs::temp_directory_path() / fmt::format("config_test.pid.{}.config", getpid())) {}
 
-    ~ConfigTest() { fs::remove_all(test_config_dir_); }
+    ~ConfigTest() { fs::remove(test_config_path_); }
 
     ConfigFile MakeConfigFile(std::string content) const {
         std::ofstream config_file(test_config_path_);
@@ -36,7 +34,6 @@ class ConfigTest : public testing::Test {
     }
 
    private:
-    fs::path test_config_dir_;
     fs::path test_config_path_;
 };
 
@@ -147,7 +144,7 @@ TEST_F(ConfigTest, NonCopyableTypeTest) {
 }
 
 TEST_F(ConfigTest, ConfigDataGetStringRep) {
-    // Just to make sure it compiles in the various cases.
+    // Just to make sure it compiles in various cases.
     // We do not care about the result. Non-empty should be enough.
     EXPECT_FALSE(impl::ConfigDataGetStringRep(std::string()).empty());
     EXPECT_FALSE(impl::ConfigDataGetStringRep(std::vector<int>()).empty());
