@@ -14,8 +14,6 @@
 
 namespace cris::core {
 
-constexpr double kEps = 1e-6;
-
 namespace fs = std::filesystem;
 
 class ConfigTest : public testing::Test {
@@ -38,15 +36,12 @@ class ConfigTest : public testing::Test {
 };
 
 TEST_F(ConfigTest, Configs) {
-    const std::string int_config_name     = "int_config";
-    int               int_config_value    = 123;
-    const std::string double_config_name  = "double_config";
-    double            double_config_value = 3.14;
-
-    const std::string int_config_with_default_1_name  = "int_config_wd_1";
-    int               int_config_with_default_1_value = 23333;
-    const std::string int_config_with_default_2_name  = "int_config_wd_2";
-    int               int_config_with_default_2_value = 77777;
+    const std::string int_key  = "int_config";
+    int               int_val  = 123;
+    const std::string fp_key   = "double_config";
+    double            fp_val   = 3.14;
+    const std::string bool_key = "bool_config";
+    bool              bool_val = true;
 
     auto config_file = MakeConfigFile(fmt::format(
         R"({{
@@ -54,24 +49,27 @@ TEST_F(ConfigTest, Configs) {
             "{}": {},
             "{}": {}
         }})",
-        int_config_name,
-        int_config_value,
-        double_config_name,
-        double_config_value,
-        // wd_1 uses the default value, wd_2 uses the value in the config
-        int_config_with_default_2_name,
-        int_config_with_default_2_value));
+        int_key,
+        int_val,
+        fp_key,
+        fp_val,
+        bool_key,
+        bool_val));
 
-    EXPECT_EQ(config_file.Get<int>(int_config_name)->GetValue(), int_config_value);
-    EXPECT_NEAR(config_file.Get<double>(double_config_name)->GetValue(), double_config_value, kEps);
+    // There is a value in the config file, the default value will be ignored.
+    EXPECT_EQ(config_file.Get<int>(int_key, /* default_value = */ 0)->GetValue(), int_val);
+
+    EXPECT_DOUBLE_EQ(config_file.Get<double>(fp_key)->GetValue(), fp_val);
+    EXPECT_EQ(config_file.Get<bool>(bool_key)->GetValue(), bool_val);
 
     // No value in the config file, so the value passed to Register will be picked up.
-    EXPECT_EQ(
-        config_file.Get<int>(int_config_with_default_1_name, int(int_config_with_default_1_value))->GetValue(),
-        int_config_with_default_1_value);
-
-    // There is a value in the config file, the value here will be ignored.
-    EXPECT_EQ(config_file.Get<int>(int_config_with_default_2_name, 0)->GetValue(), int_config_with_default_2_value);
+    {
+        const std::string missing_key  = "A key that is missing in the config";
+        int               default_val1 = 100;
+        EXPECT_EQ(config_file.Get<int>(missing_key, int(default_val1))->GetValue(), default_val1);
+        int default_val2 = 200;
+        EXPECT_EQ(config_file.Get<int>(missing_key, int(default_val2))->GetValue(), default_val2);
+    }
 }
 
 // Create extra namespace to make sure ADL find the Parser correctly

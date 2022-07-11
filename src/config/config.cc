@@ -10,6 +10,29 @@
 
 namespace cris::core {
 
+#define __DEFINE_CONFIG_TYPE(type)                                                            \
+    template class Config<type>;                                                              \
+                                                                                              \
+    template std::shared_ptr<Config<type>> ConfigFile::Get<type>(const std::string&);         \
+                                                                                              \
+    template std::shared_ptr<Config<type>> ConfigFile::Get<type>(const std::string&, type&&); \
+                                                                                              \
+    namespace impl {                                                                          \
+    template std::string ConfigDataGetStringRep(const type&);                                 \
+    }
+
+__DEFINE_CONFIG_TYPE(bool)
+__DEFINE_CONFIG_TYPE(int)
+__DEFINE_CONFIG_TYPE(unsigned)
+__DEFINE_CONFIG_TYPE(long)
+__DEFINE_CONFIG_TYPE(unsigned long)
+__DEFINE_CONFIG_TYPE(long long)
+__DEFINE_CONFIG_TYPE(unsigned long long)
+__DEFINE_CONFIG_TYPE(float)
+__DEFINE_CONFIG_TYPE(double)
+
+#undef __DEFINE_CONFIG_TYPE
+
 ConfigFile::ConfigFile(const std::string& filepath) : filepath_(filepath) {
     InitConfigJsonContext();
 }

@@ -190,19 +190,46 @@ std::shared_ptr<Config<data_t>> ConfigFile::Get(const std::string& config_name, 
     return config_ptr;
 }
 
+#define __EXTERN_CONFIG_TYPE(type)                                                                   \
+    extern template class Config<type>;                                                              \
+                                                                                                     \
+    extern template std::shared_ptr<Config<type>> ConfigFile::Get<type>(const std::string&);         \
+                                                                                                     \
+    extern template std::shared_ptr<Config<type>> ConfigFile::Get<type>(const std::string&, type&&); \
+                                                                                                     \
+    namespace impl {                                                                                 \
+    extern template std::string ConfigDataGetStringRep(const type&);                                 \
+    }
+
+__EXTERN_CONFIG_TYPE(bool)
+__EXTERN_CONFIG_TYPE(int)
+__EXTERN_CONFIG_TYPE(unsigned)
+__EXTERN_CONFIG_TYPE(long)
+__EXTERN_CONFIG_TYPE(unsigned long)
+__EXTERN_CONFIG_TYPE(long long)
+__EXTERN_CONFIG_TYPE(unsigned long long)
+__EXTERN_CONFIG_TYPE(float)
+__EXTERN_CONFIG_TYPE(double)
+
+#undef __EXTERN_CONFIG_TYPE
+
 template<class data_t>
 void Config<data_t>::InitValue(simdjson::ondemand::value& val) {
-    if constexpr (std::is_integral_v<data_t>) {
-        if constexpr (!std::is_signed_v<data_t>) {
+    using plain_data_t = std::remove_cvref_t<data_t>;
+
+    if constexpr (std::is_integral_v<plain_data_t>) {
+        if constexpr (std::is_same_v<plain_data_t, bool>) {
+            data_ = ConfigDataTrivialParser<bool>(val);
+        } else if constexpr (!std::is_signed_v<plain_data_t>) {
             // signed int
-            data_ = static_cast<data_t>(ConfigDataTrivialParser<std::int64_t>(val));
+            data_ = static_cast<plain_data_t>(ConfigDataTrivialParser<std::int64_t>(val));
         } else {
             // unsigned int
-            data_ = static_cast<data_t>(ConfigDataTrivialParser<std::uint64_t>(val));
+            data_ = static_cast<plain_data_t>(ConfigDataTrivialParser<std::uint64_t>(val));
         }
-    } else if constexpr (std::is_floating_point_v<data_t>) {
+    } else if constexpr (std::is_floating_point_v<plain_data_t>) {
         // floating point
-        data_ = static_cast<data_t>(ConfigDataTrivialParser<double>(val));
+        data_ = static_cast<plain_data_t>(ConfigDataTrivialParser<double>(val));
     } else {
         // others
         ConfigDataParser(data_, val);
