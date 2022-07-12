@@ -2,6 +2,7 @@
 
 #include "gtest/gtest.h"
 
+#include <array>
 #include <condition_variable>
 #include <cstddef>
 #include <memory>
@@ -267,8 +268,8 @@ TEST(NodeTest, StrandSubscriber) {
 
     std::mutex                                cv_mutex;
     std::condition_variable                   cv;
-    std::array<std::size_t, kNumOfSubChannel> channel_counter{0};
-    std::array<bool, kNumOfSubChannel>        complete{0};
+    std::array<std::size_t, kNumOfSubChannel> channel_counter{};
+    std::array<bool, kNumOfSubChannel>        complete{};
 
     for (std::size_t channel_subid = 0; channel_subid < kNumOfSubChannel; ++channel_subid) {
         subscriber.Subscribe<TestMessageType>(
