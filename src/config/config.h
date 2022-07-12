@@ -53,6 +53,9 @@ class ConfigBase {
 };
 
 template<class data_t>
+concept ConfigDataType = std::same_as<std::remove_cvref_t<data_t>, data_t>;
+
+template<ConfigDataType data_t>
 class Config : public ConfigBase {
    public:
     std::string GetName() const override { return name_; }
@@ -75,10 +78,10 @@ class ConfigFile {
    public:
     explicit ConfigFile(const std::string& filepath);
 
-    template<class data_t>
+    template<ConfigDataType data_t>
     std::shared_ptr<Config<data_t>> Get(const std::string& config_name);
 
-    template<class data_t>
+    template<ConfigDataType data_t>
     std::shared_ptr<Config<data_t>> Get(const std::string& config_name, data_t&& default_value);
 
    private:
@@ -101,13 +104,13 @@ class ConfigFile {
     config_map_t       config_map_;
 };
 
-template<class data_t>
+template<ConfigDataType data_t>
 Config<data_t>::Config(const std::string& name) : name_(name) {
 }
 
 namespace impl {
 
-template<class data_t>
+template<ConfigDataType data_t>
 std::string ConfigDataGetStringRep(const data_t&) {
     return core::GetTypeName<data_t>();
 }
@@ -118,30 +121,30 @@ inline std::string ConfigDataGetStringRep(const std::string& data) {
     return "\"" + data + "\"";
 }
 
-template<class data_t>
+template<ConfigDataType data_t>
     requires requires(data_t data) { std::to_string(data); }
 std::string ConfigDataGetStringRep(const data_t& data) {
     return std::to_string(data);
 }
 
-template<class data_t>
+template<ConfigDataType data_t>
     requires requires(data_t data) { std::string(data.Str()); }
 std::string ConfigDataGetStringRep(const data_t& data) {
     return data.Str();
 }
 
-template<class data_t>
+template<ConfigDataType data_t>
     requires requires(data_t data) { std::string(data->Str()); }
 std::string ConfigDataGetStringRep(const data_t& data) {
     return data->Str();
 }
 
-template<class T1, class T2>
+template<ConfigDataType T1, ConfigDataType T2>
 std::string ConfigDataGetStringRep(const std::pair<T1, T2>& data) {
     return "[" + ConfigDataGetStringRep(data.first) + ", " + ConfigDataGetStringRep(data.second) + "]";
 }
 
-template<class data_t>
+template<ConfigDataType data_t>
     // clang-format off
     requires(!std::same_as<data_t, std::string>) && requires(data_t data) {
         std::accumulate(
@@ -165,12 +168,12 @@ std::string ConfigDataGetStringRep(const data_t& data) {
 
 }  // namespace impl
 
-template<class data_t>
+template<ConfigDataType data_t>
 std::shared_ptr<Config<data_t>> ConfigFile::Get(const std::string& config_name) {
     return Get(config_name, data_t{});
 }
 
-template<class data_t>
+template<ConfigDataType data_t>
 std::shared_ptr<Config<data_t>> ConfigFile::Get(const std::string& config_name, data_t&& default_value) {
     std::shared_ptr<ConfigBase> new_config_ptr(new Config<data_t>(config_name));
 
@@ -213,23 +216,21 @@ __EXTERN_CONFIG_TYPE(double)
 
 #undef __EXTERN_CONFIG_TYPE
 
-template<class data_t>
+template<ConfigDataType data_t>
 void Config<data_t>::InitValue(simdjson::ondemand::value& val) {
-    using plain_data_t = std::remove_cvref_t<data_t>;
-
-    if constexpr (std::is_integral_v<plain_data_t>) {
-        if constexpr (std::is_same_v<plain_data_t, bool>) {
+    if constexpr (std::is_integral_v<data_t>) {
+        if constexpr (std::is_same_v<data_t, bool>) {
             data_ = ConfigDataTrivialParser<bool>(val);
-        } else if constexpr (!std::is_signed_v<plain_data_t>) {
+        } else if constexpr (!std::is_signed_v<data_t>) {
             // signed int
-            data_ = static_cast<plain_data_t>(ConfigDataTrivialParser<std::int64_t>(val));
+            data_ = static_cast<data_t>(ConfigDataTrivialParser<std::int64_t>(val));
         } else {
             // unsigned int
-            data_ = static_cast<plain_data_t>(ConfigDataTrivialParser<std::uint64_t>(val));
+            data_ = static_cast<data_t>(ConfigDataTrivialParser<std::uint64_t>(val));
         }
-    } else if constexpr (std::is_floating_point_v<plain_data_t>) {
+    } else if constexpr (std::is_floating_point_v<data_t>) {
         // floating point
-        data_ = static_cast<plain_data_t>(ConfigDataTrivialParser<double>(val));
+        data_ = static_cast<data_t>(ConfigDataTrivialParser<double>(val));
     } else {
         // others
         ConfigDataParser(data_, val);
