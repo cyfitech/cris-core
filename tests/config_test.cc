@@ -36,30 +36,36 @@ class ConfigTest : public testing::Test {
 };
 
 TEST_F(ConfigTest, Configs) {
-    const std::string int_key  = "int_config";
-    int               int_val  = 123;
-    const std::string fp_key   = "double_config";
-    double            fp_val   = 3.14;
-    const std::string bool_key = "bool_config";
-    bool              bool_val = true;
+    const std::string int_key      = "int_config";
+    int               int_val      = 123;
+    const std::string large_fp_key = "large_double_config";
+    double            large_fp_val = 1e300;
+    const std::string hp_fp_key    = "high_precision_double_config";
+    double            hp_fp_val    = 1 + 1e-15;
+    const std::string bool_key     = "bool_config";
+    bool              bool_val     = true;
 
     auto config_file = MakeConfigFile(fmt::format(
         R"({{
+            "{}": {},
             "{}": {},
             "{}": {},
             "{}": {}
         }})",
         int_key,
         int_val,
-        fp_key,
-        fp_val,
+        large_fp_key,
+        large_fp_val,
+        hp_fp_key,
+        hp_fp_val,
         bool_key,
         bool_val));
 
     // There is a value in the config file, the default value will be ignored.
     EXPECT_EQ(config_file.Get<int>(int_key, /* default_value = */ 0)->GetValue(), int_val);
 
-    EXPECT_DOUBLE_EQ(config_file.Get<double>(fp_key)->GetValue(), fp_val);
+    EXPECT_DOUBLE_EQ(config_file.Get<double>(large_fp_key)->GetValue(), large_fp_val);
+    EXPECT_DOUBLE_EQ(config_file.Get<double>(hp_fp_key)->GetValue(), hp_fp_val);
     EXPECT_EQ(config_file.Get<bool>(bool_key)->GetValue(), bool_val);
 
     // No value in the config file, so the value passed to Register will be picked up.
