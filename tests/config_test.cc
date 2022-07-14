@@ -76,6 +76,8 @@ TEST_F(ConfigTest, Configs) {
         int default_val2 = 200;
         EXPECT_EQ(config_file.Get<int>(missing_key, int(default_val2))->GetValue(), default_val2);
     }
+
+    EXPECT_DEATH({ config_file.Get<double>(int_key); }, "Type mismatch.");
 }
 
 // Create extra namespace to make sure ADL find the Parser correctly

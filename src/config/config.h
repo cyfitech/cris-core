@@ -84,7 +84,7 @@ class ConfigFile {
     template<ConfigDataType data_t>
     std::shared_ptr<Config<data_t>> Get(const std::string& config_name, data_t&& default_value);
 
-   private:
+   protected:
     using config_base_ptr_t = std::shared_ptr<ConfigBase>;
     using config_map_t      = std::unordered_map<std::string, config_base_ptr_t>;
 
@@ -180,8 +180,8 @@ std::shared_ptr<Config<data_t>> ConfigFile::Get(const std::string& config_name, 
     auto config_base_ptr = RegisterOrGet(config_name, std::move(new_config_ptr));
     auto config_ptr      = std::dynamic_pointer_cast<Config<data_t>>(config_base_ptr);
     if (!config_ptr) {
-        LOG(FATAL) << __func__ << ": Config \"" << config_name << "\" is registered, but its type is not \""
-                   << GetTypeName<data_t>() << "\".";
+        LOG(FATAL) << __func__ << ": Type mismatch. Config \"" << config_name
+                   << "\" is registered, but its type is not \"" << GetTypeName<data_t>() << "\".";
     }
 
     if (!config_ptr->initialized_.load()) {
