@@ -72,9 +72,9 @@ TEST_F(ConfigTest, Configs) {
     {
         const std::string missing_key  = "A key that is missing in the config";
         int               default_val1 = 100;
-        EXPECT_EQ(config_file.Get<int>(missing_key, int(default_val1))->GetValue(), default_val1);
+        EXPECT_EQ(config_file.Get<int>(missing_key, default_val1)->GetValue(), default_val1);
         int default_val2 = 200;
-        EXPECT_EQ(config_file.Get<int>(missing_key, int(default_val2))->GetValue(), default_val2);
+        EXPECT_EQ(config_file.Get<int>(missing_key, default_val2)->GetValue(), default_val2);
     }
 
     EXPECT_DEATH(config_file.Get<double>(int_key), "Type mismatched.");

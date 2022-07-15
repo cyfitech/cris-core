@@ -85,8 +85,8 @@ class ConfigFile {
     template<ConfigDataType data_t>
     std::shared_ptr<Config<data_t>> Get(const std::string& config_name);
 
-    template<ConfigDataType data_t>
-    std::shared_ptr<Config<data_t>> Get(const std::string& config_name, data_t&& default_value);
+    template<ConfigDataType data_t, class arg_t>
+    std::shared_ptr<Config<data_t>> Get(const std::string& config_name, arg_t&& default_value);
 
    protected:
     using config_base_ptr_t = std::shared_ptr<ConfigBase>;
@@ -174,11 +174,12 @@ std::string ConfigDataGetStringRep(const data_t& data) {
 
 template<ConfigDataType data_t>
 std::shared_ptr<Config<data_t>> ConfigFile::Get(const std::string& config_name) {
-    return Get(config_name, data_t{});
+    return Get<data_t>(config_name, data_t{});
 }
 
-template<ConfigDataType data_t>
-std::shared_ptr<Config<data_t>> ConfigFile::Get(const std::string& config_name, data_t&& default_value) {
+template<ConfigDataType data_t, class arg_t>
+std::shared_ptr<Config<data_t>> ConfigFile::Get(const std::string& config_name, arg_t&& default_value) {
+    static_assert(std::is_same_v<data_t, std::remove_cvref_t<arg_t>>);
     std::shared_ptr<ConfigBase> new_config_ptr(new Config<data_t>(config_name));
 
     auto config_base_ptr = RegisterOrGet(config_name, std::move(new_config_ptr));
@@ -191,7 +192,7 @@ std::shared_ptr<Config<data_t>> ConfigFile::Get(const std::string& config_name, 
     if (!config_ptr->initialized_.load()) {
         LOG(INFO) << __func__ << ": Cannot find Config " << config_name << " in the config file. "
                   << "Use the default value " << impl::ConfigDataGetStringRep(default_value) << " instead.";
-        config_ptr->data_ = std::move(default_value);
+        config_ptr->data_ = std::forward<arg_t>(default_value);
     }
 
     return config_ptr;
@@ -201,6 +202,8 @@ std::shared_ptr<Config<data_t>> ConfigFile::Get(const std::string& config_name, 
     extern template class Config<type>;                                                              \
                                                                                                      \
     extern template std::shared_ptr<Config<type>> ConfigFile::Get<type>(const std::string&);         \
+                                                                                                     \
+    extern template std::shared_ptr<Config<type>> ConfigFile::Get<type>(const std::string&, type&);  \
                                                                                                      \
     extern template std::shared_ptr<Config<type>> ConfigFile::Get<type>(const std::string&, type&&); \
                                                                                                      \

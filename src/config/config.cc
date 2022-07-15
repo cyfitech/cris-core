@@ -15,6 +15,8 @@ namespace cris::core {
                                                                                               \
     template std::shared_ptr<Config<type>> ConfigFile::Get<type>(const std::string&);         \
                                                                                               \
+    template std::shared_ptr<Config<type>> ConfigFile::Get<type>(const std::string&, type&);  \
+                                                                                              \
     template std::shared_ptr<Config<type>> ConfigFile::Get<type>(const std::string&, type&&); \
                                                                                               \
     namespace impl {                                                                          \
