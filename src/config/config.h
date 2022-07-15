@@ -46,6 +46,8 @@ class ConfigBase {
 
     virtual std::string GetName() const = 0;
 
+    virtual std::string GetTypeName() const = 0;
+
    protected:
     virtual void InitValue(simdjson::ondemand::value& val) = 0;
 
@@ -59,6 +61,8 @@ template<ConfigDataType data_t>
 class Config : public ConfigBase {
    public:
     std::string GetName() const override { return name_; }
+
+    std::string GetTypeName() const override { return core::GetTypeName<data_t>(); }
 
     const data_t& GetValue() const { return data_; }
 
@@ -180,8 +184,8 @@ std::shared_ptr<Config<data_t>> ConfigFile::Get(const std::string& config_name, 
     auto config_base_ptr = RegisterOrGet(config_name, std::move(new_config_ptr));
     auto config_ptr      = std::dynamic_pointer_cast<Config<data_t>>(config_base_ptr);
     if (!config_ptr) {
-        LOG(FATAL) << __func__ << ": Type mismatch. Config \"" << config_name
-                   << "\" is registered, but its type is not \"" << GetTypeName<data_t>() << "\".";
+        LOG(FATAL) << __func__ << ": Type mismatched. Config \"" << config_name << "\" is registered as \""
+                   << config_base_ptr->GetTypeName() << "\" instead of \"" << GetTypeName<data_t>() << "\".";
     }
 
     if (!config_ptr->initialized_.load()) {
