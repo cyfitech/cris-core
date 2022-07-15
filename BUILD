@@ -65,3 +65,15 @@ cris_cc_library (
         "@com_github_google_glog//:glog",
     ],
 )
+
+cris_cc_library (
+    name = "config",
+    srcs = glob(["src/config/**/*.cc"]),
+    hdrs = glob(["src/config/**/*.h"]),
+    include_prefix = "cris/core",
+    strip_include_prefix = "src",
+    deps = [
+        ":utils",
+        "@simdjson//:libsimdjson",
+    ],
+)

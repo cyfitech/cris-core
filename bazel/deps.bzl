@@ -50,8 +50,41 @@ cmake(
             """,
         )
 
+def cris_deps_simdjson(prefix = "."):
+    if not native.existing_rule("simdjson"):
+        native.new_local_repository(
+            name = "simdjson",
+            path = prefix + "/external/simdjson",
+            build_file_content = """
+load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
+
+filegroup(
+    name = "all_content",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:private"],
+)
+
+cmake(
+    name = "libsimdjson",
+    lib_source = ":all_content",
+    cache_entries = {
+        "CMAKE_C_FLAGS" : "-Wno-fuse-ld-path",
+        "CMAKE_CXX_FLAGS" : "-Wno-fuse-ld-path",
+        "SIMDJSON_BUILD_STATIC": "ON",
+        "SIMDJSON_EXCEPTIONS": "OFF",
+        "SIMDJSON_JUST_LIBRARY": "ON",
+    },
+    generate_args = [
+        "-G Ninja",
+    ],
+    visibility = ["//visibility:public"],
+)
+            """,
+        )
+
 def cris_core_deps(prefix = "."):
     cris_deps_gflags(prefix)
     cris_deps_glog(prefix)
     cris_deps_gtest(prefix)
     cris_deps_fmt(prefix)
+    cris_deps_simdjson(prefix)
