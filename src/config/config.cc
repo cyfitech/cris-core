@@ -60,14 +60,14 @@ std::shared_ptr<ConfigBase> ConfigFile::RegisterOrGet(
 
 void ConfigFile::InitConfigJsonContext() {
     if (const auto load_err = simdjson::padded_string::load(filepath_).get(json_context_.buf_)) {
-        LOG(WARNING) << __func__ << ": Failed to load Config: " << filepath_ << " "
-                     << simdjson::simdjson_error(load_err).what();
+        LOG(ERROR) << __func__ << ": Failed to load Config: " << filepath_ << " "
+                   << simdjson::simdjson_error(load_err).what();
         return;
     }
 
     if (const auto parse_err = json_context_.parser_.iterate(json_context_.buf_).get(json_context_.doc_)) {
-        LOG(WARNING) << __func__ << ": Failed to parse Config:" << filepath_ << " "
-                     << simdjson::simdjson_error(parse_err).what() << json_context_.buf_;
+        LOG(ERROR) << __func__ << ": Failed to parse Config:" << filepath_ << " "
+                   << simdjson::simdjson_error(parse_err).what() << json_context_.buf_;
         return;
     }
 }
