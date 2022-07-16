@@ -23,15 +23,18 @@ void CRNode::SetRunner(std::shared_ptr<JobRunner> runner) {
 }
 
 bool CRNode::AddMessageToRunner(const CRMessageBasePtr& message) {
-    if (auto job_opt = GenerateJob(message)) {
-        return AddJobToRunner(std::move(*job_opt));
-    };
+    if (auto subscription_info_opt = GetSubscriptionInfo(message)) {
+        auto job = [callback = std::move(subscription_info_opt->callback_), message]() {
+            callback(message);
+        };
+        return AddJobToRunner(std::move(job), std::move(subscription_info_opt->strand_));
+    }
     return false;
 }
 
-bool CRNode::AddJobToRunner(job_t&& job) {
+bool CRNode::AddJobToRunner(job_t&& job, strand_ptr_t strand) {
     if (auto runner = runner_weak_.lock()) [[likely]] {
-        return runner->AddJob(std::move(job));
+        return runner->AddJob(std::move(job), std::move(strand));
     } else {
         LOG(WARNING) << __func__ << ": Node " << GetName() << "(at 0x" << std::hex
                      << reinterpret_cast<std::uintptr_t>(this) << ") has not bound with a runner yet." << std::dec;
@@ -44,7 +47,17 @@ void CRNode::Publish(const CRNode::channel_subid_t channel_subid, CRMessageBaseP
     CRMessageBase::Dispatch(std::move(message));
 }
 
-std::optional<CRNode::msg_callback_t> CRNode::GetCallback(const CRMessageBasePtr& message) {
+CRNode::strand_ptr_t CRNode::MakeStrand() {
+    if (auto runner = runner_weak_.lock()) [[likely]] {
+        return runner->MakeStrand();
+    } else {
+        LOG(WARNING) << __func__ << ": Node " << GetName() << "(at 0x" << std::hex
+                     << reinterpret_cast<std::uintptr_t>(this) << ") has not bound with a runner yet." << std::dec;
+        return nullptr;
+    }
+}
+
+std::optional<CRNode::SubscriptionInfo> CRNode::GetSubscriptionInfo(const CRMessageBasePtr& message) {
     if (!message) {
         return std::nullopt;
     }
@@ -60,21 +73,20 @@ std::optional<CRNode::msg_callback_t> CRNode::GetCallback(const CRMessageBasePtr
     return callback_search_result->second;
 }
 
-std::optional<CRNode::job_t> CRNode::GenerateJob(const CRMessageBasePtr& message) {
-    if (auto callback_opt = GetCallback(message)) {
-        return [callback = std::move(*callback_opt), message]() {
-            callback(message);
-        };
-    }
-    return std::nullopt;
-}
-
-void CRNode::SubscribeImpl(const channel_id_t channel, std::function<void(const CRMessageBasePtr&)>&& callback) {
+void CRNode::SubscribeImpl(
+    const channel_id_t                             channel,
+    std::function<void(const CRMessageBasePtr&)>&& callback,
+    strand_ptr_t                                   strand) {
     if (!CRMessageBase::Subscribe(channel, this)) {
         return;
     }
     subscribed_.push_back(channel);
-    auto callback_insert = callbacks_.emplace(channel, std::move(callback));
+    auto callback_insert = callbacks_.emplace(
+        channel,
+        SubscriptionInfo{
+            .callback_ = std::move(callback),
+            .strand_   = std::move(strand),
+        });
     if (!callback_insert.second) {
         LOG(ERROR) << __func__ << ": channel (" << channel.first.name() << ", " << channel.second << ") "
                    << "is subscribed. The new callback is ignored. Node: " << GetName() << "(" << this << ").";

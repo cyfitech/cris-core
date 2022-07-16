@@ -23,6 +23,7 @@ class CRNode {
     using channel_id_t    = CRMessageBase::channel_id_t;
     using msg_callback_t  = std::function<void(const CRMessageBasePtr&)>;
     using job_t           = JobRunner::job_t;
+    using strand_ptr_t    = std::shared_ptr<JobRunnerStrand>;
 
     explicit CRNode() : CRNode("noname") {}
 
@@ -39,25 +40,49 @@ class CRNode {
 
     void SetRunner(std::shared_ptr<JobRunner> runner);
 
-    bool AddJobToRunner(job_t&& job);
+    bool AddJobToRunner(job_t&& job, strand_ptr_t strand);
+
+    bool AddJobToRunner(job_t&& job) { return AddJobToRunner(std::move(job), nullptr); }
 
     bool AddMessageToRunner(const CRMessageBasePtr& message);
 
-    // Not thread-safe, do not call concurrently nor call it when messages are coming,
+    // Subscribing functions are NOT thread-safe, do not call concurrently nor call it when messages are coming,
     // nor call it after runner is running.
+
     template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
-    void Subscribe(const channel_subid_t channel_subid, callback_t&& callback);
+    void Subscribe(const channel_subid_t channel_subid, callback_t&& callback, strand_ptr_t strand);
+
+    template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
+    void Subscribe(const channel_subid_t channel_subid, callback_t&& callback, const bool allow_concurrency) {
+        Subscribe<message_t>(
+            channel_subid,
+            std::forward<callback_t>(callback),
+            allow_concurrency ? nullptr : MakeStrand());
+    }
+
+    template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
+    void Subscribe(const channel_subid_t channel_subid, callback_t&& callback) {
+        return Subscribe<message_t>(channel_subid, std::forward<callback_t>(callback), /* allow_concurrency = */ true);
+    }
 
     void Publish(const channel_subid_t channel_subid, CRMessageBasePtr&& message);
 
    protected:
-    using callback_map_t = std::unordered_map<channel_id_t, msg_callback_t, boost::hash<channel_id_t>>;
+    struct SubscriptionInfo {
+        msg_callback_t callback_;
+        strand_ptr_t   strand_;
+    };
 
-    std::optional<msg_callback_t> GetCallback(const CRMessageBasePtr& message);
+    using callback_map_t = std::unordered_map<channel_id_t, SubscriptionInfo, boost::hash<channel_id_t>>;
 
-    std::optional<job_t> GenerateJob(const CRMessageBasePtr& message);
+    strand_ptr_t MakeStrand();
 
-    void SubscribeImpl(const channel_id_t channel, std::function<void(const CRMessageBasePtr&)>&& callback);
+    std::optional<SubscriptionInfo> GetSubscriptionInfo(const CRMessageBasePtr& message);
+
+    void SubscribeImpl(
+        const channel_id_t                             channel,
+        std::function<void(const CRMessageBasePtr&)>&& callback,
+        strand_ptr_t                                   strand);
 
     std::string               name_;
     std::vector<channel_id_t> subscribed_;
@@ -69,12 +94,13 @@ template<class node_t>
 concept CRNodeType = std::is_base_of_v<CRNode, node_t>;
 
 template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
-void CRNode::Subscribe(const channel_subid_t channel_subid, callback_t&& callback) {
+void CRNode::Subscribe(const channel_subid_t channel_subid, callback_t&& callback, strand_ptr_t strand) {
     return SubscribeImpl(
         std::make_pair(std::type_index(typeid(message_t)), channel_subid),
         [callback = std::move(callback)](const CRMessageBasePtr& message) {
             return callback(reinterpret_cast<const std::shared_ptr<message_t>&>(message));
-        });
+        },
+        std::move(strand));
 }
 
 template<class node_t, CRNodeType base_t = CRNode>

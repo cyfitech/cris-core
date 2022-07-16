@@ -21,6 +21,12 @@ cris_cc_test (
 cris_cc_test (
     name = "node_test",
     srcs = ["node_test.cc"],
+    env = {
+        "TSAN_OPTIONS": "suppressions=$(execpath job_runner_tsan_suppressions)",
+    },
+    data = [
+        ":job_runner_tsan_suppressions",
+    ],
     deps = [
         "//:msg",
         "@gtest//:gtest_main",
@@ -37,18 +43,18 @@ cris_cc_test (
 )
 
 filegroup(
-    name = "job_runner_test_tsan_suppressions",
-    srcs = ["job_runner_test_tsan_suppressions.txt"],
+    name = "job_runner_tsan_suppressions",
+    srcs = ["job_runner_tsan_suppressions.txt"],
 )
 
 cris_cc_test (
     name = "job_runner_test",
     srcs = ["job_runner_test.cc"],
     env = {
-        "TSAN_OPTIONS": "suppressions=$(execpath job_runner_test_tsan_suppressions)",
+        "TSAN_OPTIONS": "suppressions=$(execpath job_runner_tsan_suppressions)",
     },
     data = [
-        ":job_runner_test_tsan_suppressions",
+        ":job_runner_tsan_suppressions",
     ],
     deps = [
         "//:sched",

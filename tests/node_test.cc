@@ -2,10 +2,13 @@
 
 #include "gtest/gtest.h"
 
+#include <array>
 #include <condition_variable>
 #include <cstddef>
+#include <functional>
 #include <memory>
 #include <mutex>
+#include <numeric>
 #include <thread>
 #include <utility>
 
@@ -34,7 +37,7 @@ TEST(NodeTest, Basic) {
         auto   runner = JobRunner::MakeJobRunner(JobRunner::Config{});
         subscriber.SetRunner(runner);
 
-        auto cv_mutex = std::make_shared<std::mutex>();
+        auto cv_mtx   = std::make_shared<std::mutex>();
         auto cv       = std::make_shared<std::condition_variable>();
         auto received = std::make_shared<bool>(false);
 
@@ -48,8 +51,8 @@ TEST(NodeTest, Basic) {
 
         subscriber.Subscribe<TestMessageType>(
             channel_subid,
-            [message_value, cv_mutex, cv, received](const std::shared_ptr<TestMessageType>& msg) {
-                std::unique_lock cv_lock(*cv_mutex);
+            [message_value, cv_mtx, cv, received](const std::shared_ptr<TestMessageType>& msg) {
+                std::unique_lock cv_lck(*cv_mtx);
                 EXPECT_EQ(msg->value_, message_value);
                 *received = true;
                 cv->notify_all();
@@ -60,8 +63,8 @@ TEST(NodeTest, Basic) {
 
         publisher.Publish(channel_subid, std::make_shared<TestMessageType>(message_value));
 
-        std::unique_lock cv_lock(*cv_mutex);
-        cv->wait(cv_lock, [received]() { return *received; });
+        std::unique_lock cv_lck(*cv_mtx);
+        cv->wait(cv_lck, [received]() { return *received; });
     }
 
     // Publishing while nobody subscribing.
@@ -81,37 +84,37 @@ TEST(NodeTest, MultipleChannels) {
         std::array<std::array<int, kNumOfSubChannel>, kNumOfMsgTypes> data_{};
     };
 
-    auto cv_mutex = std::make_shared<std::mutex>();
-    auto cv       = std::make_shared<std::condition_variable>();
+    auto cv_mtx = std::make_shared<std::mutex>();
+    auto cv     = std::make_shared<std::condition_variable>();
 
     auto received = std::make_shared<Received>();
 
     for (std::size_t channel_subid = 0; channel_subid < kNumOfSubChannel; ++channel_subid) {
         subscriber.Subscribe<TestMessage<0>>(
             channel_subid,
-            [received, channel_subid, cv_mutex, cv](const std::shared_ptr<TestMessage<0>>& msg) {
-                std::unique_lock cv_lock(*cv_mutex);
+            [received, channel_subid, cv_mtx, cv](const std::shared_ptr<TestMessage<0>>& msg) {
+                std::unique_lock cv_lck(*cv_mtx);
                 received->data_[0][channel_subid] = msg->value_;
                 cv->notify_all();
             });
         subscriber.Subscribe<TestMessage<1>>(
             channel_subid,
-            [received, channel_subid, cv_mutex, cv](const std::shared_ptr<TestMessage<1>>& msg) {
-                std::unique_lock cv_lock(*cv_mutex);
+            [received, channel_subid, cv_mtx, cv](const std::shared_ptr<TestMessage<1>>& msg) {
+                std::unique_lock cv_lck(*cv_mtx);
                 received->data_[1][channel_subid] = msg->value_;
                 cv->notify_all();
             });
         subscriber.Subscribe<TestMessage<2>>(
             channel_subid,
-            [received, channel_subid, cv_mutex, cv](const std::shared_ptr<TestMessage<2>>& msg) {
-                std::unique_lock cv_lock(*cv_mutex);
+            [received, channel_subid, cv_mtx, cv](const std::shared_ptr<TestMessage<2>>& msg) {
+                std::unique_lock cv_lck(*cv_mtx);
                 received->data_[2][channel_subid] = msg->value_;
                 cv->notify_all();
             });
         subscriber.Subscribe<TestMessage<3>>(
             channel_subid,
-            [received, channel_subid, cv_mutex, cv](const std::shared_ptr<TestMessage<3>>& msg) {
-                std::unique_lock cv_lock(*cv_mutex);
+            [received, channel_subid, cv_mtx, cv](const std::shared_ptr<TestMessage<3>>& msg) {
+                std::unique_lock cv_lck(*cv_mtx);
                 received->data_[3][channel_subid] = msg->value_;
                 cv->notify_all();
             });
@@ -126,8 +129,8 @@ TEST(NodeTest, MultipleChannels) {
 
             publisher.Publish(channel_subid, std::make_shared<TestMessage<message_type_idx>>(message_value));
 
-            std::unique_lock cv_lock(*cv_mutex);
-            cv->wait(cv_lock, [received, channel_subid]() {
+            std::unique_lock cv_lck(*cv_mtx);
+            cv->wait(cv_lck, [received, channel_subid]() {
                 return received->data_[message_type_idx][channel_subid] != 0;
             });
 
@@ -142,8 +145,8 @@ TEST(NodeTest, MultipleChannels) {
 
             publisher.Publish(channel_subid, std::make_shared<TestMessage<message_type_idx>>(message_value));
 
-            std::unique_lock cv_lock(*cv_mutex);
-            cv->wait(cv_lock, [received, channel_subid]() {
+            std::unique_lock cv_lck(*cv_mtx);
+            cv->wait(cv_lck, [received, channel_subid]() {
                 return received->data_[message_type_idx][channel_subid] != 0;
             });
 
@@ -158,8 +161,8 @@ TEST(NodeTest, MultipleChannels) {
 
             publisher.Publish(channel_subid, std::make_shared<TestMessage<message_type_idx>>(message_value));
 
-            std::unique_lock cv_lock(*cv_mutex);
-            cv->wait(cv_lock, [received, channel_subid]() {
+            std::unique_lock cv_lck(*cv_mtx);
+            cv->wait(cv_lck, [received, channel_subid]() {
                 return received->data_[message_type_idx][channel_subid] != 0;
             });
 
@@ -174,8 +177,8 @@ TEST(NodeTest, MultipleChannels) {
 
             publisher.Publish(channel_subid, std::make_shared<TestMessage<message_type_idx>>(message_value));
 
-            std::unique_lock cv_lock(*cv_mutex);
-            cv->wait(cv_lock, [received, channel_subid]() {
+            std::unique_lock cv_lck(*cv_mtx);
+            cv->wait(cv_lck, [received, channel_subid]() {
                 return received->data_[message_type_idx][channel_subid] != 0;
             });
 
@@ -202,16 +205,16 @@ TEST(NodeTest, MultipleSubscriber) {
 
     auto runner = JobRunner::MakeJobRunner(JobRunner::Config{});
 
-    auto cv_mutex = std::make_shared<std::mutex>();
-    auto cv       = std::make_shared<std::condition_variable>();
+    auto cv_mtx = std::make_shared<std::mutex>();
+    auto cv     = std::make_shared<std::condition_variable>();
 
     for (std::size_t i = 0; i < kNumOfSubscribers; ++i) {
         auto subscriber = std::make_unique<Subscriber>();
         subscriber->SetRunner(runner);
         subscriber->Subscribe<TestMessageType>(
             channel_subid,
-            [subscriber = subscriber.get(), cv_mutex, cv](const std::shared_ptr<TestMessageType>& message) {
-                std::unique_lock cv_lock(*cv_mutex);
+            [subscriber = subscriber.get(), cv_mtx, cv](const std::shared_ptr<TestMessageType>& message) {
+                std::unique_lock cv_lck(*cv_mtx);
                 subscriber->received_ = message->value_;
                 cv->notify_all();
             });
@@ -225,10 +228,10 @@ TEST(NodeTest, MultipleSubscriber) {
             subscriber->received_ = 0;
         }
         publisher.Publish(channel_subid, std::make_shared<TestMessageType>(message_value));
-        std::unique_lock lock(*cv_mutex);
+        std::unique_lock lck(*cv_mtx);
 
         for (auto& subscriber : subscribers) {
-            cv->wait(lock, [subscriber = subscriber.get()]() { return subscriber->received_ != 0; });
+            cv->wait(lck, [subscriber = subscriber.get()]() { return subscriber->received_ != 0; });
             EXPECT_EQ(subscriber->received_, message_value);
         }
     }
@@ -240,13 +243,60 @@ TEST(NodeTest, MultipleSubscriber) {
             subscriber->received_ = 0;
         }
         publisher.Publish(channel_subid, std::make_shared<TestMessageType>(message_value));
-        std::unique_lock lock(*cv_mutex);
+        std::unique_lock lck(*cv_mtx);
 
         for (auto& subscriber : subscribers) {
-            cv->wait(lock, [subscriber = subscriber.get()]() { return subscriber->received_ != 0; });
+            cv->wait(lck, [subscriber = subscriber.get()]() { return subscriber->received_ != 0; });
             EXPECT_EQ(subscriber->received_, message_value);
         }
     }
+}
+
+TEST(NodeTest, StrandSubscriber) {
+    static constexpr std::size_t kThreadNum       = 4;
+    constexpr std::size_t        kNumOfSubChannel = 4;
+    constexpr std::size_t        kMessageNumber   = 50000;
+
+    using TestMessageType = TestMessage<11>;
+
+    CRNode publisher;
+    CRNode subscriber;
+
+    auto runner = JobRunner::MakeJobRunner(JobRunner::Config{
+        .thread_num_ = kThreadNum,
+    });
+    subscriber.SetRunner(runner);
+
+    std::mutex                                cv_mtx;
+    std::condition_variable                   cv;
+    std::array<std::size_t, kNumOfSubChannel> channel_counter{};
+    std::array<bool, kNumOfSubChannel>        complete{};
+
+    for (std::size_t channel_subid = 0; channel_subid < kNumOfSubChannel; ++channel_subid) {
+        subscriber.Subscribe<TestMessageType>(
+            channel_subid,
+            [&counter = channel_counter[channel_subid], &complete = complete[channel_subid], &cv_mtx, &cv](
+                const std::shared_ptr<TestMessageType>& message) {
+                EXPECT_EQ(counter++, message->value_);
+                if (counter == kMessageNumber) {
+                    std::unique_lock cv_lck(cv_mtx);
+                    complete = true;
+                    cv.notify_all();
+                }
+            },
+            /* allow_concurrency = */ false);
+    }
+
+    for (std::size_t msg_idx = 0; msg_idx < kMessageNumber; ++msg_idx) {
+        for (std::size_t channel_subid = 0; channel_subid < kNumOfSubChannel; ++channel_subid) {
+            publisher.Publish(channel_subid, std::make_shared<TestMessageType>(msg_idx));
+        }
+    }
+
+    std::unique_lock cv_lck(cv_mtx);
+    cv.wait(cv_lck, [&complete]() {
+        return std::reduce(complete.begin(), complete.end(), true, std::logical_and<void>());
+    });
 }
 
 }  // namespace cris::core
