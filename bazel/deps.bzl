@@ -119,4 +119,6 @@ def cris_core_deps(prefix = "."):
     cris_deps_gtest(prefix)
     cris_deps_fmt(prefix)
     cris_deps_simdjson(prefix)
+
+    # TODO(hao.chen): Remove it once we have it preinstalled in the Docker image.
     cris_deps_leveldb(prefix)
