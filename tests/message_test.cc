@@ -1,6 +1,7 @@
 #include "cris/core/msg/message.h"
 
 #include "cris/core/msg/node.h"
+#include "cris/core/sched/job_runner.h"
 
 #include "gtest/gtest.h"
 
@@ -46,9 +47,10 @@ TEST(MessageTest, DeliveredTime) {
     EXPECT_EQ(CRMessageBase::GetLatestDeliveredTime<TestMessage<200>>(channel_subid_2), kDefaultTimestamp);
     EXPECT_EQ(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(channel_subid_2), kDefaultTimestamp);
 
-    CRNode node12;
-    CRNode node23;
-    CRNode node13;
+    auto   runner = JobRunner::MakeJobRunner({});
+    CRNode node12(runner);
+    CRNode node23(runner);
+    CRNode node13(runner);
 
     node12.Subscribe<TestMessage<100>>(channel_subid, [](auto&&) {});
     node12.Subscribe<TestMessage<200>>(channel_subid, [](auto&&) {});
@@ -102,7 +104,7 @@ TEST(MessageTest, DeliveredTime) {
     EXPECT_EQ(CRMessageBase::GetLatestDeliveredTime<TestMessage<300>>(channel_subid_2), kDefaultTimestamp);
 
     {
-        CRNode node;
+        CRNode node(runner);
         node.Subscribe<TestMessage<100>>(channel_subid_2, [](auto&&) {});
         auto start_time = GetSystemTimestampNsec();
         publisher.Publish(channel_subid_2, std::make_shared<TestMessage<100>>(0));
