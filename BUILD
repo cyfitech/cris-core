@@ -51,6 +51,7 @@ cris_cc_library (
     strip_include_prefix = "src",
     deps = [
         ":msg",
+        "@fmt//:libfmt",
         "@leveldb//:libleveldb",
     ],
 )

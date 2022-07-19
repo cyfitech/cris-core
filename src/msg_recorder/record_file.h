@@ -70,9 +70,9 @@ class RecordFile {
     ~RecordFile();
 
     RecordFile(const RecordFile&) = delete;
-    RecordFile(RecordFile&&)      = delete;
+    RecordFile(RecordFile&&)      = default;
     RecordFile& operator=(const RecordFile&) = delete;
-    RecordFile& operator=(RecordFile&&) = delete;
+    RecordFile& operator=(RecordFile&&) = default;
 
     void Write(std::string serialized_value);
 

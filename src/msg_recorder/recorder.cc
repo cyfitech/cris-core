@@ -2,10 +2,11 @@
 
 #include "cris/core/utils/logging.h"
 
+#include "fmt/chrono.h"
+#include "fmt/core.h"
 #include "impl/utils.h"
 
 #include <filesystem>
-#include <sstream>
 
 namespace cris::core {
 
@@ -25,12 +26,7 @@ MessageRecorder::~MessageRecorder() {
 }
 
 std::string MessageRecorder::RecordDirNameGenerator() {
-    auto              time = std::time(nullptr);
-    std::stringstream dir_name;
-
-    dir_name << "record." << std::put_time(std::localtime(&time), "%Y%m%d-%H%M%S.%Z") << ".pid." << getpid();
-
-    return dir_name.str();
+    return fmt::format("record.{:%Y%m%d-%H%M%S.%Z}.pid.{}", std::chrono::system_clock::now(), getpid());
 }
 
 std::filesystem::path MessageRecorder::GetRecordDir() const {
@@ -44,13 +40,13 @@ RecordFile* MessageRecorder::CreateFile(
     auto filename = impl::GetMessageRecordFileName(message_type, subid);
     auto path     = GetRecordDir() / filename;
 
-    auto* file = files_.emplace_back(std::make_unique<RecordFile>(path)).get();
+    auto* record_file = files_.emplace_back(std::make_unique<RecordFile>(path)).get();
 
     if (!alias.empty()) {
         std::filesystem::create_symlink(filename, GetRecordDir() / alias);
     }
 
-    return file;
+    return record_file;
 }
 
 }  // namespace cris::core

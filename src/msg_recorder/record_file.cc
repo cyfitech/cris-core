@@ -29,14 +29,10 @@ RecordFileKey RecordFileKey::FromSlice(const leveldb::Slice& slice) {
 }
 
 int RecordFileKey::compare(const RecordFileKey& lhs, const RecordFileKey& rhs) {
-    if (lhs.timestamp_ < rhs.timestamp_) {
-        return -1;
-    } else if (lhs.timestamp_ > rhs.timestamp_) {
-        return 1;
-    } else if (lhs.count_ < rhs.count_) {
-        return -1;
-    } else if (lhs.count_ > rhs.count_) {
-        return 1;
+    if (lhs.timestamp_ != rhs.timestamp_) {
+        return lhs.timestamp_ < rhs.timestamp_ ? -1 : 1;
+    } else if (lhs.count_ != rhs.count_) {
+        return lhs.count_ < rhs.count_ ? -1 : 1;
     } else {
         return 0;
     }
@@ -87,7 +83,7 @@ RecordFile::~RecordFile() {
     const auto is_empty = Empty();
     db_.reset();
     if (is_empty) {
-        LOG(INFO) << "Record " << file_path_ << " is empty, removing...";
+        LOG(INFO) << "Record \"" << file_path_ << "\" is empty, removing.";
         std::filesystem::remove(file_path_);
     }
 }

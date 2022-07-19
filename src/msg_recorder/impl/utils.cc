@@ -7,7 +7,7 @@
 namespace cris::core::impl {
 
 std::string GetMessageRecordFileName(const std::string& message_type, const CRMessageBase::channel_subid_t subid) {
-    auto message_record_filename   = message_type;
+    auto       message_record_filename   = message_type;
     const auto message_type_replace_pred = [](char c) {
         return !std::isalnum(c);
     };

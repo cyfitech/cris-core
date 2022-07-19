@@ -21,10 +21,9 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     explicit MessageRecorder(const std::filesystem::path& record_dir_prefix, std::shared_ptr<JobRunner> runner);
 
     MessageRecorder(const MessageRecorder&) = delete;
-
-    MessageRecorder(MessageRecorder&&) = delete;
-
+    MessageRecorder(MessageRecorder&&)      = default;
     MessageRecorder& operator=(const MessageRecorder&) = delete;
+    MessageRecorder& operator=(MessageRecorder&&) = default;
 
     ~MessageRecorder();
 
@@ -46,11 +45,11 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
 
 template<CRMessageType message_t>
 void MessageRecorder::RegisterChannel(const MessageRecorder::channel_subid_t subid, const std::string& alias) {
-    auto file = CreateFile(GetTypeName<message_t>(), subid, alias);
+    auto* record_file = CreateFile(GetTypeName<message_t>(), subid, alias);
 
     this->Subscribe<message_t>(
         subid,
-        [file](const std::shared_ptr<message_t>& message) { file->Write(MessageToStr(*message)); },
+        [record_file](const std::shared_ptr<message_t>& message) { record_file->Write(MessageToStr(*message)); },
         /* allow_concurrency = */ false);
 }
 
