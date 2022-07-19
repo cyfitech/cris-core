@@ -16,3 +16,6 @@
 [submodule "external/simdjson"]
 	path = external/simdjson
 	url = https://github.com/simdjson/simdjson.git
+[submodule "external/leveldb"]
+	path = external/leveldb
+	url = https://github.com/google/leveldb.git

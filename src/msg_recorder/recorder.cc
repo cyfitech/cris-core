@@ -1,0 +1,56 @@
+#include "cris/core/msg_recorder/recorder.h"
+
+#include "cris/core/utils/logging.h"
+
+#include "impl/utils.h"
+
+#include <filesystem>
+#include <sstream>
+
+namespace cris::core {
+
+MessageRecorder::MessageRecorder(const std::filesystem::path& record_dir_prefix)
+    : Base()
+    , record_dir_(record_dir_prefix / RecordDirNameGenerator()) {
+    std::filesystem::create_directories(record_dir_);
+}
+
+MessageRecorder::~MessageRecorder() {
+    files_.clear();
+
+    if (std::filesystem::is_empty(GetRecordDir())) {
+        LOG(INFO) << "Record dir " << GetRecordDir() << " is empty, removing...";
+        std::filesystem::remove(GetRecordDir());
+    }
+}
+
+std::string MessageRecorder::RecordDirNameGenerator() {
+    auto              time = std::time(nullptr);
+    std::stringstream dir_name;
+
+    dir_name << "record." << std::put_time(std::localtime(&time), "%Y%m%d-%H%M%S.%Z") << ".pid." << getpid();
+
+    return dir_name.str();
+}
+
+std::filesystem::path MessageRecorder::GetRecordDir() const {
+    return record_dir_;
+}
+
+RecordFile* MessageRecorder::CreateFile(
+    const std::string&                     message_type,
+    const MessageRecorder::channel_subid_t subid,
+    const std::string&                     alias) {
+    auto filename = impl::GetMessageRecordFileName(message_type, subid);
+    auto path     = GetRecordDir() / filename;
+
+    auto* file = files_.emplace_back(std::make_unique<RecordFile>(path)).get();
+
+    if (!alias.empty()) {
+        std::filesystem::create_symlink(filename, GetRecordDir() / alias);
+    }
+
+    return file;
+}
+
+}  // namespace cris::core
