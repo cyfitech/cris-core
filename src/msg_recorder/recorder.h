@@ -8,6 +8,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <memory>
 #include <string>
 #include <utility>
 
@@ -17,7 +18,7 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
    public:
     using Base = CRNamedNode<MessageRecorder>;
 
-    MessageRecorder(const std::filesystem::path& record_dir_prefix);
+    explicit MessageRecorder(const std::filesystem::path& record_dir_prefix, std::shared_ptr<JobRunner> runner);
 
     MessageRecorder(const MessageRecorder&) = delete;
 

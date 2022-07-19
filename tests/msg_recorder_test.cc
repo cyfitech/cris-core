@@ -82,9 +82,8 @@ std::string MessageToStr(const TestMessage<T>& msg) {
 }
 
 void RecorderTest::TestRecord() {
-    MessageRecorder recorder(GetTestTempDir());
     auto            runner = core::JobRunner::MakeJobRunner({});
-    recorder.SetRunner(runner);
+    MessageRecorder recorder(GetTestTempDir(), runner);
 
     recorder.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
     recorder.RegisterChannel<TestMessage<double>>(kTestDoubleChannelSubId);
@@ -108,10 +107,9 @@ void RecorderTest::TestRecord() {
 }
 
 void RecorderTest::TestReplay(double speed_up) {
-    MessageReplayer replayer(record_dir_);
-    core::CRNode    subscriber;
     auto            runner = core::JobRunner::MakeJobRunner({});
-    subscriber.SetRunner(runner);
+    MessageReplayer replayer(record_dir_);
+    core::CRNode    subscriber(runner);
 
     replayer.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
     replayer.RegisterChannel<TestMessage<double>>(kTestDoubleChannelSubId);

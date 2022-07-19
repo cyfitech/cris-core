@@ -18,7 +18,7 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
    public:
     using Base = CRNamedNode<MessageReplayer>;
 
-    MessageReplayer(const std::filesystem::path& record_dir);
+    explicit MessageReplayer(const std::filesystem::path& record_dir);
 
     MessageReplayer(const MessageReplayer&) = delete;
 

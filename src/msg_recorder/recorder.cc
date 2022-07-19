@@ -9,8 +9,8 @@
 
 namespace cris::core {
 
-MessageRecorder::MessageRecorder(const std::filesystem::path& record_dir_prefix)
-    : Base()
+MessageRecorder::MessageRecorder(const std::filesystem::path& record_dir_prefix, std::shared_ptr<JobRunner> runner)
+    : Base(std::move(runner))
     , record_dir_(record_dir_prefix / RecordDirNameGenerator()) {
     std::filesystem::create_directories(record_dir_);
 }
