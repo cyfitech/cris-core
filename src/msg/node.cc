@@ -9,17 +9,22 @@
 
 namespace cris::core {
 
+CRNode::CRNode(std::string name, std::shared_ptr<JobRunner> runner) : name_(std::move(name)), runner_weak_(runner) {
+    if (!runner) {
+        LOG(INFO) << __func__ << ": Node " << GetName() << "(at 0x" << std::hex
+                  << reinterpret_cast<std::uintptr_t>(this) << ") binds with no runner.";
+        return;
+    }
+    can_subscribe_ = true;
+    LOG(INFO) << __func__ << ": Binding node " << GetName() << "(at 0x" << std::hex
+              << reinterpret_cast<std::uintptr_t>(this) << ") to runner at 0x"
+              << reinterpret_cast<std::uintptr_t>(runner.get()) << std::dec;
+}
+
 CRNode::~CRNode() {
     for (const auto& subscribed : subscribed_) {
         CRMessageBase::Unsubscribe(subscribed, this);
     }
-}
-
-void CRNode::SetRunner(std::shared_ptr<JobRunner> runner) {
-    LOG(INFO) << __func__ << ": Binding node " << GetName() << "(at 0x" << std::hex
-              << reinterpret_cast<std::uintptr_t>(this) << ") to runner at 0x"
-              << reinterpret_cast<std::uintptr_t>(runner.get()) << std::dec;
-    runner_weak_ = runner;
 }
 
 bool CRNode::AddMessageToRunner(const CRMessageBasePtr& message) {
@@ -36,8 +41,8 @@ bool CRNode::AddJobToRunner(job_t&& job, strand_ptr_t strand) {
     if (auto runner = runner_weak_.lock()) [[likely]] {
         return runner->AddJob(std::move(job), std::move(strand));
     } else {
-        LOG(WARNING) << __func__ << ": Node " << GetName() << "(at 0x" << std::hex
-                     << reinterpret_cast<std::uintptr_t>(this) << ") has not bound with a runner yet." << std::dec;
+        LOG(ERROR) << __func__ << ": Node " << GetName() << "(at 0x" << std::hex
+                   << reinterpret_cast<std::uintptr_t>(this) << ") has not bound with any runner." << std::dec;
         return false;
     }
 }
@@ -77,6 +82,9 @@ void CRNode::SubscribeImpl(
     const channel_id_t                             channel,
     std::function<void(const CRMessageBasePtr&)>&& callback,
     strand_ptr_t                                   strand) {
+    CHECK(can_subscribe_) << __func__ << ": Node " << GetName() << "(at 0x" << std::hex
+                          << reinterpret_cast<std::uintptr_t>(this) << ") has not bound with any runner." << std::dec;
+
     if (!CRMessageBase::Subscribe(channel, this)) {
         return;
     }

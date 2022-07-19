@@ -25,9 +25,13 @@ class CRNode {
     using job_t           = JobRunner::job_t;
     using strand_ptr_t    = std::shared_ptr<JobRunnerStrand>;
 
-    explicit CRNode() : CRNode("noname") {}
+    explicit CRNode() : CRNode("noname", nullptr) {}
 
-    explicit CRNode(std::string name) : name_(std::move(name)) {}
+    explicit CRNode(std::string name) : CRNode(std::move(name), nullptr) {}
+
+    explicit CRNode(std::shared_ptr<JobRunner> runner) : CRNode("noname", std::move(runner)) {}
+
+    explicit CRNode(std::string name, std::shared_ptr<JobRunner> runner);
 
     virtual ~CRNode();
 
@@ -37,8 +41,6 @@ class CRNode {
     virtual void StopMainLoop() {}
 
     std::string GetName() const { return name_; }
-
-    void SetRunner(std::shared_ptr<JobRunner> runner);
 
     bool AddJobToRunner(job_t&& job, strand_ptr_t strand);
 
@@ -85,6 +87,7 @@ class CRNode {
         strand_ptr_t                                   strand);
 
     std::string               name_;
+    bool                      can_subscribe_{false};
     std::vector<channel_id_t> subscribed_;
     callback_map_t            callbacks_;
     std::weak_ptr<JobRunner>  runner_weak_;

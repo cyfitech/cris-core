@@ -33,9 +33,8 @@ TEST(NodeTest, Basic) {
     publisher.Publish(channel_subid, std::make_shared<TestMessageType>(1));
 
     {
-        CRNode subscriber;
         auto   runner = JobRunner::MakeJobRunner(JobRunner::Config{});
-        subscriber.SetRunner(runner);
+        CRNode subscriber(runner);
 
         auto cv_mtx   = std::make_shared<std::mutex>();
         auto cv       = std::make_shared<std::condition_variable>();
@@ -75,10 +74,9 @@ TEST(NodeTest, MultipleChannels) {
     constexpr std::size_t kNumOfMsgTypes   = 4;
     constexpr std::size_t kNumOfSubChannel = 4;
 
-    CRNode publisher;
-    CRNode subscriber;
     auto   runner = JobRunner::MakeJobRunner(JobRunner::Config{});
-    subscriber.SetRunner(runner);
+    CRNode publisher;
+    CRNode subscriber(runner);
 
     struct Received {
         std::array<std::array<int, kNumOfSubChannel>, kNumOfMsgTypes> data_{};
@@ -209,8 +207,7 @@ TEST(NodeTest, MultipleSubscriber) {
     auto cv     = std::make_shared<std::condition_variable>();
 
     for (std::size_t i = 0; i < kNumOfSubscribers; ++i) {
-        auto subscriber = std::make_unique<Subscriber>();
-        subscriber->SetRunner(runner);
+        auto subscriber = std::make_unique<Subscriber>(runner);
         subscriber->Subscribe<TestMessageType>(
             channel_subid,
             [subscriber = subscriber.get(), cv_mtx, cv](const std::shared_ptr<TestMessageType>& message) {
@@ -259,13 +256,12 @@ TEST(NodeTest, StrandSubscriber) {
 
     using TestMessageType = TestMessage<11>;
 
-    CRNode publisher;
-    CRNode subscriber;
-
     auto runner = JobRunner::MakeJobRunner(JobRunner::Config{
         .thread_num_ = kThreadNum,
     });
-    subscriber.SetRunner(runner);
+
+    CRNode publisher;
+    CRNode subscriber(runner);
 
     std::mutex                                cv_mtx;
     std::condition_variable                   cv;
