@@ -37,6 +37,28 @@ cris_cc_library (
 )
 
 cris_cc_library (
+    name = "msg_recorder",
+    srcs = glob([
+            "src/msg_recorder/**/*.cc",
+            "src/msg_recorder/impl/**/*.h",
+    ]),
+    hdrs = glob([
+            "src/msg_recorder/**/*.h",
+        ], exclude = [
+            "src/msg_recorder/impl/**/*.h",
+    ]),
+    include_prefix = "cris/core",
+    strip_include_prefix = "src",
+    linkopts = [
+        "-lleveldb",
+    ],
+    deps = [
+        ":msg",
+        "@fmt//:libfmt",
+    ],
+)
+
+cris_cc_library (
     name = "timer",
     srcs = glob(["src/timer/**/*.cc"]),
     hdrs = glob(["src/timer/**/*.h"]),
