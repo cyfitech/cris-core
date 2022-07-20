@@ -5,6 +5,8 @@
 #include "cris/core/utils/time.h"
 
 #include <algorithm>
+#include <array>
+#include <atomic>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -14,11 +16,19 @@
 namespace cris::core {
 
 RecordFileKey RecordFileKey::Make() {
-    static std::atomic<unsigned long long> global_counter = 0;
+    // Those counters are the tie-breakers if the timestamps are the same
+    constexpr unsigned                                                 kNumOfCounters = 1 << 4;
+    static std::array<std::atomic<unsigned long long>, kNumOfCounters> global_counters{};
+
+    const auto now = GetUnixTimestampNsec();
+
+    static_assert(
+        kNumOfCounters == (kNumOfCounters & -kNumOfCounters),
+        "kNumOfCounters must be power of 2 so that we can use bitwise-and to replace modulo.");
 
     return {
-        .timestamp_ = GetUnixTimestampNsec(),
-        .count_     = global_counter.fetch_add(1),
+        .timestamp_ = now,
+        .count_     = global_counters[now & (kNumOfCounters - 1)].fetch_add(1),
     };
 }
 

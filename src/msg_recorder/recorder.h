@@ -23,7 +23,7 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     MessageRecorder(const MessageRecorder&) = delete;
     MessageRecorder(MessageRecorder&&)      = default;
     MessageRecorder& operator=(const MessageRecorder&) = delete;
-    MessageRecorder& operator=(MessageRecorder&&) = default;
+    MessageRecorder& operator=(MessageRecorder&&) = delete;
 
     ~MessageRecorder();
 
@@ -39,7 +39,7 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
 
     static std::string RecordDirNameGenerator();
 
-    std::filesystem::path                    record_dir_;
+    const std::filesystem::path              record_dir_;
     std::vector<std::unique_ptr<RecordFile>> files_;
 };
 
