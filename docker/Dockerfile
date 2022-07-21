@@ -128,26 +128,38 @@ RUN set -e; \
                 bash-completion \
                 'bazel=5.2.*' \
                 bc \
+                bind9-dnsutils \
                 binutils \
+                bison \
                 bsdmainutils \
+                byacc{,-j} \
                 bzip2 pbzip2 \
                 ccache \
                 cmake{,-curses-gui} \
+                coreutils \
+                curl \
                 diffutils \
                 dos2unix \
+                dstat \
+                expect \
                 findutils \
                 g{cc,++}-10 \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$' >/dev/null || echo g{cc,++}-12) \
                 gdb \
                 git{,-{extras,lfs}} \
                 gzip \
+                htop \
                 httping \
+                ifstat \
+                iftop \
                 intel-mkl \
+                iotop \
+                iproute2{,-doc} \
                 'iputils-*' \
                 jq \
                 lib{asan6,lsan0,tsan0,ubsan1} \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$' >/dev/null || echo lib{asan8,tsan2}) \
-                lib{boost-all,curl4-openssl,eigen3,gflags,gmp,gtest,hiredis,hwloc,mpfr,mpc,ssl,tbb}-dev \
+                lib{boost-all,curl4-openssl,edit,eigen3,event,gflags,gmp,gtest,hiredis,hwloc,leveldb,lmdb,lzma,mpfr,mpc,ncurses5,rocksdb,snappy,ssl,tbb}-dev \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^debian\-11$'     >/dev/null || echo libc++{,abi}-11-dev lldb-11) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-20\.04$' >/dev/null || echo libc++{,abi}-12-dev lldb-12) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$' >/dev/null || echo libc++{,abi}-14-dev lldb-14) \
@@ -158,25 +170,37 @@ RUN set -e; \
                 llvm-11{,-tools} {clang{,-{format,tidy,tools}},lld}-11 \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[02]\.04$' >/dev/null || echo llvm-12{,-tools} {clang{,-{format,tidy,tools}},lld}-12) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$' >/dev/null || echo llvm-14{,-tools} {clang{,-{format,tidy,tools}},lld}-14) \
-                locate \
                 locales \
+                locate \
+                lshw \
+                lsof \
+                liblz4-dev liblz4-tool \
                 m4 \
                 make \
-                mtr \
                 moreutils \
+                mtr \
                 net-tools \
                 ninja-build \
                 parallel \
+                openssh-{client,server} \
                 pigz \
+                pkg-config \
                 procps \
                 pv \
                 python3{,-pip} \
-                ruby-dev \
+                rng-tools5 \
                 rsync \
+                ruby-dev \
+                sed \
+                socat \
+                software-properties-common \
+                sysfsutils \
+                sysstat \
                 tar \
                 time \
                 tree \
                 util-linux \
+                uuid-{dev,runtime} \
                 vim \
                 wget \
                 whois \
