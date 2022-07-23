@@ -55,6 +55,7 @@ cris_cc_library (
     strip_include_prefix = "src",
     copts = [
         "-DBOOST_STACKTRACE_USE_ADDR2LINE",
+        "-DBOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED",
     ],
     linkopts = [
         "-ldl",
