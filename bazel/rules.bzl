@@ -25,6 +25,9 @@ def __add_opts(attrs):
     else:
         attrs["linkopts"] = CRIS_LINKOPTS
 
+    if "linkstatic" not in attrs:
+        attrs["linkstatic"] = True
+
     return attrs
 
 def cris_cc_library(**attrs):

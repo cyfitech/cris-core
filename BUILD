@@ -55,7 +55,10 @@ cris_cc_library (
     strip_include_prefix = "src",
     copts = [
         "-DBOOST_STACKTRACE_USE_ADDR2LINE",
-    ],
+    ] + select({
+        "@platforms//os:osx" : ["-DBOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED"],
+        "//conditions:default": [],
+    }),
     linkopts = [
         "-ldl",
     ],

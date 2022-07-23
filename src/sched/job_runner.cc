@@ -5,7 +5,16 @@
 #include "cris/core/utils/logging.h"
 #include "cris/core/utils/time.h"
 
+#if defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wambiguous-reversed-operator"
+#endif
+
 #include <boost/lockfree/queue.hpp>
+
+#if defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 #include <chrono>
 #include <condition_variable>

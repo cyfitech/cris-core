@@ -3,7 +3,16 @@
 #include "cris/core/timer/timer.h"
 #include "cris/core/utils/logging.h"
 
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#endif
+
 #include <boost/stacktrace.hpp>
+
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 #include <atomic>
 #include <cinttypes>
@@ -12,6 +21,7 @@
 #include <cstring>
 #include <signal.h>
 #include <string>
+#include <thread>
 
 namespace cris::core {
 
@@ -37,30 +47,12 @@ static void InvokeDefaultSignalHandler(int signal_number) {
 }
 
 static void DumpSignalInfo(int signal_number, siginfo_t* siginfo) {
-    constexpr std::size_t kBufferLen = 1024;
-    char                  buffer[kBufferLen];
-
     LOG(ERROR) << "******************************************************";
 
-    snprintf(
-        buffer,
-        kBufferLen,
-        "**** Signal %d (%s) received (@0x%" PRIxPTR ") ****",
-        signal_number,
-        strsignal(signal_number),
-        reinterpret_cast<intptr_t>(siginfo->si_addr));
+    LOG(ERROR) << "**** Signal " << signal_number << " (" << strsignal(signal_number) << ") received (@"
+               << siginfo->si_addr << ") ****";
 
-    LOG(ERROR) << buffer;
-
-    snprintf(
-        buffer,
-        kBufferLen,
-        "PID %d, TID 0x%" PRIxPTR ", from PID %d",
-        getpid(),
-        static_cast<intptr_t>(pthread_self()),
-        siginfo->si_pid);
-
-    LOG(ERROR) << buffer;
+    LOG(ERROR) << "PID " << getpid() << ", TID " << std::this_thread::get_id() << ", from PID " << siginfo->si_pid;
 }
 
 static void DumpStacktrace() {
