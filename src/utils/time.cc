@@ -1,6 +1,6 @@
 #include "cris/core/utils/time.h"
 
-#if defined(__APPLE__) && __has_include(<mach/mach_time.h>)
+#if defined(__APPLE__) && defined(__MACH__) && __has_include(<mach/mach_time.h>)
 #define _CRIS_MACH_TIME 1
 #include <mach/mach_time.h>
 #elif _MSC_VER
@@ -32,7 +32,7 @@ static const double kTscToNsecRatio = []() {
     return static_cast<double>(nsec_duration.count()) / static_cast<double>((end_tick - start_tick));
 }();
 
-unsigned long long GetTSCTick(unsigned& aux) {
+unsigned long long GetTSCTick([[maybe_unused]] unsigned& aux) {
 #if defined(_CRIS_TIMER_RDTSC)
     /* TODO(xkszltl) RDTSCP is serialized, making it a more robust choice than RDTSC.
      * However it is not supported by Linux docker on macOS (via VM internally).
@@ -43,7 +43,6 @@ unsigned long long GetTSCTick(unsigned& aux) {
     }
     return __rdtsc();
 #elif defined(_CRIS_MACH_TIME)
-    (void)aux;
     return mach_absolute_time();
 #endif
 }
