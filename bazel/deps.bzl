@@ -82,9 +82,43 @@ cmake(
             """,
         )
 
+def cris_deps_leveldb(prefix = "."):
+    if not native.existing_rule("leveldb"):
+        native.new_local_repository(
+            name = "leveldb",
+            path = prefix + "/external/leveldb",
+            build_file_content = """
+load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
+
+filegroup(
+    name = "all_content",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:private"],
+)
+
+cmake(
+    name = "libleveldb",
+    lib_source = ":all_content",
+    cache_entries = {
+        "CMAKE_C_FLAGS" : "-Wno-fuse-ld-path",
+        "CMAKE_CXX_FLAGS" : "-Wno-fuse-ld-path",
+        "LEVELDB_BUILD_TESTS": "OFF",
+        "LEVELDB_BUILD_BENCHMARKS": "OFF",
+    },
+    generate_args = [
+        "-G Ninja",
+    ],
+    visibility = ["//visibility:public"],
+)
+            """,
+        )
+
 def cris_core_deps(prefix = "."):
     cris_deps_gflags(prefix)
     cris_deps_glog(prefix)
     cris_deps_gtest(prefix)
     cris_deps_fmt(prefix)
     cris_deps_simdjson(prefix)
+
+    # TODO(hao.chen): Remove it once we have it preinstalled in the Docker image.
+    cris_deps_leveldb(prefix)
