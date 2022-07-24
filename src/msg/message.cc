@@ -5,11 +5,15 @@
 
 #include <boost/functional/hash.hpp>
 
+#include <mutex>
+#include <shared_mutex>
 #include <typeindex>
 #include <unordered_map>
 #include <utility>
 
 namespace cris::core {
+
+using channel_id_t = CRMessageBase::channel_id_t;
 
 namespace {
 
@@ -19,44 +23,31 @@ class SubscriptionInfo {
     std::vector<CRNode*>             sub_list_;
 };
 
-}  // namespace
+class SubscriptionMap {
+   public:
+    bool Subscribe(const channel_id_t channel, CRNode* node);
 
-using channel_id_t = CRMessageBase::channel_id_t;
+    void Unsubscribe(const channel_id_t channel, CRNode* node);
 
-using subscription_map_t = std::unordered_map<channel_id_t, SubscriptionInfo, boost::hash<channel_id_t>>;
+    void Dispatch(const CRMessageBasePtr& message);
 
-static subscription_map_t& GetSubscriptionMap() {
-    static subscription_map_t subscription_map;
+    cr_timestamp_nsec_t GetLatestDeliveredTime(const channel_id_t channel) const;
+
+    static SubscriptionMap& GetInstance();
+
+   private:
+    mutable std::shared_mutex                                                     mtx_;
+    std::unordered_map<channel_id_t, SubscriptionInfo, boost::hash<channel_id_t>> map_;
+};
+
+SubscriptionMap& SubscriptionMap::GetInstance() {
+    static SubscriptionMap subscription_map;
     return subscription_map;
 };
 
-static SubscriptionInfo* GetSubscriptionInfo(const channel_id_t channel) {
-    auto& subscription_map  = GetSubscriptionMap();
-    auto  subscription_find = subscription_map.find(channel);
-    if (subscription_find == subscription_map.end()) {
-        return nullptr;
-    }
-    return &subscription_find->second;
-}
-
-channel_id_t CRMessageBase::GetChannelId() const {
-    return std::make_pair(GetMessageTypeIndex(), GetChannelSubId());
-}
-
-void CRMessageBase::Dispatch(const CRMessageBasePtr& message) {
-    auto* subscription_info = GetSubscriptionInfo(message->GetChannelId());
-    if (!subscription_info) {
-        return;
-    }
-    for (auto& node : subscription_info->sub_list_) {
-        [[maybe_unused]] const bool success = node->AddMessageToRunner(std::move(message));
-        DCHECK(success);
-    }
-    subscription_info->latest_delivered_time_.store(GetSystemTimestampNsec());
-}
-
-bool CRMessageBase::Subscribe(const channel_id_t channel, CRNode* node) {
-    auto& subscription_list = GetSubscriptionMap()[channel].sub_list_;
+bool SubscriptionMap::Subscribe(const channel_id_t channel, CRNode* node) {
+    std::lock_guard lck(mtx_);
+    auto&           subscription_list = map_[channel].sub_list_;
 
     if (std::find(subscription_list.begin(), subscription_list.end(), node) != subscription_list.end()) {
         LOG(WARNING) << __func__ << ": Channel (" << channel.first.name() << ", " << channel.second << ") "
@@ -67,10 +58,10 @@ bool CRMessageBase::Subscribe(const channel_id_t channel, CRNode* node) {
     return true;
 }
 
-void CRMessageBase::Unsubscribe(const channel_id_t channel, CRNode* node) {
-    auto& subscription_map        = GetSubscriptionMap();
-    auto  subscription_map_search = subscription_map.find(channel);
-    if (subscription_map_search == subscription_map.end()) {
+void SubscriptionMap::Unsubscribe(const channel_id_t channel, CRNode* node) {
+    std::lock_guard lck(mtx_);
+    auto            subscription_map_search = map_.find(channel);
+    if (subscription_map_search == map_.end()) {
         LOG(WARNING) << __func__ << ": Channel (" << channel.first.name() << ", " << channel.second << ") is unknown";
         return;
     }
@@ -81,16 +72,52 @@ void CRMessageBase::Unsubscribe(const channel_id_t channel, CRNode* node) {
     }
 }
 
-cr_timestamp_nsec_t CRMessageBase::GetLatestDeliveredTime(const channel_id_t channel) {
-    constexpr cr_timestamp_nsec_t kDefaultDeliveredTime = 0;
+void SubscriptionMap::Dispatch(const CRMessageBasePtr& message) {
+    std::shared_lock lck(mtx_);
+    auto             subscription_find = map_.find(message->GetChannelId());
+    if (subscription_find == map_.end()) {
+        return;
+    }
+    auto& subscription_info = subscription_find->second;
+    for (auto& node : subscription_info.sub_list_) {
+        [[maybe_unused]] const bool success = node->AddMessageToRunner(std::move(message));
+        DCHECK(success);
+    }
+    subscription_info.latest_delivered_time_.store(GetSystemTimestampNsec());
+}
 
-    auto& subscription_map        = GetSubscriptionMap();
-    auto  subscription_map_search = subscription_map.find(channel);
-    if (subscription_map_search == subscription_map.end()) {
+cr_timestamp_nsec_t SubscriptionMap::GetLatestDeliveredTime(const channel_id_t channel) const {
+    constexpr cr_timestamp_nsec_t kDefaultDeliveredTime = 0;
+    std::shared_lock              lck(mtx_);
+
+    const auto subscription_find = map_.find(channel);
+    if (subscription_find == map_.end()) {
         LOG(WARNING) << __func__ << ": Channel (" << channel.first.name() << ", " << channel.second << ") is unknown";
         return kDefaultDeliveredTime;
     }
-    return subscription_map_search->second.latest_delivered_time_.load();
+    return subscription_find->second.latest_delivered_time_.load();
+}
+
+}  // namespace
+
+channel_id_t CRMessageBase::GetChannelId() const {
+    return std::make_pair(GetMessageTypeIndex(), GetChannelSubId());
+}
+
+void CRMessageBase::Dispatch(const CRMessageBasePtr& message) {
+    return SubscriptionMap::GetInstance().Dispatch(message);
+}
+
+bool CRMessageBase::Subscribe(const channel_id_t channel, CRNode* node) {
+    return SubscriptionMap::GetInstance().Subscribe(channel, node);
+}
+
+void CRMessageBase::Unsubscribe(const channel_id_t channel, CRNode* node) {
+    return SubscriptionMap::GetInstance().Unsubscribe(channel, node);
+}
+
+cr_timestamp_nsec_t CRMessageBase::GetLatestDeliveredTime(const channel_id_t channel) {
+    return SubscriptionMap::GetInstance().GetLatestDeliveredTime(channel);
 }
 
 }  // namespace cris::core

@@ -59,12 +59,8 @@ class CRMessageBase {
 
     static void Dispatch(const std::shared_ptr<CRMessageBase>& message);
 
-    // Not thread-safe, do not call concurrently nor call it
-    // when messages are coming
     static bool Subscribe(const channel_id_t channel, CRNode* node);
 
-    // Not thread-safe, do not call concurrently nor call it
-    // when messages are coming
     static void Unsubscribe(const channel_id_t channel, CRNode* node);
 
     friend class CRNode;
