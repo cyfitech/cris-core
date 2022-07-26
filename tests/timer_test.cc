@@ -30,7 +30,7 @@ TEST(TimerTest, Basic) {
     constexpr auto kTestSessionDuration = std::chrono::milliseconds(10);
 
     const auto section1_start = std::chrono::steady_clock::now();
-    auto timer1 = section1->StartTimerSession();
+    auto       timer1         = section1->StartTimerSession();
 
     for (std::size_t i = 0; i < kTestHits; ++i) {
         auto timer2 = section2->StartTimerSession();
@@ -40,8 +40,9 @@ TEST(TimerTest, Basic) {
     timer1.EndSession();
     const auto section1_end = std::chrono::steady_clock::now();
 
-    const auto section1_duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(section1_end - section1_start).count();
-    const auto section2_avg_duration_ns = section1_duration_ns / kTestHits;
+    [[maybe_unused]] const auto section1_duration_ns =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(section1_end - section1_start).count();
+    [[maybe_unused]] const auto section2_avg_duration_ns = section1_duration_ns / kTestHits;
 
     section3->ReportDuration(kTestSessionDuration);
 
@@ -51,14 +52,10 @@ TEST(TimerTest, Basic) {
 #ifdef ENABLE_PROFILING
     auto& report2 = report1->subsections_[section2_name];
     EXPECT_EQ(report1->GetTotalHits(), 1);
-    ExpectNear(
-        report1->GetAverageDurationNsec(),
-        section1_duration_ns);
+    ExpectNear(report1->GetAverageDurationNsec(), section1_duration_ns);
 
     EXPECT_EQ(report2->GetTotalHits(), kTestHits);
-    ExpectNear(
-        report2->GetAverageDurationNsec(),
-        section2_avg_duration_ns);
+    ExpectNear(report2->GetAverageDurationNsec(), section2_avg_duration_ns);
 
     EXPECT_EQ(report3->GetTotalHits(), 1);
     EXPECT_EQ(
