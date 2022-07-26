@@ -9,6 +9,9 @@ cd "$(dirname "$0")/.."
 ! which ccache >/dev/null 2>&1 || ccache -z
 
 # Need to set PATH instead of CC because Bazel does not like '/'s in the CC value.
-PATH="$(dirname "$CC"):$PATH" CC="$(basename "$CC")" bazel "$@"
+PATH="$([ ! "$CC"  ] || dirname  "$CC" ):$([ ! "$CXX" ] || dirname "$CXX"):$PATH"   \
+CC="$(  [ ! "$CC"  ] || basename "$CC" )"                                           \
+CXX="$( [ ! "$CXX" ] || basename "$CXX")"                                           \
+bazel "$@"
 
 ! which ccache >/dev/null 2>&1 || ccache -s

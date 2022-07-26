@@ -16,9 +16,17 @@ if which ccache >/dev/null 2>&1 && ([ -d 'run' ] && [ -w 'run' ] || [ -w '.' ]);
     mkdir -p 'run/toolchain'
     CR_CCACHE_CC_DIR="$(realpath -e "run/toolchain")"
 
-    for compiler_varname in "CC"; do
+    for compiler_varname in "CC" "CXX"; do
         compiler="$(eval echo "\$$compiler_varname")"
-        ccache_wrapper="$CR_CCACHE_CC_DIR/$(basename "$compiler")"
+        if [ ! "$compiler" ]; then
+            printf '\033[33m[WARNING] Missing $%s while creating ccache wrapper. Skipped.\033[0m\n' "$compiler_varname" >&2
+        fi
+        ccache_wrapper="$CR_CCACHE_CC_DIR/$(basename "$compiler")-wrapper"
+        # Bazel build may pick the wrong file sharing the same name.
+        while which "$(basename "$ccache_wrapper")" >/dev/null 2>&1; do
+            printf '\033[33m[WARNING] Found name collision in PATH for ccache wrapper "%s".\033[0m\n' "$ccache_wrapper" >&2
+            ccache_wrapper="$ccache_wrapper-uniq"
+        done
         # Bazel may dereference the ccache symlink, so we use wrapper scripts instead.
         # See https://github.com/bazelbuild/rules_cc/issues/130
         cat << ____________EOF | sed 's/^            //' > "$ccache_wrapper"
@@ -27,7 +35,7 @@ if which ccache >/dev/null 2>&1 && ([ -d 'run' ] && [ -w 'run' ] || [ -w '.' ]);
             '$(which ccache)' '$(which "$compiler")' "\$@"
 ____________EOF
         chmod +x "$ccache_wrapper"
-        eval "export $compiler_varname='$ccache_wrapper'"
+        export "$compiler_varname=$ccache_wrapper"
     done
 fi
 

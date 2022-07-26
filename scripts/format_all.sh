@@ -42,7 +42,7 @@ find . $(find . -maxdepth 1 -name .gitmodules -type f                           
          | xargs -r sed -n 's/^[[:space:]]*path[[:space:]]*=[[:space:]]*//p'    \
          | grep -v '[[:space:]]'                                                \
          | cat - <(printf '%s\n' .git build out run tmp)                        \
-         | xargs -r printf '-path ./%s -prune -o ')                             \
+         | xargs -r printf ' -path ./%s -prune -o')                             \
     -type f                                                                     \
 | sort -u                                                                       \
 | tr '\n' '\0'                                                                  \
