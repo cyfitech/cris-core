@@ -80,7 +80,7 @@ void SubscriptionMap::Dispatch(const CRMessageBasePtr& message) {
     }
     auto& subscription_info = subscription_find->second;
     for (auto& node : subscription_info.sub_list_) {
-        [[maybe_unused]] const bool success = node->AddMessageToRunner(message);
+        const bool success = node->AddMessageToRunner(message);
         LOG_IF(ERROR, !success) << __func__ << ": Failed to send message to node " << node->GetName();
     }
     subscription_info.latest_delivered_time_.store(GetSystemTimestampNsec());
