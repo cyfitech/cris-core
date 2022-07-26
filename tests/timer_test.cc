@@ -8,7 +8,7 @@
 namespace cris::core {
 
 template<class T1, class T2>
-void ExpectNear(const T1& v1, const T2& v2, double error = 0.05) {
+void ExpectNear(const T1& v1, const T2& v2, double error) {
     const auto d1 = static_cast<double>(v1);
     const auto d2 = static_cast<double>(v2);
     EXPECT_LT((1 - error) * d2, d1);
@@ -42,6 +42,8 @@ TEST(TimerTest, Basic) {
 
     [[maybe_unused]] const auto section1_duration_ns =
         std::chrono::duration_cast<std::chrono::nanoseconds>(section1_end - section1_start).count();
+
+    ASSERT_GT(kTestHits, 0);
     [[maybe_unused]] const auto section2_avg_duration_ns = section1_duration_ns / kTestHits;
 
     section3->ReportDuration(kTestSessionDuration);
@@ -52,10 +54,10 @@ TEST(TimerTest, Basic) {
 #ifdef ENABLE_PROFILING
     auto& report2 = report1->subsections_[section2_name];
     EXPECT_EQ(report1->GetTotalHits(), 1);
-    ExpectNear(report1->GetAverageDurationNsec(), section1_duration_ns);
+    ExpectNear(report1->GetAverageDurationNsec(), section1_duration_ns, /* error = */ 0.05);
 
     EXPECT_EQ(report2->GetTotalHits(), kTestHits);
-    ExpectNear(report2->GetAverageDurationNsec(), section2_avg_duration_ns);
+    ExpectNear(report2->GetAverageDurationNsec(), section2_avg_duration_ns, /* error = */ 0.05);
 
     EXPECT_EQ(report3->GetTotalHits(), 1);
     EXPECT_EQ(
