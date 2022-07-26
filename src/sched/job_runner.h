@@ -55,6 +55,8 @@ class JobRunner : public std::enable_shared_from_this<JobRunner> {
     /// @return true if any job was stolen
     bool Steal();
 
+    void Stop();
+
     void NotifyOneWorker();
 
     std::size_t ThreadNum() const;

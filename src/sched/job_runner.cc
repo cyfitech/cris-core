@@ -185,13 +185,7 @@ JobRunner::JobRunner(JobRunner::Config config) : config_(std::move(config)) {
 
 JobRunner::~JobRunner() {
     ready_for_stealing_.store(false);
-    for (auto& worker : workers_) {
-        if (!worker) {
-            continue;
-        }
-        worker->Stop();
-        worker->Join();
-    }
+    Stop();
 }
 
 std::shared_ptr<JobRunnerStrand> JobRunner::MakeStrand() {
@@ -253,6 +247,16 @@ bool JobRunner::Steal() {
         }
     }
     return false;
+}
+
+void JobRunner::Stop() {
+    for (auto& worker : workers_) {
+        if (!worker) {
+            continue;
+        }
+        worker->Stop();
+        worker->Join();
+    }
 }
 
 void JobRunner::NotifyOneWorker() {
@@ -367,6 +371,9 @@ void JobRunnerWorker::Stop() {
 }
 
 void JobRunnerWorker::Join() {
+    if (!thread_.joinable()) {
+        return;
+    }
     DLOG(INFO) << __func__ << ": JobRunnerWorker " << index_ << " is stopped.";
     thread_.join();
     std::atomic_thread_fence(std::memory_order::seq_cst);
