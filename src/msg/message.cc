@@ -31,12 +31,12 @@ class SubscriptionMap {
 
     void Dispatch(const CRMessageBasePtr& message);
 
-    cr_timestamp_nsec_t GetLatestDeliveredTime(const channel_id_t channel) const;
+    cr_timestamp_nsec_t GetLatestDeliveredTime(const channel_id_t channel);
 
     static SubscriptionMap& GetInstance();
 
    private:
-    mutable std::shared_mutex                                                     mtx_;
+    std::shared_mutex                                                             mtx_;
     std::unordered_map<channel_id_t, SubscriptionInfo, boost::hash<channel_id_t>> map_;
 };
 
@@ -86,7 +86,7 @@ void SubscriptionMap::Dispatch(const CRMessageBasePtr& message) {
     subscription_info.latest_delivered_time_.store(GetSystemTimestampNsec());
 }
 
-cr_timestamp_nsec_t SubscriptionMap::GetLatestDeliveredTime(const channel_id_t channel) const {
+cr_timestamp_nsec_t SubscriptionMap::GetLatestDeliveredTime(const channel_id_t channel) {
     constexpr cr_timestamp_nsec_t kDefaultDeliveredTime = 0;
     std::shared_lock              lck(mtx_);
 
