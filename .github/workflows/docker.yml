@@ -31,6 +31,7 @@ jobs:
       env:
         JOB:  ${{ github.job }}
         REPO: ${{ github.repository }}
+        DOCKER_BUILDKIT: 1
       run: |
         set -e
         git submodule foreach --recursive -q pwd                    \
@@ -75,6 +76,7 @@ jobs:
       env:
         JOB:  ${{ github.job }}
         REPO: ${{ github.repository }}
+        DOCKER_BUILDKIT: 1
       run: |
         set -e
         git submodule foreach --recursive -q pwd                    \
@@ -119,6 +121,7 @@ jobs:
       env:
         JOB:  ${{ github.job }}
         REPO: ${{ github.repository }}
+        DOCKER_BUILDKIT: 1
       run: |
         set -e
         git submodule foreach --recursive -q pwd                    \
