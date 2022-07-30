@@ -9,8 +9,11 @@
 #elif (defined(__i386__) || defined(__x86_64__) || defined(__amd64__)) && __has_include(<x86intrin.h>)
 #define _CRIS_TIMER_RDTSC 1
 #include <x86intrin.h>
+#elif defined(__aarch64__)
+#define _CRIS_AARCH64_TIME 1
 #endif
 
+#include <cstdint>
 #include <chrono>
 #include <thread>
 
@@ -44,6 +47,16 @@ unsigned long long GetTSCTick([[maybe_unused]] unsigned& aux) {
     return __rdtsc();
 #elif defined(_CRIS_MACH_TIME)
     return mach_absolute_time();
+#elif defined(_CRIS_AARCH64_TIME)
+    // https://github.com/google/benchmark/blob/7d48eff772e0f04761033a4ad2a004b4546df6f8/src/cycleclock.h#L141
+    //
+	// System timer of ARMv8 runs at a different frequency than the CPU's.
+	// The frequency is fixed, typically in the range 1-50MHz.  It can be
+	// read at CNTFRQ special register.  We assume the OS has set up
+	// the virtual timer properly.
+    std::uint64_t virtual_timer_value = 0;
+	asm volatile("mrs %0, cntvct_el0" : "=r"(virtual_timer_value));
+	return static_cast<unsigned long long>(virtual_timer_value);
 #endif
 }
 
