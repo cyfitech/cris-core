@@ -1,17 +1,18 @@
 #include "cris/core/utils/time.h"
 
 #if defined(__APPLE__) && defined(__MACH__) && __has_include(<mach/mach_time.h>)
-#define _CRIS_MACH_TIME 1
+#define _CR_USE_MACH_TIME 1
 #include <mach/mach_time.h>
 #elif _MSC_VER
-#define _CRIS_TIMER_RDTSC 1
+#define _CR_USE_RDTSC 1
 #include <intrin.h>
 #elif (defined(__i386__) || defined(__x86_64__) || defined(__amd64__)) && __has_include(<x86intrin.h>)
-#define _CRIS_TIMER_RDTSC 1
+#define _CR_USE_RDTSC 1
 #include <x86intrin.h>
 #endif
 
 #include <chrono>
+#include <cstdint>
 #include <thread>
 
 namespace cris::core {
@@ -33,7 +34,9 @@ static const double kTscToNsecRatio = []() {
 }();
 
 unsigned long long GetTSCTick([[maybe_unused]] unsigned& aux) {
-#if defined(_CRIS_TIMER_RDTSC)
+#if defined(_CR_USE_MACH_TIME)
+    return mach_absolute_time();
+#elif defined(_CR_USE_RDTSC)
     /* TODO(xkszltl) RDTSCP is serialized, making it a more robust choice than RDTSC.
      * However it is not supported by Linux docker on macOS (via VM internally).
      * Disable it statically until we have better idea for cheap runtime checks.
@@ -42,8 +45,18 @@ unsigned long long GetTSCTick([[maybe_unused]] unsigned& aux) {
         return __rdtscp(&aux);
     }
     return __rdtsc();
-#elif defined(_CRIS_MACH_TIME)
-    return mach_absolute_time();
+#elif defined(__aarch64__)
+    // https://github.com/google/benchmark/blob/7d48eff772e0f04761033a4ad2a004b4546df6f8/src/cycleclock.h#L141
+    //
+    // System timer of ARMv8 runs at a different frequency than the CPU's.
+    // The frequency is fixed, typically in the range 1-50MHz.  It can be
+    // read at CNTFRQ special register.  We assume the OS has set up
+    // the virtual timer properly.
+    std::uint64_t virtual_timer_value = 0;
+    asm volatile("mrs %0, cntvct_el0" : "=r"(virtual_timer_value));
+    return static_cast<unsigned long long>(virtual_timer_value);
+#else
+#error("Unknown platform.")
 #endif
 }
 
