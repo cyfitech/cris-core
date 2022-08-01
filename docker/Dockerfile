@@ -55,7 +55,8 @@ RUN set -e; \
 
 RUN set -e; \
     export DEB_MAX_ATTEMPT=10; \
-    export CRIS_IMG_ARCH="$(case $(uname -m) in \
+    export CRIS_IMG_ARCH="$(set -e; \
+        case $(uname -m) in \
         'amd64' | 'x86_64' | 'x64') \
             echo 'amd64'; \
             ;; \
@@ -119,7 +120,8 @@ FROM bootstrap as dev
 #   https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=963991
 RUN set -e; \
     export DEB_MAX_ATTEMPT=10; \
-    export CRIS_IMG_ARCH="$(case $(uname -m) in \
+    export CRIS_IMG_ARCH="$(set -e; \
+        case $(uname -m) in \
         'amd64' | 'x86_64' | 'x64') \
             echo 'amd64'; \
             ;; \
@@ -279,7 +281,8 @@ RUN set -e; \
 
 RUN set -e; \
     export DEB_MAX_ATTEMPT=10; \
-    export CRIS_IMG_ARCH="$(case $(uname -m) in \
+    export CRIS_IMG_ARCH="$(set -e; \
+        case $(uname -m) in \
         'amd64' | 'x86_64' | 'x64') \
             echo 'amd64'; \
             ;; \
@@ -293,14 +296,15 @@ RUN set -e; \
     if ! which bazel >/dev/null ; then \
         BAZEL_INSTALL_DIR='/usr/local/bin'; \
         BAZEL_VERSION='5.2.0'; \
-        BAZEL_ARCH="$(case "$CRIS_IMG_ARCH" in \
-        'amd64') \
-            echo 'x86_64'; \
-            ;; \
-        'arm64') \
-            echo 'arm64'; \
-            ;; \
-        esac)"; \
+        BAZEL_ARCH="$(set -e; \
+            case "$CRIS_IMG_ARCH" in \
+            'amd64') \
+                echo 'x86_64'; \
+               ;; \
+            'arm64') \
+                echo 'arm64'; \
+                ;; \
+            esac)"; \
         BAZEL_DEB_PACAKGE_NAME="bazel-$BAZEL_VERSION-$BAZEL_ARCH.deb"; \
         curl \
             -fsSL \
