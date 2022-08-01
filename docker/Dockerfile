@@ -3,6 +3,8 @@ FROM "$BASE_IMAGE" AS base
 
 FROM base AS bootstrap
 
+ARG TARGETARCH
+
 SHELL ["/bin/bash", "-c"]
 
 ENV LANG=C.UTF-8
@@ -53,7 +55,7 @@ RUN set -e; \
 
 RUN set -e; \
     export DEB_MAX_ATTEMPT=10; \
-    export CRIS_IMG_ARCH=$(case $(uname -m) in \
+    export CRIS_IMG_ARCH="$(case $(uname -m) in \
         'amd64' | 'x86_64' | 'x64') \
             echo 'amd64'; \
             ;; \
@@ -61,8 +63,9 @@ RUN set -e; \
             echo 'arm64'; \
             ;; \
         *) \
-            echo "unknown"; \
-        esac);  \
+            echo "$TARGETARCH"; \
+            ;; \
+        esac)"; \
     . <(sed 's/^\(..*\)/export DISTRO_\1/' '/etc/os-release'); \
     case "$DISTRO_ID-$DISTRO_VERSION_ID" in \
     'debian-'*) \
@@ -93,7 +96,7 @@ RUN set -e; \
     esac; \
     case "$DISTRO_ID-$DISTRO_VERSION_ID" in \
     'debian-'* | 'linuxmint-'* | 'ubuntu-'*) \
-        if [ "$CRIS_IMG_ARCH" == 'amd64' ]; then \
+        if [ "_$CRIS_IMG_ARCH" == '_amd64' ]; then \
             curl --retry "$DEB_MAX_ATTEMPT" --retry-connrefused --retry-delay 3 -fsSL 'https://bazel.build/bazel-release.pub.gpg' \
             | gpg --dearmor \
             | sudo tee /etc/apt/trusted.gpg.d/bazel.gpg \
@@ -116,7 +119,7 @@ FROM bootstrap as dev
 #   https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=963991
 RUN set -e; \
     export DEB_MAX_ATTEMPT=10; \
-    export CRIS_IMG_ARCH=$(case $(uname -m) in \
+    export CRIS_IMG_ARCH="$(case $(uname -m) in \
         'amd64' | 'x86_64' | 'x64') \
             echo 'amd64'; \
             ;; \
@@ -124,8 +127,9 @@ RUN set -e; \
             echo 'arm64'; \
             ;; \
         *) \
-            echo "unknown"; \
-        esac);  \
+            echo "$TARGETARCH"; \
+            ;; \
+        esac)"; \
     . <(sed 's/^\(..*\)/export DISTRO_\1/' '/etc/os-release'); \
     case "$DISTRO_ID-$DISTRO_VERSION_ID" in \
     'debian-'* | 'linuxmint-'* | 'ubuntu-'*) \
@@ -148,7 +152,7 @@ RUN set -e; \
                 auto{conf{,-archive},make,point} \
                 axel \
                 bash-completion \
-                $( [ "$CRIS_IMG_ARCH" != 'amd64' ] || echo 'bazel=5.2.*')\
+                $( [ "_$CRIS_IMG_ARCH" != '_amd64' ] || echo 'bazel=5.2.*')\
                 bc \
                 bind9-dnsutils \
                 binutils \
@@ -174,7 +178,7 @@ RUN set -e; \
                 httping \
                 ifstat \
                 iftop \
-                $( [ "$CRIS_IMG_ARCH" != 'amd64' ] || echo 'intel-mkl')\
+                $( [ "_$CRIS_IMG_ARCH" != '_amd64' ] || echo 'intel-mkl')\
                 iotop \
                 iproute2{,-doc} \
                 'iputils-*' \
@@ -275,7 +279,7 @@ RUN set -e; \
 
 RUN set -e; \
     export DEB_MAX_ATTEMPT=10; \
-    export CRIS_IMG_ARCH=$(case $(uname -m) in \
+    export CRIS_IMG_ARCH="$(case $(uname -m) in \
         'amd64' | 'x86_64' | 'x64') \
             echo 'amd64'; \
             ;; \
@@ -283,19 +287,20 @@ RUN set -e; \
             echo 'arm64'; \
             ;; \
         *) \
-            echo "unknown"; \
-        esac);  \
+            echo "$TARGETARCH"; \
+            ;; \
+        esac)"; \
     if ! which bazel >/dev/null ; then \
         BAZEL_INSTALL_DIR='/usr/local/bin'; \
         BAZEL_VERSION='5.2.0'; \
-        BAZEL_ARCH=$(case "$CRIS_IMG_ARCH" in \
+        BAZEL_ARCH="$(case "$CRIS_IMG_ARCH" in \
         'amd64') \
             echo 'x86_64'; \
             ;; \
         'arm64') \
             echo 'arm64'; \
             ;; \
-        esac); \
+        esac)"; \
         BAZEL_DEB_PACAKGE_NAME="bazel-$BAZEL_VERSION-$BAZEL_ARCH.deb"; \
         curl \
             -fsSL \
