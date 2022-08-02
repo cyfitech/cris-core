@@ -293,25 +293,16 @@ RUN set -e; \
             echo "$TARGETARCH"; \
             ;; \
         esac)"; \
-    if ! which bazel >/dev/null ; then \
+    if [ "_$CRIS_IMG_ARCH" == '_arm64' ] ; then \
         BAZEL_INSTALL_DIR='/usr/local/bin'; \
         BAZEL_VERSION='5.2.0'; \
-        BAZEL_ARCH="$(set -e; \
-            case "$CRIS_IMG_ARCH" in \
-            'amd64') \
-                echo 'x86_64'; \
-               ;; \
-            'arm64') \
-                echo 'arm64'; \
-                ;; \
-            esac)"; \
-        BAZEL_DEB_PACAKGE_NAME="bazel-$BAZEL_VERSION-$BAZEL_ARCH.deb"; \
+        BAZEL_DEB_PACAKGE_NAME="bazel-$BAZEL_VERSION-arm64.deb"; \
         curl \
             -fsSL \
             --retry "$DEB_MAX_ATTEMPT" \
             --retry-connrefused \
             -o bazel \
-            "https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-linux-$BAZEL_ARCH"; \
+            "https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-linux-arm64"; \
         chmod +x bazel; \
         fpm \
             -t deb -s dir \
