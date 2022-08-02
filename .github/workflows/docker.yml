@@ -57,6 +57,7 @@ jobs:
     - name: Build and Push
       uses: docker/build-push-action@v3
       with:
+        context: .
         file: ${{ steps.docker-build-config.outputs.DOCKER_FILE_PATH }}
         build-args: "BASE_IMAGE=${{ steps.docker-build-config.outputs.BASE_IMAGE }}"
         platforms: linux/amd64,linux/arm64
