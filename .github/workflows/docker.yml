@@ -60,7 +60,7 @@ jobs:
         context: .
         file: ${{ steps.docker-build-config.outputs.DOCKER_FILE_PATH }}
         build-args: "BASE_IMAGE=${{ steps.docker-build-config.outputs.BASE_IMAGE }}"
-        platforms: linux/amd64,linux/arm64
+        platforms: linux/arm64
         push: ${{ github.event_name != 'pull_request' }}
         tags: |
           ghcr.io/${{ steps.docker-build-config.outputs.TAG }}
