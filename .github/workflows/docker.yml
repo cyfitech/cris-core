@@ -48,9 +48,9 @@ jobs:
         | xargs -I{} find {} -maxdepth 1 -name docker -type d                   \
         | sort -u                                                               \
         | head -n1                                                              \
-        | xargs -I{} echo "::set-output name=::DOCKER_FILE_PATH::{}/Dockerfile"
-        echo "::set-output name=::TAG::$REPO-build-$(cut -d- -f2- <<< "$JOB")"
-        echo "::set-output name=::BASE_IMAGE::$(cut -d- -f2- <<< "$JOB"         \
+        | xargs -I{} echo "::set-output name=DOCKER_FILE_PATH::{}/Dockerfile"
+        echo "::set-output name=TAG::$REPO-build-$(cut -d- -f2- <<< "$JOB")"
+        echo "::set-output name=BASE_IMAGE::$(cut -d- -f2- <<< "$JOB"         \
                     | sed 's/\([0-9]\)/:\1/'                                    \
                     | sed 's/\([0-9][0-9]\)\([0-9]\)/\1\.\2/'                   \
              )"
