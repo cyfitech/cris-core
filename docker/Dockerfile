@@ -275,8 +275,27 @@ RUN set -e; \
     rm -rf ~/.cache/pip; \
     truncate -s0 ~/.bash_history;
 
+# TODO(chenhao94) Build packages for arm64.
+#
+# For now we only build packages for amd64 because CI is running on amd64 machines.
+# Otherwise the docker image cross-compiling will be too slow.
 RUN set -e; \
-    /etc/roaster/scripts/setup.sh fpm ccache; \
+    export CRIS_IMG_ARCH="$(set -e; \
+        case $(uname -m) in \
+        'amd64' | 'x86_64' | 'x64') \
+            echo 'amd64'; \
+            ;; \
+        'arm64' | 'aarch64') \
+            echo 'arm64'; \
+            ;; \
+        *) \
+            echo "$TARGETARCH"; \
+            ;; \
+        esac)"; \
+    /etc/roaster/scripts/setup.sh \
+        fpm \
+        "$([ "_$CRIS_IMG_ARCH" == '_amd64' ] && echo 'ccache')" \
+        ; \
     truncate -s0 ~/.bash_history;
 
 RUN set -e; \
