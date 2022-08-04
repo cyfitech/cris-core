@@ -299,7 +299,6 @@ RUN set -e; \
     truncate -s0 ~/.bash_history;
 
 RUN set -e; \
-    export DEB_MAX_ATTEMPT=10; \
     export CRIS_IMG_ARCH="$(set -e; \
         case $(uname -m) in \
         'amd64' | 'x86_64' | 'x64') \
@@ -316,12 +315,16 @@ RUN set -e; \
         BAZEL_INSTALL_DIR='/usr/local/bin'; \
         BAZEL_VERSION='5.2.0'; \
         BAZEL_DEB_PACAKGE_NAME="bazel-$BAZEL_VERSION-arm64.deb"; \
-        curl \
-            -fsSL \
-            --retry "$DEB_MAX_ATTEMPT" \
-            --retry-connrefused \
-            -o bazel \
-            "https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-linux-arm64"; \
+        for retry in $(seq 10 -1 1); do
+            curl \
+                -fsSL \
+                --retry 10 \
+                --retry-connrefused \
+                -o bazel \
+                "https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-linux-arm64" && break; \
+            rm bazel; \
+            [ "$retry" -gt 1 ] && echo "Retry. $(expr "$retry" - 1) time(s) left." && sleep 5;
+        done; \
         chmod +x bazel; \
         fpm \
             -t deb -s dir \
