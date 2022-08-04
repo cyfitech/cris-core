@@ -276,7 +276,7 @@ RUN set -e; \
 # TODO(chenhao94) Build packages for arm64.
 #
 # For now we only build packages for amd64 because CI is running on amd64 machines.
-# Otherwise the docker image cross-compiling will be too slow.
+# Otherwise it will be too slow for CI to build docker images on ARM emulation.
 RUN set -e; \
     export CRIS_IMG_ARCH="$(set -e; \
         case \"$(uname -m)\" in \
@@ -322,7 +322,7 @@ RUN set -e; \
                 "https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-linux-arm64" \
             && break; \
             rm -f bazel; \
-            [ "$retry" -gt 1 ] && echo "Retry. $(expr "$retry" - 1) time(s) left." && sleep 5;
+            [ "$retry" -gt 1 ] && echo "Retry. $(expr "$retry" - 1) time(s) left." && sleep 5; \
         done; \
         chmod +x bazel; \
         fpm \
