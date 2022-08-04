@@ -3,6 +3,8 @@ FROM "$BASE_IMAGE" AS base
 
 FROM base AS bootstrap
 
+ARG TARGETARCH
+
 SHELL ["/bin/bash", "-c"]
 
 ENV LANG=C.UTF-8
@@ -53,6 +55,18 @@ RUN set -e; \
 
 RUN set -e; \
     export DEB_MAX_ATTEMPT=10; \
+    export CRIS_IMG_ARCH="$(set -e; \
+        case \"$(uname -m)\" in \
+        'amd64' | 'x64' | 'x86_64') \
+            echo 'amd64'; \
+            ;; \
+        'aarch64' | 'arm64') \
+            echo 'arm64'; \
+            ;; \
+        *) \
+            echo "$TARGETARCH"; \
+            ;; \
+        esac)"; \
     . <(sed 's/^\(..*\)/export DISTRO_\1/' '/etc/os-release'); \
     case "$DISTRO_ID-$DISTRO_VERSION_ID" in \
     'debian-'*) \
@@ -81,8 +95,8 @@ RUN set -e; \
         done; \
         ;; \
     esac; \
-    case "$DISTRO_ID-$DISTRO_VERSION_ID" in \
-    'debian-'* | 'linuxmint-'* | 'ubuntu-'*) \
+    case "$DISTRO_ID-$DISTRO_VERSION_ID/$CRIS_IMG_ARCH" in \
+    'debian-'*'/amd64' | 'linuxmint-'*'/amd64' | 'ubuntu-'*'/amd64') \
         curl --retry "$DEB_MAX_ATTEMPT" --retry-connrefused --retry-delay 3 -fsSL 'https://bazel.build/bazel-release.pub.gpg' \
         | gpg --dearmor \
         | sudo tee /etc/apt/trusted.gpg.d/bazel.gpg \
@@ -104,6 +118,18 @@ FROM bootstrap as dev
 #   https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=963991
 RUN set -e; \
     export DEB_MAX_ATTEMPT=10; \
+    export CRIS_IMG_ARCH="$(set -e; \
+        case \"$(uname -m)\" in \
+        'amd64' | 'x64' | 'x86_64') \
+            echo 'amd64'; \
+            ;; \
+        'aarch64' | 'arm64') \
+            echo 'arm64'; \
+            ;; \
+        *) \
+            echo "$TARGETARCH"; \
+            ;; \
+        esac)"; \
     . <(sed 's/^\(..*\)/export DISTRO_\1/' '/etc/os-release'); \
     case "$DISTRO_ID-$DISTRO_VERSION_ID" in \
     'debian-'* | 'linuxmint-'* | 'ubuntu-'*) \
@@ -126,7 +152,7 @@ RUN set -e; \
                 auto{conf{,-archive},make,point} \
                 axel \
                 bash-completion \
-                'bazel=5.2.*' \
+                $( [ "_$CRIS_IMG_ARCH" != '_amd64' ] || echo 'bazel=5.2.*')\
                 bc \
                 bind9-dnsutils \
                 binutils \
@@ -152,7 +178,7 @@ RUN set -e; \
                 httping \
                 ifstat \
                 iftop \
-                intel-mkl \
+                $( [ "_$CRIS_IMG_ARCH" != '_amd64' ] || echo 'intel-mkl')\
                 iotop \
                 iproute2{,-doc} \
                 'iputils-*' \
@@ -221,11 +247,6 @@ RUN set -e; \
     sudo locale-gen; \
     truncate -s0 ~/.bash_history;
 
-RUN set -e; \
-    echo 'Pre-extract bazel installation.'; \
-    bazel version; \
-    truncate -s0 ~/.bash_history;
-
 ENV LANG=en_US.UTF-8
 
 RUN set -e; \
@@ -252,8 +273,75 @@ RUN set -e; \
     rm -rf ~/.cache/pip; \
     truncate -s0 ~/.bash_history;
 
+# TODO(chenhao94) Build packages for arm64.
+#
+# For now we only build packages for amd64 because CI is running on amd64 machines.
+# Otherwise it will be too slow for CI to build docker images on ARM emulation.
 RUN set -e; \
-    /etc/roaster/scripts/setup.sh fpm ccache; \
+    export CRIS_IMG_ARCH="$(set -e; \
+        case \"$(uname -m)\" in \
+        'amd64' | 'x64' | 'x86_64') \
+            echo 'amd64'; \
+            ;; \
+        'aarch64' | 'arm64') \
+            echo 'arm64'; \
+            ;; \
+        *) \
+            echo "$TARGETARCH"; \
+            ;; \
+        esac)"; \
+    /etc/roaster/scripts/setup.sh \
+        fpm \
+        "$([ "_$CRIS_IMG_ARCH" = '_amd64' ] && echo 'ccache')" \
+        ; \
+    truncate -s0 ~/.bash_history;
+
+RUN set -e; \
+    export CRIS_IMG_ARCH="$(set -e; \
+        case \"$(uname -m)\" in \
+        'amd64' | 'x64' | 'x86_64') \
+            echo 'amd64'; \
+            ;; \
+        'aarch64' | 'arm64') \
+            echo 'arm64'; \
+            ;; \
+        *) \
+            echo "$TARGETARCH"; \
+            ;; \
+        esac)"; \
+    if [ "_$CRIS_IMG_ARCH" = '_arm64' ] ; then \
+        BAZEL_INSTALL_DIR='/usr/local/bin'; \
+        BAZEL_VERSION='5.2.0'; \
+        for retry in $(seq 30 -1 1); do \
+            curl \
+                -fsSL \
+                --retry 100 \
+                --retry-connrefused \
+                --retry-delay 1 \
+                -o bazel \
+                "https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-linux-arm64" \
+            && break; \
+            rm -f bazel; \
+            [ "$retry" -gt 1 ] && echo "Retry. $(expr "$retry" - 1) time(s) left." && sleep 5; \
+        done; \
+        chmod +x bazel; \
+        fpm \
+            -t deb -s dir \
+            -p "bazel.deb" \
+            --name bazel \
+            --version "$BAZEL_VERSION" \
+            --architecture native \
+            "bazel=$BAZEL_INSTALL_DIR/bazel"; \
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$(pwd)/bazel.deb"; \
+        sudo apt-get autoremove -y; \
+        sudo apt-get clean; \
+        sudo rm -rf /var/lib/apt/lists/*; \
+    fi; \
+    truncate -s0 ~/.bash_history;
+
+RUN set -e; \
+    echo 'Pre-extract bazel installation.'; \
+    bazel version; \
     truncate -s0 ~/.bash_history;
 
 RUN set -e; \
