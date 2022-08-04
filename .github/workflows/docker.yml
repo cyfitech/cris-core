@@ -64,7 +64,8 @@ jobs:
         platforms: linux/amd64,linux/arm64
         push: ${{ github.event_name != 'pull_request' }}
         tags: |
-          ghcr.io/${{ steps.docker-build-config.outputs.TAG }}
+          ghcr.io/${{ steps.docker-build-config.outputs.TAG }}:latest
+          ghcr.io/${{ steps.docker-build-config.outputs.TAG }}:ci
 
   docker-ubuntu2004:
     runs-on: ubuntu-latest
@@ -113,7 +114,8 @@ jobs:
         platforms: linux/amd64,linux/arm64
         push: ${{ github.event_name != 'pull_request' }}
         tags: |
-          ghcr.io/${{ steps.docker-build-config.outputs.TAG }}
+          ghcr.io/${{ steps.docker-build-config.outputs.TAG }}:latest
+          ghcr.io/${{ steps.docker-build-config.outputs.TAG }}:ci
 
   docker-ubuntu2204:
     runs-on: ubuntu-latest
@@ -162,4 +164,5 @@ jobs:
         platforms: linux/amd64,linux/arm64
         push: ${{ github.event_name != 'pull_request' }}
         tags: |
-          ghcr.io/${{ steps.docker-build-config.outputs.TAG }}
+          ghcr.io/${{ steps.docker-build-config.outputs.TAG }}:latest
+          ghcr.io/${{ steps.docker-build-config.outputs.TAG }}:ci
