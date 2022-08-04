@@ -56,11 +56,11 @@ RUN set -e; \
 RUN set -e; \
     export DEB_MAX_ATTEMPT=10; \
     export CRIS_IMG_ARCH="$(set -e; \
-        case $(uname -m) in \
-        'amd64' | 'x86_64' | 'x64') \
+        case \"$(uname -m)\" in \
+        'amd64' | 'x64' | 'x86_64') \
             echo 'amd64'; \
             ;; \
-        'arm64' | 'aarch64') \
+        'aarch64' | 'arm64') \
             echo 'arm64'; \
             ;; \
         *) \
@@ -95,19 +95,17 @@ RUN set -e; \
         done; \
         ;; \
     esac; \
-    case "$DISTRO_ID-$DISTRO_VERSION_ID" in \
-    'debian-'* | 'linuxmint-'* | 'ubuntu-'*) \
-        if [ "_$CRIS_IMG_ARCH" == '_amd64' ]; then \
-            curl --retry "$DEB_MAX_ATTEMPT" --retry-connrefused --retry-delay 3 -fsSL 'https://bazel.build/bazel-release.pub.gpg' \
-            | gpg --dearmor \
-            | sudo tee /etc/apt/trusted.gpg.d/bazel.gpg \
-            >/dev/null; \
-            echo "deb [arch=$CRIS_IMG_ARCH] https://storage.googleapis.com/bazel-apt stable jdk1.8" \
-            | sudo tee /etc/apt/sources.list.d/bazel.list; \
-            sudo apt-get autoremove -y; \
-            sudo apt-get clean; \
-            sudo rm -rf /var/lib/apt/lists/*; \
-        fi; \
+    case "$DISTRO_ID-$DISTRO_VERSION_ID/$CRIS_IMG_ARCH" in \
+    'debian-'*'/amd64' | 'linuxmint-'*'/amd64' | 'ubuntu-'*'/amd64') \
+        curl --retry "$DEB_MAX_ATTEMPT" --retry-connrefused --retry-delay 3 -fsSL 'https://bazel.build/bazel-release.pub.gpg' \
+        | gpg --dearmor \
+        | sudo tee /etc/apt/trusted.gpg.d/bazel.gpg \
+        >/dev/null; \
+        echo "deb [arch=amd64] https://storage.googleapis.com/bazel-apt stable jdk1.8" \
+        | sudo tee /etc/apt/sources.list.d/bazel.list; \
+        sudo apt-get autoremove -y; \
+        sudo apt-get clean; \
+        sudo rm -rf /var/lib/apt/lists/*; \
         ;; \
     esac; \
     truncate -s0 ~/.bash_history;
@@ -121,11 +119,11 @@ FROM bootstrap as dev
 RUN set -e; \
     export DEB_MAX_ATTEMPT=10; \
     export CRIS_IMG_ARCH="$(set -e; \
-        case $(uname -m) in \
-        'amd64' | 'x86_64' | 'x64') \
+        case \"$(uname -m)\" in \
+        'amd64' | 'x64' | 'x86_64') \
             echo 'amd64'; \
             ;; \
-        'arm64' | 'aarch64') \
+        'aarch64' | 'arm64') \
             echo 'arm64'; \
             ;; \
         *) \
@@ -281,11 +279,11 @@ RUN set -e; \
 # Otherwise the docker image cross-compiling will be too slow.
 RUN set -e; \
     export CRIS_IMG_ARCH="$(set -e; \
-        case $(uname -m) in \
-        'amd64' | 'x86_64' | 'x64') \
+        case \"$(uname -m)\" in \
+        'amd64' | 'x64' | 'x86_64') \
             echo 'amd64'; \
             ;; \
-        'arm64' | 'aarch64') \
+        'aarch64' | 'arm64') \
             echo 'arm64'; \
             ;; \
         *) \
@@ -294,47 +292,54 @@ RUN set -e; \
         esac)"; \
     /etc/roaster/scripts/setup.sh \
         fpm \
-        "$([ "_$CRIS_IMG_ARCH" == '_amd64' ] && echo 'ccache')" \
+        "$([ "_$CRIS_IMG_ARCH" = '_amd64' ] && echo 'ccache')" \
         ; \
     truncate -s0 ~/.bash_history;
 
 RUN set -e; \
     export CRIS_IMG_ARCH="$(set -e; \
-        case $(uname -m) in \
-        'amd64' | 'x86_64' | 'x64') \
+        case \"$(uname -m)\" in \
+        'amd64' | 'x64' | 'x86_64') \
             echo 'amd64'; \
             ;; \
-        'arm64' | 'aarch64') \
+        'aarch64' | 'arm64') \
             echo 'arm64'; \
             ;; \
         *) \
             echo "$TARGETARCH"; \
             ;; \
         esac)"; \
-    if [ "_$CRIS_IMG_ARCH" == '_arm64' ] ; then \
+    if [ "_$CRIS_IMG_ARCH" = '_arm64' ] ; then \
         BAZEL_INSTALL_DIR='/usr/local/bin'; \
         BAZEL_VERSION='5.2.0'; \
-        BAZEL_DEB_PACAKGE_NAME="bazel-$BAZEL_VERSION-arm64.deb"; \
-        for retry in $(seq 10 -1 1); do
+        for retry in $(seq 30 -1 1); do \
             curl \
                 -fsSL \
-                --retry 10 \
+                --retry 100 \
                 --retry-connrefused \
+                --retry-delay 1 \
                 -o bazel \
-                "https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-linux-arm64" && break; \
-            rm bazel; \
+                "https://github.com/bazelbuild/bazel/releases/download/$BAZEL_VERSION/bazel-$BAZEL_VERSION-linux-arm64" \
+            && break; \
+            rm -f bazel; \
             [ "$retry" -gt 1 ] && echo "Retry. $(expr "$retry" - 1) time(s) left." && sleep 5;
         done; \
         chmod +x bazel; \
         fpm \
             -t deb -s dir \
-            -p "$BAZEL_DEB_PACAKGE_NAME" \
+            -p "bazel.deb" \
             --name bazel \
             --version "$BAZEL_VERSION" \
             --architecture native \
             "bazel=$BAZEL_INSTALL_DIR/bazel"; \
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$(pwd)/$BAZEL_DEB_PACAKGE_NAME"; \
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "$(pwd)/bazel.deb"; \
+        sudo apt-get autoremove -y; \
+        sudo apt-get clean; \
+        sudo rm -rf /var/lib/apt/lists/*; \
     fi; \
+    truncate -s0 ~/.bash_history;
+
+RUN set -e; \
     echo 'Pre-extract bazel installation.'; \
     bazel version; \
     truncate -s0 ~/.bash_history;
