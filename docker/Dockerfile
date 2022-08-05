@@ -56,7 +56,7 @@ RUN set -e; \
 RUN set -e; \
     export DEB_MAX_ATTEMPT=10; \
     export CRIS_IMG_ARCH="$(set -e; \
-        case \"$(uname -m)\" in \
+        case "$(uname -m)" in \
         'amd64' | 'x64' | 'x86_64') \
             echo 'amd64'; \
             ;; \
@@ -119,7 +119,7 @@ FROM bootstrap as dev
 RUN set -e; \
     export DEB_MAX_ATTEMPT=10; \
     export CRIS_IMG_ARCH="$(set -e; \
-        case \"$(uname -m)\" in \
+        case "$(uname -m)" in \
         'amd64' | 'x64' | 'x86_64') \
             echo 'amd64'; \
             ;; \
@@ -279,7 +279,7 @@ RUN set -e; \
 # Otherwise it will be too slow for CI to build docker images on ARM emulation.
 RUN set -e; \
     export CRIS_IMG_ARCH="$(set -e; \
-        case \"$(uname -m)\" in \
+        case "$(uname -m)" in \
         'amd64' | 'x64' | 'x86_64') \
             echo 'amd64'; \
             ;; \
@@ -298,7 +298,7 @@ RUN set -e; \
 
 RUN set -e; \
     export CRIS_IMG_ARCH="$(set -e; \
-        case \"$(uname -m)\" in \
+        case "$(uname -m)" in \
         'amd64' | 'x64' | 'x86_64') \
             echo 'amd64'; \
             ;; \
