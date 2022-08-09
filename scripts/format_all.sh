@@ -46,14 +46,14 @@ find . $(find . -maxdepth 1 -name .gitmodules -type f                           
     -type f                                                                     \
 | sort -u                                                                       \
 | tr '\n' '\0'                                                                  \
-| $(which parallel >/dev/null && echo "parallel -j$(nproc) -k -q" || echo 'xargs -rI{}') -0 bash -c 'set -e;
+| $(which parallel >/dev/null && echo "parallel -j$(nproc) -k -q" || echo 'xargs -rI{}') -0 bash -c 'set -e
     FILE_NAME="{}"
     case "$FILE_NAME" in
-        *.c | *.cc | *.cpp | *.h | *.hpp | *.proto)
-            '"'$CLANG_FORMAT'"' -i "$FILE_NAME"
-            ;;
-        *.py)
-            python3 -m black -q "$FILE_NAME"
-            ;;
+    *.c | *.cc | *.cpp | *.h | *.hpp | *.proto)
+        '"'$CLANG_FORMAT'"' -i "$FILE_NAME"
+        ;;
+    *.py)
+        python3 -m black -q "$FILE_NAME"
+        ;;
     esac
 '
