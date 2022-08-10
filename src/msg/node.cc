@@ -12,7 +12,7 @@ namespace cris::core {
 CRNode::CRNode(std::string name, std::shared_ptr<JobRunner> runner) : name_(std::move(name)), runner_weak_(runner) {
     if (!runner) {
         LOG(INFO) << __func__ << ": Node \"" << GetName() << "\"(at 0x" << std::hex
-                  << reinterpret_cast<std::uintptr_t>(this) << ") binds with no runner.";
+                  << reinterpret_cast<std::uintptr_t>(this) << ") binds with no runner." << std::dec;
         return;
     }
     can_subscribe_ = true;

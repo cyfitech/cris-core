@@ -171,7 +171,7 @@ void JobRunnerStrand::PushToRunnerIfNeeded(const bool is_in_running_job) {
 }
 
 JobRunner::JobRunner(JobRunner::Config config) : config_(std::move(config)) {
-    LOG(INFO) << __func__ << ": JobRunner at 0x" << std::hex << reinterpret_cast<std::uintptr_t>(this)
+    LOG(INFO) << __func__ << ": JobRunner at 0x" << std::hex << reinterpret_cast<std::uintptr_t>(this) << std::dec
               << " initialized with " << config_.thread_num_ << " worker(s). " << config_.always_active_thread_num_
               << " of them always stay active, others go to sleep if stay idle for more than "
               << std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(config_.active_time_).count()
