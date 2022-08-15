@@ -1,9 +1,7 @@
 #pragma once
 
-#include "cris/core/msg/message.h"
 #include "cris/core/utils/time.h"
 
-#include "leveldb/comparator.h"
 #include "leveldb/db.h"
 
 #include <memory>
@@ -18,17 +16,6 @@ struct RecordFileKey {
     static RecordFileKey FromSlice(const leveldb::Slice& slice);
 
     static int compare(const RecordFileKey& lhs, const RecordFileKey& rhs);
-
-    class LevelDBComparator : public leveldb::Comparator {
-       public:
-        int Compare(const leveldb::Slice& lhs, const leveldb::Slice& rhs) const override;
-
-        const char* Name() const override;
-
-        // Ignore the following.
-        void FindShortestSeparator(std::string*, const leveldb::Slice&) const override {}
-        void FindShortSuccessor(std::string*) const override {}
-    };
 
     // Use timestamp as primary for easier db merging and cross-db comparison.
     cr_timestamp_nsec_t timestamp_{0};
@@ -85,13 +72,6 @@ class RecordFile {
    protected:
     std::string                      file_path_;
     std::unique_ptr<leveldb::DB>     db_;
-    RecordFileKey::LevelDBComparator leveldb_cmp_;
 };
-
-template<CRMessageType message_t>
-void MessageFromStr(message_t& msg, const std::string& serialized_msg);
-
-template<CRMessageType message_t>
-std::string MessageToStr(const message_t& msg);
 
 }  // namespace cris::core

@@ -13,7 +13,20 @@
 #include <type_traits>
 #include <utility>
 
+#include "leveldb/comparator.h"
+
 namespace cris::core {
+
+class RecordFileKeyLdbComparator : public leveldb::Comparator {
+   public:
+    int Compare(const leveldb::Slice& lhs, const leveldb::Slice& rhs) const override;
+
+    const char* Name() const override;
+
+    // Ignore the following.
+    void FindShortestSeparator(std::string*, const leveldb::Slice&) const override {}
+    void FindShortSuccessor(std::string*) const override {}
+};
 
 RecordFileKey RecordFileKey::Make() {
     // Those counters are the tie-breakers if the timestamps are the same
@@ -48,11 +61,11 @@ int RecordFileKey::compare(const RecordFileKey& lhs, const RecordFileKey& rhs) {
     }
 }
 
-int RecordFileKey::LevelDBComparator::Compare(const leveldb::Slice& lhs, const leveldb::Slice& rhs) const {
+int RecordFileKeyLdbComparator::Compare(const leveldb::Slice& lhs, const leveldb::Slice& rhs) const {
     return RecordFileKey::compare(RecordFileKey::FromSlice(lhs), RecordFileKey::FromSlice(rhs));
 }
 
-const char* RecordFileKey::LevelDBComparator::Name() const {
+const char* RecordFileKeyLdbComparator::Name() const {
     static const auto name = GetTypeName<std::remove_cvref_t<decltype(*this)>>();
     return name.c_str();
 }
@@ -77,6 +90,7 @@ void RecordFileIterator::Next() {
 }
 
 RecordFile::RecordFile(std::string file_path) : file_path_(std::move(file_path)) {
+    static RecordFileKeyLdbComparator leveldb_cmp_;
     leveldb::DB*     db;
     leveldb::Options options;
     options.create_if_missing = true;
