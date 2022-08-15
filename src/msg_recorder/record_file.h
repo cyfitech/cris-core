@@ -70,8 +70,8 @@ class RecordFile {
     bool Empty() const;
 
    protected:
-    std::string                      file_path_;
-    std::unique_ptr<leveldb::DB>     db_;
+    std::string                  file_path_;
+    std::unique_ptr<leveldb::DB> db_;
 };
 
 }  // namespace cris::core

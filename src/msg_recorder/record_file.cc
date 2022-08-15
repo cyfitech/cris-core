@@ -4,6 +4,8 @@
 #include "cris/core/utils/logging.h"
 #include "cris/core/utils/time.h"
 
+#include "leveldb/comparator.h"
+
 #include <algorithm>
 #include <array>
 #include <atomic>
@@ -12,8 +14,6 @@
 #include <string>
 #include <type_traits>
 #include <utility>
-
-#include "leveldb/comparator.h"
 
 namespace cris::core {
 
@@ -91,8 +91,8 @@ void RecordFileIterator::Next() {
 
 RecordFile::RecordFile(std::string file_path) : file_path_(std::move(file_path)) {
     static RecordFileKeyLdbComparator leveldb_cmp_;
-    leveldb::DB*     db;
-    leveldb::Options options;
+    leveldb::DB*                      db;
+    leveldb::Options                  options;
     options.create_if_missing = true;
     options.comparator        = &leveldb_cmp_;
     auto status               = leveldb::DB::Open(options, file_path_, &db);
