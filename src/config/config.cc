@@ -6,6 +6,7 @@
 
 #include <memory>
 #include <mutex>
+#include <string_view>
 #include <utility>
 
 namespace cris::core {
@@ -59,10 +60,13 @@ std::shared_ptr<ConfigBase> ConfigFile::RegisterOrGet(
 }
 
 void ConfigFile::InitConfigJsonContext() {
-    if (const auto load_err = simdjson::padded_string::load(filepath_).get(json_context_.buf_)) {
-        LOG(ERROR) << __func__ << ": Failed to load Config: " << filepath_ << " "
-                   << simdjson::simdjson_error(load_err).what();
-        return;
+    if (filepath_.empty()) {
+        LOG(WARNING) << __func__ << ": Empty config path, using default configuration.";
+        json_context_.buf_ = simdjson::padded_string(std::string_view("{}"));
+    } else if (const auto load_err = simdjson::padded_string::load(filepath_).get(json_context_.buf_)) {
+        LOG(ERROR) << __func__ << ": Failed to load Config \"" << filepath_
+                   << "\": " << simdjson::simdjson_error(load_err).what() << " Using default configuration instead.";
+        json_context_.buf_ = simdjson::padded_string(std::string_view("{}"));
     }
 
     if (const auto parse_err = json_context_.parser_.iterate(json_context_.buf_).get(json_context_.doc_)) {

@@ -160,4 +160,13 @@ TEST_F(ConfigTest, ConfigDataGetStringRep) {
     EXPECT_FALSE(impl::ConfigDataGetStringRep(SomeRandomClass()).empty());
 }
 
+TEST_F(ConfigTest, WrongFilePath) {
+    ConfigFile empty_config("");
+    ConfigFile invalid_file_config("nonexistent.config");
+
+    int default_val = 100;
+    EXPECT_EQ(empty_config.Get<int>("key", default_val)->GetValue(), default_val);
+    EXPECT_EQ(invalid_file_config.Get<int>("key", default_val)->GetValue(), default_val);
+}
+
 }  // namespace cris::core
