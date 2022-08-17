@@ -17,7 +17,7 @@
 
 namespace cris::core {
 
-class RecordFileKeyLdbComparator : public leveldb::Comparator {
+class RecordFileKeyLdbCmp : public leveldb::Comparator {
    public:
     int Compare(const leveldb::Slice& lhs, const leveldb::Slice& rhs) const override;
 
@@ -61,11 +61,11 @@ int RecordFileKey::compare(const RecordFileKey& lhs, const RecordFileKey& rhs) {
     }
 }
 
-int RecordFileKeyLdbComparator::Compare(const leveldb::Slice& lhs, const leveldb::Slice& rhs) const {
+int RecordFileKeyLdbCmp::Compare(const leveldb::Slice& lhs, const leveldb::Slice& rhs) const {
     return RecordFileKey::compare(RecordFileKey::FromSlice(lhs), RecordFileKey::FromSlice(rhs));
 }
 
-const char* RecordFileKeyLdbComparator::Name() const {
+const char* RecordFileKeyLdbCmp::Name() const {
     static const auto name = GetTypeName<std::remove_cvref_t<decltype(*this)>>();
     return name.c_str();
 }
@@ -90,9 +90,9 @@ void RecordFileIterator::Next() {
 }
 
 RecordFile::RecordFile(std::string file_path) : file_path_(std::move(file_path)) {
-    static RecordFileKeyLdbComparator leveldb_cmp_;
-    leveldb::DB*                      db;
-    leveldb::Options                  options;
+    static RecordFileKeyLdbCmp leveldb_cmp_;
+    leveldb::DB*               db;
+    leveldb::Options           options;
     options.create_if_missing = true;
     options.comparator        = &leveldb_cmp_;
     auto status               = leveldb::DB::Open(options, file_path_, &db);
