@@ -38,23 +38,40 @@ cris_cc_library (
 )
 
 cris_cc_library (
-    name = "msg_recorder",
-    srcs = glob([
-            "src/msg_recorder/**/*.cc",
-            "src/msg_recorder/impl/**/*.h",
-    ]),
-    hdrs = glob([
-            "src/msg_recorder/**/*.h",
-        ], exclude = [
-            "src/msg_recorder/impl/**/*.h",
-    ]),
+    name = "msg_record_file",
+    srcs = ["src/msg_recorder/record_file.cc"],
+    hdrs = ["src/msg_recorder/record_file.h"],
     include_prefix = "cris/core",
     strip_include_prefix = "src",
+    copts = [
+        "-fno-rtti",
+    ],
     linkopts = [
         "-lleveldb",
     ],
     deps = [
+        ":utils",
+    ],
+    visibility = ["//visibility:private"],
+)
+
+cris_cc_library (
+    name = "msg_recorder",
+    srcs = [
+        "src/msg_recorder/recorder.cc",
+        "src/msg_recorder/replayer.cc",
+        "src/msg_recorder/impl/utils.h",
+        "src/msg_recorder/impl/utils.cc",
+    ],
+    hdrs = [
+        "src/msg_recorder/recorder.h",
+        "src/msg_recorder/replayer.h",
+    ],
+    include_prefix = "cris/core",
+    strip_include_prefix = "src",
+    deps = [
         ":msg",
+        ":msg_record_file",
         "@fmt//:libfmt",
     ],
 )

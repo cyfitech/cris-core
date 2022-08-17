@@ -1,5 +1,6 @@
 #pragma once
 
+#include "cris/core/msg/message.h"
 #include "cris/core/msg/node.h"
 #include "cris/core/msg_recorder/record_file.h"
 
@@ -69,6 +70,9 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
     std::vector<std::unique_ptr<RecordFile>> record_files_;
     RecordReaderPQueue                       record_readers_;
 };
+
+template<CRMessageType message_t>
+void MessageFromStr(message_t& msg, const std::string& serialized_msg);
 
 template<CRMessageType message_t>
 void MessageReplayer::RegisterChannel(const MessageReplayer::channel_subid_t subid) {
