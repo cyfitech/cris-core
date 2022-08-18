@@ -20,7 +20,7 @@ class ConfigTest : public testing::Test {
    public:
     ConfigTest()
         : testing::Test()
-        , test_config_path_(fs::temp_directory_path() / fmt::format("config_test.pid.{}.config", getpid())) {}
+        , test_config_path_(fs::temp_directory_path() / fmt::format("config_test.pid.{}.json", getpid())) {}
 
     ~ConfigTest() { fs::remove(test_config_path_); }
 
@@ -162,7 +162,7 @@ TEST_F(ConfigTest, ConfigDataGetStringRep) {
 
 TEST_F(ConfigTest, WrongFilePath) {
     ConfigFile empty_config("");
-    ConfigFile invalid_file_config("nonexistent.config");
+    ConfigFile invalid_file_config("nonexistent.json");
 
     int default_val = 100;
     EXPECT_EQ(empty_config.Get<int>("key", default_val)->GetValue(), default_val);
