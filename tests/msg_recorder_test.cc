@@ -42,8 +42,8 @@ class RecorderTest : public testing::Test {
     path record_dir_;
 
     static constexpr int         kMessageManagerThreadNum = 1;
-    static constexpr std::size_t kMessageNum              = 100;
-    static constexpr auto        kSleepBetweenMessages    = std::chrono::milliseconds(10);
+    static constexpr std::size_t kMessageNum              = 10;
+    static constexpr auto        kSleepBetweenMessages    = std::chrono::milliseconds(100);
     static constexpr auto        kTotalRecordTime         = (kMessageNum - 1) * kSleepBetweenMessages;
 };
 
@@ -131,7 +131,7 @@ void RecorderTest::TestReplay(double speed_up) {
                 first_message_timestamp = std::chrono::steady_clock::now();
             } else {
                 auto elasped = std::chrono::steady_clock::now() - first_message_timestamp;
-                CR_EXPECT_NEAR_DURATION(elasped * speed_up, value * kSleepBetweenMessages, 0.15);
+                CR_EXPECT_NEAR_DURATION(elasped * speed_up, value * kSleepBetweenMessages, 0.3);
             }
         },
         /* allow_concurrency = */ false);
@@ -143,7 +143,7 @@ void RecorderTest::TestReplay(double speed_up) {
             EXPECT_FALSE(int_value % 2 == 0);
             EXPECT_EQ(int_value / 2, current);
             auto elasped = std::chrono::steady_clock::now() - first_message_timestamp;
-            CR_EXPECT_NEAR_DURATION(elasped * speed_up, int_value * kSleepBetweenMessages, 0.15);
+            CR_EXPECT_NEAR_DURATION(elasped * speed_up, int_value * kSleepBetweenMessages, 0.3);
         },
         /* allow_concurrency = */ false);
 
@@ -157,7 +157,7 @@ void RecorderTest::TestReplay(double speed_up) {
 
     EXPECT_EQ(int_msg_count->load(), kMessageNum / 2);
     EXPECT_EQ(double_msg_count->load(), kMessageNum / 2);
-    CR_EXPECT_NEAR_DURATION(replayer_duration * speed_up, kTotalRecordTime, 0.1);
+    CR_EXPECT_NEAR_DURATION(replayer_duration * speed_up, kTotalRecordTime, 0.3);
 }
 
 TEST_F(RecorderTest, RecorderTest) {
