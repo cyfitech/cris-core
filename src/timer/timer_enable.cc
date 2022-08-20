@@ -225,8 +225,10 @@ std::unique_ptr<TimerReport> TimerStatCollector::GetReport(TimerSection* section
     report->section_name_    = section->name_;
     report->timing_duration_ = last_merge_time_ - last_clear_time_;
     for (std::size_t i = 0; i < kTimerEntryBucketNum; ++i) {
+        const auto bucket_hits = entry.duration_buckets_[i].hits_;
+        report->has_data_ |= static_cast<bool>(bucket_hits);
         report->report_buckets_.emplace_back(impl::TimerStatEntryBucket{
-            .hits_              = entry.duration_buckets_[i].hits_,
+            .hits_              = bucket_hits,
             .total_duration_ns_ = static_cast<cr_duration_nsec_t>(entry.duration_buckets_[i].total_duration_ns_),
         });
     }
@@ -234,7 +236,9 @@ std::unique_ptr<TimerReport> TimerStatCollector::GetReport(TimerSection* section
     if (recursive) {
         std::shared_lock lock(section->shared_mtx_);
         for (auto& subsection : section->subsections_) {
-            report->AddSubsection(GetReport(subsection.second.get(), recursive));
+            auto subsection_report = GetReport(subsection.second.get(), recursive);
+            report->has_data_ |= subsection_report->has_data_;
+            report->AddSubsection(std::move(subsection_report));
         }
     }
     return report;
@@ -313,6 +317,9 @@ void TimerReport::PrintToLog(unsigned indent_level) const {
     using std::chrono::duration_cast;
     using std::chrono::nanoseconds;
     const std::string indent(4 * indent_level, ' ');
+    if (!has_data_) {
+        return;
+    }
     LOG(INFO) << indent << "Section '" << GetSectionName() << "':";
     if (GetTotalHits() > 0) {
         LOG(INFO) << indent << "    hits    : " << GetTotalHits() << " times, freq: " << GetFreq() << " Hz";

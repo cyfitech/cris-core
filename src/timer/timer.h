@@ -58,6 +58,7 @@ class TimerReport {
 
     void PrintToLog(unsigned indent_level = 0) const;
 
+    bool                                                has_data_{false};
     std::string                                         section_name_;
     cr_duration_nsec_t                                  timing_duration_{0};
     std::vector<impl::TimerStatEntryBucket>             report_buckets_;
