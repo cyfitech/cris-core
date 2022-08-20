@@ -70,14 +70,20 @@ class TimerSession {
 
     TimerSession(cr_timestamp_nsec_t started_timestamp, std::size_t collector_index);
 
+    TimerSession(TimerSession&& session);
+
+    TimerSession(const TimerSession&) = delete;
+    TimerSession& operator=(const TimerSession&) = delete;
+    TimerSession& operator=(TimerSession&& session) = delete;
+
     ~TimerSession();
 
     void EndSession();
 
    private:
-    [[PRIVATE_MAYBE_UNUSED]] bool                is_ended_{false};
-    [[PRIVATE_MAYBE_UNUSED]] cr_timestamp_nsec_t started_timestamp_;
-    [[PRIVATE_MAYBE_UNUSED]] std::size_t         collector_index_;
+    bool                is_ended_{false};
+    cr_timestamp_nsec_t started_timestamp_;
+    std::size_t         collector_index_;
 };
 
 class TimerSection {
