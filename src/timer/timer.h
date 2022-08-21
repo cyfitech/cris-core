@@ -59,7 +59,7 @@ class TimerReport {
     void PrintToLog(unsigned indent_level = 0) const;
 
     std::string                                         section_name_;
-    cr_duration_nsec_t                                  timing_duration_;
+    cr_duration_nsec_t                                  timing_duration_{0};
     std::vector<impl::TimerStatEntryBucket>             report_buckets_;
     std::map<std::string, std::unique_ptr<TimerReport>> subsections_;
 };
@@ -82,8 +82,8 @@ class TimerSession {
 
    private:
     bool                is_ended_{false};
-    cr_timestamp_nsec_t started_timestamp_;
-    std::size_t         collector_index_;
+    cr_timestamp_nsec_t started_timestamp_{0};
+    std::size_t         collector_index_{0};
 };
 
 class TimerSection {
@@ -118,7 +118,7 @@ class TimerSection {
 
    private:
     std::string                                          name_;
-    [[PRIVATE_MAYBE_UNUSED]] std::size_t                 collector_index_;
+    [[PRIVATE_MAYBE_UNUSED]] std::size_t                 collector_index_{0};
     [[PRIVATE_MAYBE_UNUSED]] std::shared_mutex           shared_mtx_;
     std::map<std::string, std::unique_ptr<TimerSection>> subsections_;
 
