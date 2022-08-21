@@ -35,6 +35,8 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
     // Need to set before running
     void SetSpeedupRate(double rate);
 
+    void SetCompletionCallback(std::function<void()>&& on_completion);
+
     void MainLoop() override;
 
     void StopMainLoop() override;
@@ -69,6 +71,8 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
     std::filesystem::path                    record_dir_;
     std::vector<std::unique_ptr<RecordFile>> record_files_;
     RecordReaderPQueue                       record_readers_;
+
+    std::function<void()> on_completion_;
 };
 
 template<CRMessageType message_t>

@@ -19,6 +19,10 @@ void MessageReplayer::SetSpeedupRate(double rate) {
     speed_up_rate_ = rate;
 }
 
+void MessageReplayer::SetCompletionCallback(std::function<void()>&& on_completion) {
+    on_completion_ = std::move(on_completion);
+}
+
 void MessageReplayer::MainLoop() {
     while (!shutdown_flag_.load() && !record_readers_.Empty()) {
         auto top_reader            = record_readers_.Pop();
@@ -45,6 +49,10 @@ void MessageReplayer::MainLoop() {
         if (top_reader.record_itr_.Valid()) {
             record_readers_.Push(std::move(top_reader));
         }
+    }
+
+    if (!shutdown_flag_.load() && on_completion_) {
+        on_completion_();
     }
 }
 
