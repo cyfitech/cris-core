@@ -35,6 +35,9 @@ TEST(TimerTest, Basic) {
     for (std::size_t i = 0; i < kTestHits; ++i) {
         auto timer2 = section2->StartTimerSession();
         std::this_thread::sleep_for(kTestSessionDuration);
+
+        // Sessions are movable.
+        auto new_timer2 = std::move(timer2);
     }
 
     timer1.EndSession();
