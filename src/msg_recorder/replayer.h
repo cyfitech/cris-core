@@ -28,7 +28,7 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
     MessageReplayer& operator=(const MessageReplayer&) = delete;
 
     template<CRMessageType message_t>
-    void RegisterChannel(const channel_subid_t subid);
+    bool RegisterChannel(const channel_subid_t subid);
 
     std::filesystem::path GetRecordDir() const;
 
@@ -39,7 +39,7 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
 
     void StopMainLoop() override;
 
-   private:
+   protected:
     RecordFileIterator GetRecordItr(const std::string& message_type, channel_subid_t subid);
 
     struct RecordReader {
@@ -72,10 +72,11 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
 };
 
 template<CRMessageType message_t>
-void MessageFromStr(message_t& msg, const std::string& serialized_msg);
-
-template<CRMessageType message_t>
-void MessageReplayer::RegisterChannel(const MessageReplayer::channel_subid_t subid) {
+bool MessageReplayer::RegisterChannel(const MessageReplayer::channel_subid_t subid) {
+    auto itr = GetRecordItr(GetTypeName<message_t>(), subid);
+    if (!itr.Valid()) {
+        return false;
+    }
     record_readers_.Push({
         .subid_            = subid,
         .msg_deserializer_ = [](const std::string& serialized_value) -> CRMessageBasePtr {
@@ -83,8 +84,9 @@ void MessageReplayer::RegisterChannel(const MessageReplayer::channel_subid_t sub
             MessageFromStr(*msg, serialized_value);
             return msg;
         },
-        .record_itr_ = GetRecordItr(GetTypeName<message_t>(), subid),
+        .record_itr_ = std::move(itr),
     });
+    return true;
 }
 
 }  // namespace cris::core

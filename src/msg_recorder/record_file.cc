@@ -108,7 +108,7 @@ RecordFile::~RecordFile() {
     db_.reset();
     if (is_empty) {
         LOG(INFO) << "Record \"" << file_path_ << "\" is empty, removing.";
-        std::filesystem::remove(file_path_);
+        std::filesystem::remove_all(file_path_);
     }
 }
 

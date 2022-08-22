@@ -44,9 +44,6 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
 };
 
 template<CRMessageType message_t>
-std::string MessageToStr(const message_t& msg);
-
-template<CRMessageType message_t>
 void MessageRecorder::RegisterChannel(const MessageRecorder::channel_subid_t subid, const std::string& alias) {
     auto* record_file = CreateFile(GetTypeName<message_t>(), subid, alias);
 
