@@ -18,7 +18,8 @@
 
 namespace cris::core {
 
-constinit std::atomic<std::size_t> TimerSection::collector_index_count{0};
+// 0 is reserved as an "empty" collector.
+constinit std::atomic<std::size_t> TimerSection::collector_index_count{1};
 
 // Number of duration buckets in each Collector/Total Entry
 static constexpr std::size_t kTimerEntryBucketNum = 32;
