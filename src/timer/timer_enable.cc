@@ -6,6 +6,7 @@
 
 #include <array>
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -14,6 +15,7 @@
 #include <iomanip>
 #include <mutex>
 #include <shared_mutex>
+#include <string>
 #include <thread>
 
 namespace cris::core {
@@ -227,7 +229,7 @@ std::unique_ptr<TimerReport> TimerStatCollector::GetReport(TimerSection* section
     for (std::size_t i = 0; i < kTimerEntryBucketNum; ++i) {
         const auto bucket_hits = entry.duration_buckets_[i].hits_;
         report->has_data_ |= static_cast<bool>(bucket_hits);
-        report->report_buckets_.emplace_back(impl::TimerStatEntryBucket{
+        report->report_buckets_.push_back(impl::TimerStatEntryBucket{
             .hits_              = bucket_hits,
             .total_duration_ns_ = static_cast<cr_duration_nsec_t>(entry.duration_buckets_[i].total_duration_ns_),
         });
@@ -320,9 +322,9 @@ void TimerReport::PrintToLog(unsigned indent_level) const {
     if (!has_data_) {
         return;
     }
-    LOG(INFO) << indent << "Section '" << GetSectionName() << "':";
+    LOG(INFO) << indent << "Section \"" << GetSectionName() << "\":";
     if (GetTotalHits() > 0) {
-        LOG(INFO) << indent << "    hits    : " << GetTotalHits() << " times, freq: " << GetFreq() << " Hz";
+        LOG(INFO) << indent << "    hits    : " << GetTotalHits() << " times at " << GetFreq() << " Hz";
         LOG(INFO) << indent << "    avg time: " << std::fixed << std::setprecision(3)
                   << duration_cast<duration<double, std::micro>>(nanoseconds(GetAverageDurationNsec())).count()
                   << " us";
