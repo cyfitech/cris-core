@@ -27,12 +27,21 @@ void MessageReplayer::SetCompletionCallback(std::function<void()>&& on_completio
     on_completion_ = std::move(on_completion);
 }
 
+void MessageReplayer::SetCanceledCallback(std::function<void()>&& on_canceled) {
+    on_canceled_ = std::move(on_canceled);
+}
+
 void MessageReplayer::MainLoop() {
     if (on_start_) {
         on_start_();
     }
-    if (ReplayMessages() && on_completion_) {
+
+    const auto is_complete = ReplayMessages();
+
+    if (is_complete && on_completion_) {
         on_completion_();
+    } else if (!is_complete && on_canceled_) {
+        on_canceled_();
     }
 }
 

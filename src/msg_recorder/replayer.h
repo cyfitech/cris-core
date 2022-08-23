@@ -39,6 +39,8 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
 
     void SetCompletionCallback(std::function<void()>&& on_completion);
 
+    void SetCanceledCallback(std::function<void()>&& on_canceled);
+
     void MainLoop() override;
 
     void StopMainLoop() override;
@@ -79,6 +81,7 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
 
     std::function<void()> on_start_;
     std::function<void()> on_completion_;
+    std::function<void()> on_canceled_;
 };
 
 template<CRMessageType message_t>

@@ -37,6 +37,8 @@ class RecorderTest : public testing::Test {
 
     void TestReplay(double speed_up);
 
+    void TestReplayCanceled();
+
    private:
     path test_temp_dir_{temp_directory_path() / (std::string("CRTestTmpDir.") + std::to_string(getpid()))};
     path record_dir_;
@@ -149,14 +151,17 @@ void RecorderTest::TestReplay(double speed_up) {
 
     bool started   = false;
     bool completed = false;
+    bool canceled  = false;
     replayer.SetStartCallback([&started] { started = true; });
     replayer.SetCompletionCallback([&completed] { completed = true; });
+    replayer.SetCanceledCallback([&canceled] { canceled = true; });
     auto replayer_start = std::chrono::steady_clock::now();
     replayer.MainLoop();
     auto replayer_end      = std::chrono::steady_clock::now();
     auto replayer_duration = replayer_end - replayer_start;
     EXPECT_TRUE(started);
     EXPECT_TRUE(completed);
+    EXPECT_FALSE(canceled);
 
     // Make sure messages arrive the node
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -166,11 +171,35 @@ void RecorderTest::TestReplay(double speed_up) {
     CR_EXPECT_NEAR_DURATION(replayer_duration * speed_up, kTotalRecordTime, 0.3);
 }
 
+void RecorderTest::TestReplayCanceled() {
+    MessageReplayer replayer(record_dir_);
+
+    bool started   = false;
+    bool completed = false;
+    bool canceled  = false;
+
+    replayer.SetStartCallback([&started] { started = true; });
+    replayer.SetCompletionCallback([&completed] { completed = true; });
+    replayer.SetCanceledCallback([&canceled] { canceled = true; });
+
+    replayer.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
+
+    std::thread main_loop_thread([&replayer] { replayer.MainLoop(); });
+    std::this_thread::sleep_for(kTotalRecordTime / 10);
+    replayer.StopMainLoop();
+    main_loop_thread.join();
+
+    EXPECT_TRUE(started);
+    EXPECT_FALSE(completed);
+    EXPECT_TRUE(canceled);
+}
+
 TEST_F(RecorderTest, RecorderTest) {
     TestRecord();
     TestReplay(1.0);
     TestReplay(2.0);
     TestReplay(0.5);
+    TestReplayCanceled();
 }
 
 }  // namespace cris::core
