@@ -147,12 +147,15 @@ void RecorderTest::TestReplay(double speed_up) {
         },
         /* allow_concurrency = */ false);
 
+    bool started   = false;
     bool completed = false;
+    replayer.SetStartCallback([&started] { started = true; });
     replayer.SetCompletionCallback([&completed] { completed = true; });
     auto replayer_start = std::chrono::steady_clock::now();
     replayer.MainLoop();
     auto replayer_end      = std::chrono::steady_clock::now();
     auto replayer_duration = replayer_end - replayer_start;
+    EXPECT_TRUE(started);
     EXPECT_TRUE(completed);
 
     // Make sure messages arrive the node

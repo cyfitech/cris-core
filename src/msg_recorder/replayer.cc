@@ -19,11 +19,24 @@ void MessageReplayer::SetSpeedupRate(double rate) {
     speed_up_rate_ = rate;
 }
 
+void MessageReplayer::SetStartCallback(std::function<void()>&& on_start) {
+    on_start_ = std::move(on_start);
+}
+
 void MessageReplayer::SetCompletionCallback(std::function<void()>&& on_completion) {
     on_completion_ = std::move(on_completion);
 }
 
 void MessageReplayer::MainLoop() {
+    if (on_start_) {
+        on_start_();
+    }
+    if (ReplayMessages() && on_completion_) {
+        on_completion_();
+    }
+}
+
+bool MessageReplayer::ReplayMessages() {
     while (!shutdown_flag_.load() && !record_readers_.Empty()) {
         auto top_reader            = record_readers_.Pop();
         auto [key, serialized_val] = top_reader.record_itr_.Get();
@@ -50,10 +63,7 @@ void MessageReplayer::MainLoop() {
             record_readers_.Push(std::move(top_reader));
         }
     }
-
-    if (!shutdown_flag_.load() && on_completion_) {
-        on_completion_();
-    }
+    return record_readers_.Empty();
 }
 
 void MessageReplayer::StopMainLoop() {

@@ -35,6 +35,8 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
     // Need to set before running
     void SetSpeedupRate(double rate);
 
+    void SetStartCallback(std::function<void()>&& on_start);
+
     void SetCompletionCallback(std::function<void()>&& on_completion);
 
     void MainLoop() override;
@@ -64,6 +66,9 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
         std::vector<RecordReader> record_readers_;
     };
 
+    // Returns true if all messages are replayed.
+    virtual bool ReplayMessages();
+
     double                                   speed_up_rate_{1.0};
     cr_timestamp_nsec_t                      start_record_timestamp_{0};
     cr_timestamp_nsec_t                      start_local_timestamp_{0};
@@ -72,6 +77,7 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
     std::vector<std::unique_ptr<RecordFile>> record_files_;
     RecordReaderPQueue                       record_readers_;
 
+    std::function<void()> on_start_;
     std::function<void()> on_completion_;
 };
 
