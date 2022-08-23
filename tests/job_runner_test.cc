@@ -204,4 +204,36 @@ TEST(JobRunnerTest, StrandTest) {
     EVENTUALLY_EQ(finish.load(), true);
 }
 
+TEST(JobRunnerTest, JobAliveToken) {
+    static constexpr std::size_t kThreadNum      = 4;
+    static constexpr std::size_t kSpawningJobNum = 100;
+
+    JobRunner::Config config = {
+        .thread_num_ = kThreadNum,
+    };
+    auto runner  = JobRunner::MakeJobRunner(config);
+    auto strand  = runner->MakeStrand();
+    auto counter = std::make_shared<std::atomic<std::size_t>>(0);
+
+    EXPECT_TRUE(runner->AddJob(
+        [runner, counter](std::shared_ptr<JobAliveToken>&& alive_token) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            // Handing alive_token to the spawned jobs, so that the current job is not consider as finished
+            // until all the spawned jobs exited, even if the current job exits immediately.
+            for (std::size_t i = 0; i < kSpawningJobNum; ++i) {
+                runner->AddJob([alive_token, counter] { counter->fetch_add(1); });
+            }
+        },
+        strand));
+
+    std::atomic<bool> finish{false};
+    runner->AddJob(
+        [counter, &finish]() {
+            EXPECT_EQ(counter->load(), kSpawningJobNum);
+            finish.store(true);
+        },
+        strand);
+    EVENTUALLY_EQ(finish.load(), true);
+}
+
 }  // namespace cris::core

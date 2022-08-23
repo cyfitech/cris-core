@@ -14,6 +14,9 @@ class JobRunnerWorker;
 // An object for serialized jobs. The jobs bound to the same strand object must run sequentially.
 class JobRunnerStrand;
 
+// An object for extending the lifecycle of one job in the strand.
+class JobAliveToken;
+
 class JobRunner : public std::enable_shared_from_this<JobRunner> {
    public:
     using Self = JobRunner;
@@ -48,6 +51,8 @@ class JobRunner : public std::enable_shared_from_this<JobRunner> {
     bool AddJob(job_t&& job) { return AddJob(std::move(job), DefaultSchedulerHint()); }
 
     bool AddJob(job_t&& job, std::shared_ptr<JobRunnerStrand> strand);
+
+    bool AddJob(std::function<void(std::shared_ptr<JobAliveToken>&&)>&& job, std::shared_ptr<JobRunnerStrand> strand);
 
     ///
     /// Randomly steal a job from the workers and run.
