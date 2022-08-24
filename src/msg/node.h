@@ -19,11 +19,18 @@
 namespace cris::core {
 
 template<class callback_t, class message_t = CRMessageBase>
-concept CRMessageCallbackType = std::is_base_of_v<CRMessageBase, message_t> &&
-    (std::is_void_v<decltype(std::declval<callback_t>()(std::declval<const std::shared_ptr<message_t>&>()))> ||
-     std::is_void_v<decltype(std::declval<callback_t>()(
-         std::declval<const std::shared_ptr<message_t>&>(),
-         std::declval<JobAliveTokenPtr>()))>);
+concept CRSingleMessageCallbackType = std::is_base_of_v<CRMessageBase, message_t> &&
+    std::is_void_v<decltype(std::declval<callback_t>()(std::declval<const std::shared_ptr<message_t>&>()))>;
+
+template<class callback_t, class message_t = CRMessageBase>
+concept CRMessageWithAliveTokenCallbackType =
+    std::is_base_of_v<CRMessageBase, message_t> && std::is_void_v<decltype(std::declval<callback_t>()(
+        std::declval<const std::shared_ptr<message_t>&>(),
+        std::declval<JobAliveTokenPtr>()))>;
+
+template<class callback_t, class message_t = CRMessageBase>
+concept CRMessageCallbackType =
+    CRSingleMessageCallbackType<callback_t, message_t> || CRMessageWithAliveTokenCallbackType<callback_t, message_t>;
 
 class CRNode {
    public:
@@ -48,13 +55,16 @@ class CRNode {
 
     std::string GetName() const { return name_; }
 
-    bool AddJobToRunner(job_t&& job) { return AddJobToRunner(std::move(job), nullptr); }
-
     bool AddJobToRunner(auto&& job, JobRunnerStrandPtr strand);
+
+    bool AddJobToRunner(job_t&& job) { return AddJobToRunner(std::move(job), nullptr); }
 
     bool AddMessageToRunner(const CRMessageBasePtr& message);
 
-    template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
+    template<CRMessageType message_t, CRSingleMessageCallbackType<message_t> callback_t>
+    void Subscribe(const channel_subid_t channel_subid, callback_t&& callback, JobRunnerStrandPtr strand);
+
+    template<CRMessageType message_t, CRMessageWithAliveTokenCallbackType<message_t> callback_t>
     void Subscribe(const channel_subid_t channel_subid, callback_t&& callback, JobRunnerStrandPtr strand);
 
     template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
@@ -109,12 +119,22 @@ bool CRNode::AddJobToRunner(auto&& job, JobRunnerStrandPtr strand) {
     }
 }
 
-template<CRMessageType message_t, CRMessageCallbackType<message_t> callback_t>
+template<CRMessageType message_t, CRMessageWithAliveTokenCallbackType<message_t> callback_t>
+void CRNode::Subscribe(const channel_subid_t channel_subid, callback_t&& callback, JobRunnerStrandPtr strand) {
+    return SubscribeImpl(
+        std::make_pair(std::type_index(typeid(message_t)), channel_subid),
+        [callback = std::move(callback)](const CRMessageBasePtr& message, JobAliveTokenPtr&& token) {
+            callback(reinterpret_cast<const std::shared_ptr<message_t>&>(message), std::move(token));
+        },
+        std::move(strand));
+}
+
+template<CRMessageType message_t, CRSingleMessageCallbackType<message_t> callback_t>
 void CRNode::Subscribe(const channel_subid_t channel_subid, callback_t&& callback, JobRunnerStrandPtr strand) {
     return SubscribeImpl(
         std::make_pair(std::type_index(typeid(message_t)), channel_subid),
         [callback = std::move(callback)](const CRMessageBasePtr& message, JobAliveTokenPtr&&) {
-            return callback(reinterpret_cast<const std::shared_ptr<message_t>&>(message));
+            callback(reinterpret_cast<const std::shared_ptr<message_t>&>(message));
         },
         std::move(strand));
 }
