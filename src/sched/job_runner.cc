@@ -91,7 +91,7 @@ class JobRunnerStrand : public std::enable_shared_from_this<JobRunnerStrand> {
 
     bool AddJob(job_t&& job);
 
-    bool AddJob(std::function<void(std::shared_ptr<JobAliveToken>&&)>&& job);
+    bool AddJob(std::function<void(JobAliveTokenPtr&&)>&& job);
 
     void PushToRunnerIfNeeded(const bool is_in_running_job);
 
@@ -112,10 +112,10 @@ JobAliveToken::~JobAliveToken() {
 }
 
 bool JobRunnerStrand::AddJob(JobRunnerStrand::job_t&& job) {
-    return AddJob([job = std::move(job)](std::shared_ptr<JobAliveToken>&&) { job(); });
+    return AddJob([job = std::move(job)](JobAliveTokenPtr&&) { job(); });
 }
 
-bool JobRunnerStrand::AddJob(std::function<void(std::shared_ptr<JobAliveToken>&&)>&& job) {
+bool JobRunnerStrand::AddJob(std::function<void(JobAliveTokenPtr&&)>&& job) {
     auto serialized_job = [job         = std::move(job),
                            alive_token = std::make_shared<JobAliveToken>(weak_from_this())]() mutable {
         job(std::move(alive_token));
@@ -213,7 +213,7 @@ JobRunner::~JobRunner() {
     Stop();
 }
 
-std::shared_ptr<JobRunnerStrand> JobRunner::MakeStrand() {
+JobRunnerStrandPtr JobRunner::MakeStrand() {
     return std::make_shared<JobRunnerStrand>(weak_from_this());
 }
 
@@ -242,13 +242,11 @@ bool JobRunner::AddJob(job_t&& job, std::size_t scheduler_hint) {
     return true;
 }
 
-bool JobRunner::AddJob(job_t&& job, std::shared_ptr<JobRunnerStrand> strand) {
+bool JobRunner::AddJob(job_t&& job, JobRunnerStrandPtr strand) {
     return strand ? strand->AddJob(std::move(job)) : AddJob(std::move(job));
 }
 
-bool JobRunner::AddJob(
-    std::function<void(std::shared_ptr<JobAliveToken>&&)>&& job,
-    std::shared_ptr<JobRunnerStrand>                        strand) {
+bool JobRunner::AddJob(std::function<void(JobAliveTokenPtr&&)>&& job, JobRunnerStrandPtr strand) {
     return strand ? strand->AddJob(std::move(job)) : AddJob(std::bind(std::move(job), nullptr));
 }
 

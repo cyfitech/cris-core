@@ -29,22 +29,12 @@ CRNode::~CRNode() {
 
 bool CRNode::AddMessageToRunner(const CRMessageBasePtr& message) {
     if (auto subscription_info_opt = GetSubscriptionInfo(message)) {
-        auto job = [callback = std::move(subscription_info_opt->callback_), message]() {
-            callback(message);
+        auto job = [callback = std::move(subscription_info_opt->callback_), message](JobAliveTokenPtr&& token) {
+            callback(message, std::move(token));
         };
         return AddJobToRunner(std::move(job), std::move(subscription_info_opt->strand_));
     }
     return false;
-}
-
-bool CRNode::AddJobToRunner(job_t&& job, strand_ptr_t strand) {
-    if (auto runner = runner_weak_.lock()) [[likely]] {
-        return runner->AddJob(std::move(job), std::move(strand));
-    } else {
-        LOG(ERROR) << __func__ << ": Node \"" << GetName() << "\"(at 0x" << std::hex
-                   << reinterpret_cast<std::uintptr_t>(this) << ") has not bound with any runner." << std::dec;
-        return false;
-    }
 }
 
 void CRNode::Publish(const CRNode::channel_subid_t channel_subid, CRMessageBasePtr&& message) {
@@ -52,7 +42,7 @@ void CRNode::Publish(const CRNode::channel_subid_t channel_subid, CRMessageBaseP
     CRMessageBase::Dispatch(std::move(message));
 }
 
-CRNode::strand_ptr_t CRNode::MakeStrand() {
+JobRunnerStrandPtr CRNode::MakeStrand() {
     if (auto runner = runner_weak_.lock()) [[likely]] {
         return runner->MakeStrand();
     } else {
@@ -79,9 +69,9 @@ std::optional<CRNode::SubscriptionInfo> CRNode::GetSubscriptionInfo(const CRMess
 }
 
 void CRNode::SubscribeImpl(
-    const channel_id_t                             channel,
-    std::function<void(const CRMessageBasePtr&)>&& callback,
-    strand_ptr_t                                   strand) {
+    const channel_id_t                                                 channel,
+    std::function<void(const CRMessageBasePtr&, JobAliveTokenPtr&&)>&& callback,
+    JobRunnerStrandPtr                                                 strand) {
     CHECK(can_subscribe_) << __func__ << ": Node \"" << GetName() << "\"(at 0x" << std::hex
                           << reinterpret_cast<std::uintptr_t>(this) << ") has not bound with any runner." << std::dec;
 

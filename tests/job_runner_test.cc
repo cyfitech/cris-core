@@ -216,7 +216,7 @@ TEST(JobRunnerTest, JobAliveToken) {
     auto counter = std::make_shared<std::atomic<std::size_t>>(0);
 
     EXPECT_TRUE(runner->AddJob(
-        [runner, counter](std::shared_ptr<JobAliveToken>&& alive_token) {
+        [runner, counter](JobAliveTokenPtr&& alive_token) {
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             // Handing alive_token to the spawned jobs, so that the current job is not consider as finished
             // until all the spawned jobs exited, even if the current job exits immediately.
