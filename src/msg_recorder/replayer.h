@@ -70,8 +70,7 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
         std::vector<RecordReader> record_readers_;
     };
 
-    // Returns true if all messages are replayed.
-    virtual bool ReplayMessages();
+    virtual void ReplayMessages();
 
     double                                   speed_up_rate_{1.0};
     cr_timestamp_nsec_t                      start_record_timestamp_{0};

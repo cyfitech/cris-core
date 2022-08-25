@@ -45,7 +45,7 @@ void MessageReplayer::MainLoop() {
     }
 }
 
-bool MessageReplayer::ReplayMessages() {
+void MessageReplayer::ReplayMessages() {
     while (!shutdown_flag_.load() && !record_readers_.Empty()) {
         auto top_reader            = record_readers_.Pop();
         auto [key, serialized_val] = top_reader.record_itr_.Get();
@@ -72,7 +72,6 @@ bool MessageReplayer::ReplayMessages() {
             record_readers_.Push(std::move(top_reader));
         }
     }
-    return record_readers_.Empty();
 }
 
 void MessageReplayer::StopMainLoop() {
