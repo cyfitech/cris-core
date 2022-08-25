@@ -55,7 +55,8 @@ class CRNode {
 
     std::string GetName() const { return name_; }
 
-    bool AddJobToRunner(auto&& job, JobRunnerStrandPtr strand);
+    template<class strand_job_t>
+    bool AddJobToRunner(strand_job_t&& job, JobRunnerStrandPtr strand);
 
     bool AddJobToRunner(job_t&& job) { return AddJobToRunner(std::move(job), nullptr); }
 
@@ -109,9 +110,10 @@ class CRNode {
 template<class node_t>
 concept CRNodeType = std::is_base_of_v<CRNode, node_t>;
 
-bool CRNode::AddJobToRunner(auto&& job, JobRunnerStrandPtr strand) {
+template<class strand_job_t>
+bool CRNode::AddJobToRunner(strand_job_t&& job, JobRunnerStrandPtr strand) {
     if (auto runner = runner_weak_.lock()) [[likely]] {
-        return runner->AddJob(std::forward<decltype(job)>(job), std::move(strand));
+        return runner->AddJob(std::forward<strand_job_t>(job), std::move(strand));
     } else {
         LOG(ERROR) << __func__ << ": Node \"" << GetName() << "\"(at 0x" << std::hex
                    << reinterpret_cast<std::uintptr_t>(this) << ") has not bound with any runner." << std::dec;
