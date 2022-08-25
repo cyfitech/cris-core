@@ -149,16 +149,28 @@ void RecorderTest::TestReplay(double speed_up) {
         },
         /* allow_concurrency = */ false);
 
-    bool started = false;
-    bool exited  = false;
-    replayer.SetStartCallback([&started] { started = true; });
-    replayer.SetExitCallback([&exited] { exited = true; });
+    bool run_post_start  = false;
+    bool run_pre_finish  = false;
+    bool run_post_finish = false;
+    replayer.SetPostStartCallback([&run_post_start, &replayer] {
+        run_post_start = true;
+        EXPECT_FALSE(replayer.IsEnded());
+    });
+    replayer.SetPreFinishCalback([&run_pre_finish, &replayer] {
+        run_pre_finish = true;
+        EXPECT_FALSE(replayer.IsEnded());
+    });
+    replayer.SetPostFinishCalback([&run_post_finish, &replayer] {
+        run_post_finish = true;
+        EXPECT_TRUE(replayer.IsEnded());
+    });
     auto replayer_start = std::chrono::steady_clock::now();
     replayer.MainLoop();
     auto replayer_end      = std::chrono::steady_clock::now();
     auto replayer_duration = replayer_end - replayer_start;
-    EXPECT_TRUE(started);
-    EXPECT_TRUE(exited);
+    EXPECT_TRUE(run_post_start);
+    EXPECT_TRUE(run_pre_finish);
+    EXPECT_TRUE(run_post_finish);
 
     // Make sure messages arrive the node
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -171,11 +183,21 @@ void RecorderTest::TestReplay(double speed_up) {
 void RecorderTest::TestReplayCanceled() {
     MessageReplayer replayer(record_dir_);
 
-    bool started = false;
-    bool exited  = false;
-
-    replayer.SetStartCallback([&started] { started = true; });
-    replayer.SetExitCallback([&exited] { exited = true; });
+    bool run_post_start  = false;
+    bool run_pre_finish  = false;
+    bool run_post_finish = false;
+    replayer.SetPostStartCallback([&run_post_start, &replayer] {
+        run_post_start = true;
+        EXPECT_FALSE(replayer.IsEnded());
+    });
+    replayer.SetPreFinishCalback([&run_pre_finish, &replayer] {
+        run_pre_finish = true;
+        EXPECT_FALSE(replayer.IsEnded());
+    });
+    replayer.SetPostFinishCalback([&run_post_finish, &replayer] {
+        run_post_finish = true;
+        EXPECT_TRUE(replayer.IsEnded());
+    });
 
     replayer.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
 
@@ -184,8 +206,9 @@ void RecorderTest::TestReplayCanceled() {
     replayer.StopMainLoop();
     main_loop_thread.join();
 
-    EXPECT_TRUE(started);
-    EXPECT_TRUE(exited);
+    EXPECT_TRUE(run_post_start);
+    EXPECT_TRUE(run_pre_finish);
+    EXPECT_TRUE(run_post_finish);
 }
 
 TEST_F(RecorderTest, RecorderTest) {

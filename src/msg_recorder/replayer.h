@@ -32,12 +32,16 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
 
     std::filesystem::path GetRecordDir() const;
 
+    bool IsEnded() const { return is_finished_.load(); }
+
     // Need to set before running
     void SetSpeedupRate(double rate);
 
-    void SetStartCallback(std::function<void()>&& on_start);
+    void SetPostStartCallback(std::function<void()>&& post_start);
 
-    void SetExitCallback(std::function<void()>&& on_exit);
+    void SetPreFinishCalback(std::function<void()>&& pre_finish);
+
+    void SetPostFinishCalback(std::function<void()>&& post_finish);
 
     void MainLoop() override;
 
@@ -76,9 +80,11 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
     std::filesystem::path                    record_dir_;
     std::vector<std::unique_ptr<RecordFile>> record_files_;
     RecordReaderPQueue                       record_readers_;
+    std::atomic<bool>                        is_finished_{false};
 
-    std::function<void()> on_start_;
-    std::function<void()> on_exit_;
+    std::function<void()> post_start_;
+    std::function<void()> pre_finish_;
+    std::function<void()> post_finish_;
 };
 
 template<CRMessageType message_t>
