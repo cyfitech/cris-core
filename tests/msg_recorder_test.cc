@@ -150,20 +150,14 @@ void RecorderTest::TestReplay(double speed_up) {
         /* allow_concurrency = */ false);
 
     bool started   = false;
-    bool completed = false;
-    bool canceled  = false;
     bool exited    = false;
     replayer.SetStartCallback([&started] { started = true; });
-    replayer.SetCompletionCallback([&completed] { completed = true; });
-    replayer.SetCanceledCallback([&canceled] { canceled = true; });
     replayer.SetExitCallback([&exited] { exited = true; });
     auto replayer_start = std::chrono::steady_clock::now();
     replayer.MainLoop();
     auto replayer_end      = std::chrono::steady_clock::now();
     auto replayer_duration = replayer_end - replayer_start;
     EXPECT_TRUE(started);
-    EXPECT_TRUE(completed);
-    EXPECT_FALSE(canceled);
     EXPECT_TRUE(exited);
 
     // Make sure messages arrive the node
@@ -178,13 +172,9 @@ void RecorderTest::TestReplayCanceled() {
     MessageReplayer replayer(record_dir_);
 
     bool started   = false;
-    bool completed = false;
-    bool canceled  = false;
     bool exited    = false;
 
     replayer.SetStartCallback([&started] { started = true; });
-    replayer.SetCompletionCallback([&completed] { completed = true; });
-    replayer.SetCanceledCallback([&canceled] { canceled = true; });
     replayer.SetExitCallback([&exited] { exited = true; });
 
     replayer.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
@@ -195,8 +185,6 @@ void RecorderTest::TestReplayCanceled() {
     main_loop_thread.join();
 
     EXPECT_TRUE(started);
-    EXPECT_FALSE(completed);
-    EXPECT_TRUE(canceled);
     EXPECT_TRUE(exited);
 }
 

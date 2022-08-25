@@ -23,14 +23,6 @@ void MessageReplayer::SetStartCallback(std::function<void()>&& on_start) {
     on_start_ = std::move(on_start);
 }
 
-void MessageReplayer::SetCompletionCallback(std::function<void()>&& on_completion) {
-    on_completion_ = std::move(on_completion);
-}
-
-void MessageReplayer::SetCanceledCallback(std::function<void()>&& on_canceled) {
-    on_canceled_ = std::move(on_canceled);
-}
-
 void MessageReplayer::SetExitCallback(std::function<void()>&& on_exit) {
     on_exit_ = std::move(on_exit);
 }
@@ -39,15 +31,7 @@ void MessageReplayer::MainLoop() {
     if (on_start_) {
         on_start_();
     }
-
-    const auto is_complete = ReplayMessages();
-
-    if (is_complete && on_completion_) {
-        on_completion_();
-    } else if (!is_complete && on_canceled_) {
-        on_canceled_();
-    }
-
+    ReplayMessages();
     if (on_exit_) {
         on_exit_();
     }

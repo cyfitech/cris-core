@@ -37,10 +37,6 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
 
     void SetStartCallback(std::function<void()>&& on_start);
 
-    void SetCompletionCallback(std::function<void()>&& on_completion);
-
-    void SetCanceledCallback(std::function<void()>&& on_canceled);
-
     void SetExitCallback(std::function<void()>&& on_exit);
 
     void MainLoop() override;
@@ -82,8 +78,6 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
     RecordReaderPQueue                       record_readers_;
 
     std::function<void()> on_start_;
-    std::function<void()> on_completion_;
-    std::function<void()> on_canceled_;
     std::function<void()> on_exit_;
 };
 
