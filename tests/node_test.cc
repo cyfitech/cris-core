@@ -318,9 +318,10 @@ TEST(NodeTest, JobAliveToken) {
         subscriber.Subscribe<TestMessageType>(
             channel_subid,
             [&counter = channel_counter[channel_subid], &complete = complete[channel_subid], &cv_mtx, &cv, runner](
-                const std::shared_ptr<TestMessageType>& message, JobAliveTokenPtr&& token) {
+                const std::shared_ptr<TestMessageType>& message,
+                JobAliveTokenPtr&&                      token) {
                 ++counter;
-                runner->AddJob([&counter, &complete, &cv_mtx, &cv, message, token]{
+                runner->AddJob([&counter, &complete, &cv_mtx, &cv, message, token] {
                     EXPECT_EQ(counter - 1, message->value_);
                     if (counter == kMessageNumber) {
                         std::unique_lock cv_lck(cv_mtx);
