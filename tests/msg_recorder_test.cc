@@ -149,8 +149,8 @@ void RecorderTest::TestReplay(double speed_up) {
         },
         /* allow_concurrency = */ false);
 
-    bool started   = false;
-    bool exited    = false;
+    bool started = false;
+    bool exited  = false;
     replayer.SetStartCallback([&started] { started = true; });
     replayer.SetExitCallback([&exited] { exited = true; });
     auto replayer_start = std::chrono::steady_clock::now();
@@ -171,8 +171,8 @@ void RecorderTest::TestReplay(double speed_up) {
 void RecorderTest::TestReplayCanceled() {
     MessageReplayer replayer(record_dir_);
 
-    bool started   = false;
-    bool exited    = false;
+    bool started = false;
+    bool exited  = false;
 
     replayer.SetStartCallback([&started] { started = true; });
     replayer.SetExitCallback([&exited] { exited = true; });
