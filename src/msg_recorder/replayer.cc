@@ -19,7 +19,33 @@ void MessageReplayer::SetSpeedupRate(double rate) {
     speed_up_rate_ = rate;
 }
 
+void MessageReplayer::SetPostStartCallback(std::function<void()>&& callback) {
+    post_start_ = std::move(callback);
+}
+
+void MessageReplayer::SetPreFinishCallback(std::function<void()>&& callback) {
+    pre_finish_ = std::move(callback);
+}
+
+void MessageReplayer::SetPostFinishCallback(std::function<void()>&& callback) {
+    post_finish_ = std::move(callback);
+}
+
 void MessageReplayer::MainLoop() {
+    if (post_start_) {
+        post_start_();
+    }
+    ReplayMessages();
+    if (pre_finish_) {
+        pre_finish_();
+    }
+    is_finished_.store(true);
+    if (post_finish_) {
+        post_finish_();
+    }
+}
+
+void MessageReplayer::ReplayMessages() {
     while (!shutdown_flag_.load() && !record_readers_.Empty()) {
         auto top_reader            = record_readers_.Pop();
         auto [key, serialized_val] = top_reader.record_itr_.Get();
