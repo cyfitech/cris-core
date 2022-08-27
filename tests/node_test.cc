@@ -291,7 +291,7 @@ TEST(NodeTest, StrandSubscriber) {
 
     std::unique_lock cv_lck(cv_mtx);
     cv.wait(cv_lck, [&complete]() {
-        return std::reduce(complete.begin(), complete.end(), true, std::logical_and<void>());
+        return std::reduce(complete.begin(), complete.end(), true, std::logical_and<bool>());
     });
 }
 
@@ -341,7 +341,7 @@ TEST(NodeTest, JobAliveToken) {
 
     std::unique_lock cv_lck(cv_mtx);
     cv.wait(cv_lck, [&complete]() {
-        return std::reduce(complete.begin(), complete.end(), true, std::logical_and<void>());
+        return std::reduce(complete.begin(), complete.end(), true, std::logical_and<bool>());
     });
 }
 
