@@ -291,7 +291,57 @@ TEST(NodeTest, StrandSubscriber) {
 
     std::unique_lock cv_lck(cv_mtx);
     cv.wait(cv_lck, [&complete]() {
-        return std::reduce(complete.begin(), complete.end(), true, std::logical_and<void>());
+        return std::reduce(complete.begin(), complete.end(), true, std::logical_and<bool>());
+    });
+}
+
+TEST(NodeTest, JobAliveToken) {
+    static constexpr std::size_t kThreadNum       = 4;
+    constexpr std::size_t        kNumOfSubChannel = 4;
+    constexpr std::size_t        kMessageNumber   = 50000;
+
+    using TestMessageType = TestMessage<11>;
+
+    auto runner = JobRunner::MakeJobRunner(JobRunner::Config{
+        .thread_num_ = kThreadNum,
+    });
+
+    CRNode publisher;
+    CRNode subscriber(runner);
+
+    std::mutex                                cv_mtx;
+    std::condition_variable                   cv;
+    std::array<std::size_t, kNumOfSubChannel> channel_counter{};
+    std::array<bool, kNumOfSubChannel>        complete{};
+
+    for (std::size_t channel_subid = 0; channel_subid < kNumOfSubChannel; ++channel_subid) {
+        subscriber.Subscribe<TestMessageType>(
+            channel_subid,
+            [&counter = channel_counter[channel_subid], &complete = complete[channel_subid], &cv_mtx, &cv, runner](
+                const std::shared_ptr<TestMessageType>& message,
+                JobAliveTokenPtr&&                      token) {
+                ++counter;
+                runner->AddJob([&counter, &complete, &cv_mtx, &cv, message, token] {
+                    EXPECT_EQ(counter - 1, message->value_);
+                    if (counter == kMessageNumber) {
+                        std::unique_lock cv_lck(cv_mtx);
+                        complete = true;
+                        cv.notify_all();
+                    }
+                });
+            },
+            /* allow_concurrency = */ false);
+    }
+
+    for (std::size_t msg_idx = 0; msg_idx < kMessageNumber; ++msg_idx) {
+        for (std::size_t channel_subid = 0; channel_subid < kNumOfSubChannel; ++channel_subid) {
+            publisher.Publish(channel_subid, std::make_shared<TestMessageType>(msg_idx));
+        }
+    }
+
+    std::unique_lock cv_lck(cv_mtx);
+    cv.wait(cv_lck, [&complete]() {
+        return std::reduce(complete.begin(), complete.end(), true, std::logical_and<bool>());
     });
 }
 

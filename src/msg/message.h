@@ -20,10 +20,6 @@ class CRNode;
 template<class message_t>
 concept CRMessageType = std::is_base_of_v<CRMessageBase, message_t>;
 
-template<class callback_t, class message_t = CRMessageBase>
-concept CRMessageCallbackType = std::is_base_of_v<CRMessageBase, message_t> &&
-    std::is_void_v<decltype(std::declval<callback_t>()(std::declval<const std::shared_ptr<message_t>&>()))>;
-
 class CRMessageBase {
    public:
     using channel_subid_t = std::uint64_t;

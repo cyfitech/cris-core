@@ -17,6 +17,9 @@ class JobRunnerStrand;
 // An object for extending the lifecycle of one job in the strand.
 class JobAliveToken;
 
+using JobRunnerStrandPtr = std::shared_ptr<JobRunnerStrand>;
+using JobAliveTokenPtr   = std::shared_ptr<JobAliveToken>;
+
 class JobRunner : public std::enable_shared_from_this<JobRunner> {
    public:
     using Self = JobRunner;
@@ -36,7 +39,7 @@ class JobRunner : public std::enable_shared_from_this<JobRunner> {
 
     using job_t = std::function<void()>;
 
-    [[nodiscard]] std::shared_ptr<JobRunnerStrand> MakeStrand();
+    [[nodiscard]] JobRunnerStrandPtr MakeStrand();
 
     ///
     /// Add a job to run
@@ -50,9 +53,9 @@ class JobRunner : public std::enable_shared_from_this<JobRunner> {
 
     bool AddJob(job_t&& job) { return AddJob(std::move(job), DefaultSchedulerHint()); }
 
-    bool AddJob(job_t&& job, std::shared_ptr<JobRunnerStrand> strand);
+    bool AddJob(job_t&& job, JobRunnerStrandPtr strand);
 
-    bool AddJob(std::function<void(std::shared_ptr<JobAliveToken>&&)>&& job, std::shared_ptr<JobRunnerStrand> strand);
+    bool AddJob(std::function<void(JobAliveTokenPtr&&)>&& job, JobRunnerStrandPtr strand);
 
     ///
     /// Randomly steal a job from the workers and run.
