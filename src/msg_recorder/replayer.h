@@ -37,11 +37,11 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
     // Need to set before running
     void SetSpeedupRate(double rate);
 
-    void SetPostStartCallback(std::function<void()>&& post_start);
+    void SetPostStartCallback(std::function<void()>&& callback);
 
-    void SetPreFinishCalback(std::function<void()>&& pre_finish);
+    void SetPreFinishCallback(std::function<void()>&& callback);
 
-    void SetPostFinishCalback(std::function<void()>&& post_finish);
+    void SetPostFinishCallback(std::function<void()>&& callback);
 
     void MainLoop() override;
 

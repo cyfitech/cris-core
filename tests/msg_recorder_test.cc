@@ -156,11 +156,11 @@ void RecorderTest::TestReplay(double speed_up) {
         run_post_start = true;
         EXPECT_FALSE(replayer.IsEnded());
     });
-    replayer.SetPreFinishCalback([&run_pre_finish, &replayer] {
+    replayer.SetPreFinishCallback([&run_pre_finish, &replayer] {
         run_pre_finish = true;
         EXPECT_FALSE(replayer.IsEnded());
     });
-    replayer.SetPostFinishCalback([&run_post_finish, &replayer] {
+    replayer.SetPostFinishCallback([&run_post_finish, &replayer] {
         run_post_finish = true;
         EXPECT_TRUE(replayer.IsEnded());
     });
@@ -190,11 +190,11 @@ void RecorderTest::TestReplayCanceled() {
         run_post_start = true;
         EXPECT_FALSE(replayer.IsEnded());
     });
-    replayer.SetPreFinishCalback([&run_pre_finish, &replayer] {
+    replayer.SetPreFinishCallback([&run_pre_finish, &replayer] {
         run_pre_finish = true;
         EXPECT_FALSE(replayer.IsEnded());
     });
-    replayer.SetPostFinishCalback([&run_post_finish, &replayer] {
+    replayer.SetPostFinishCallback([&run_post_finish, &replayer] {
         run_post_finish = true;
         EXPECT_TRUE(replayer.IsEnded());
     });

@@ -19,16 +19,16 @@ void MessageReplayer::SetSpeedupRate(double rate) {
     speed_up_rate_ = rate;
 }
 
-void MessageReplayer::SetPostStartCallback(std::function<void()>&& post_start) {
-    post_start_ = std::move(post_start);
+void MessageReplayer::SetPostStartCallback(std::function<void()>&& callback) {
+    post_start_ = std::move(callback);
 }
 
-void MessageReplayer::SetPreFinishCalback(std::function<void()>&& pre_finish) {
-    pre_finish_ = std::move(pre_finish);
+void MessageReplayer::SetPreFinishCallback(std::function<void()>&& callback) {
+    pre_finish_ = std::move(callback);
 }
 
-void MessageReplayer::SetPostFinishCalback(std::function<void()>&& post_finish) {
-    post_finish_ = std::move(post_finish);
+void MessageReplayer::SetPostFinishCallback(std::function<void()>&& callback) {
+    post_finish_ = std::move(callback);
 }
 
 void MessageReplayer::MainLoop() {
