@@ -24,7 +24,8 @@ concept CRSingleMessageCallbackType = std::is_base_of_v<CRMessageBase, message_t
 
 template<class callback_t, class message_t = CRMessageBase>
 concept CRMessageWithAliveTokenCallbackType =
-    std::is_base_of_v<CRMessageBase, message_t> && std::is_void_v<decltype(std::declval<callback_t>()(
+    !CRSingleMessageCallbackType<callback_t, message_t> && std::is_base_of_v<CRMessageBase, message_t> &&
+    std::is_void_v<decltype(std::declval<callback_t>()(
         std::declval<const std::shared_ptr<message_t>&>(),
         std::declval<JobAliveTokenPtr>()))>;
 
