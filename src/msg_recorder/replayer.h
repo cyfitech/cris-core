@@ -30,6 +30,9 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
     template<CRMessageType message_t>
     bool RegisterChannel(const channel_subid_t subid);
 
+    template<CRMessageType message_t>
+    bool RegisterChannel(const channel_subid_t in_subid, const channel_subid_t out_subid);
+
     std::filesystem::path GetRecordDir() const;
 
     bool IsEnded() const { return is_finished_.load(); }
@@ -88,12 +91,20 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
 
 template<CRMessageType message_t>
 bool MessageReplayer::RegisterChannel(const MessageReplayer::channel_subid_t subid) {
-    auto itr = GetRecordItr(GetTypeName<message_t>(), subid);
+    return this->template RegisterChannel<message_t>(subid, subid);
+}
+
+template<CRMessageType message_t>
+bool MessageReplayer::RegisterChannel(
+    const MessageReplayer::channel_subid_t in_subid,
+    const MessageReplayer::channel_subid_t out_subid) {
+    auto itr = GetRecordItr(GetTypeName<message_t>(), in_subid);
     if (!itr.Valid()) {
         return false;
     }
+
     record_readers_.Push({
-        .subid_            = subid,
+        .subid_            = out_subid,
         .msg_deserializer_ = [](const std::string& serialized_value) -> CRMessageBasePtr {
             auto msg = std::make_shared<message_t>();
             MessageFromStr(*msg, serialized_value);
