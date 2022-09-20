@@ -81,3 +81,12 @@ cris_cc_test (
         "@gtest//:gtest_main",
     ],
 )
+
+cris_cc_test (
+    name = "record_key_test",
+    srcs = ["record_key_test.cc"],
+    deps = [
+        "//:msg_recorder",
+        "@gtest//:gtest_main",
+    ],
+)
