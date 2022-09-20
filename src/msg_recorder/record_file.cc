@@ -9,8 +9,11 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cstddef>
 #include <filesystem>
+#include <ios>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -45,24 +48,56 @@ RecordFileKey RecordFileKey::Make() {
     };
 }
 
+std::string RecordFileKey::ToBytes() const {
+    std::ostringstream ss;
+    constexpr int      kMaxInt64HexDigits = 16;
+    ss << std::hex << std::setfill('0') << std::setw(kMaxInt64HexDigits)
+       << std::max(timestamp_, static_cast<decltype(timestamp_)>(0))  // just in case if timestamp is negative.
+       << std::hex << std::setfill('0') << std::setw(kMaxInt64HexDigits) << count_;
+    return ss.str();
+}
+
+RecordFileKey RecordFileKey::FromBytes(const std::string& str) {
+    constexpr int kMaxInt64HexDigits = 16;
+    RecordFileKey key;
+    std::size_t   current_idx = 0;
+
+    if (str.size() > current_idx) {
+        auto val_str = str.substr(current_idx, kMaxInt64HexDigits);
+        current_idx += val_str.length();
+        if (val_str.length() == kMaxInt64HexDigits) {
+            key.timestamp_ = std::stoll(val_str, nullptr, /* base = */ 16);
+        }
+    }
+
+    if (str.size() > current_idx) {
+        auto val_str = str.substr(current_idx, kMaxInt64HexDigits);
+        current_idx += val_str.length();
+        if (val_str.length() == kMaxInt64HexDigits) {
+            key.count_ = std::stoull(val_str, nullptr, /* base = */ 16);
+        }
+    }
+    return key;
+}
+
 RecordFileKey RecordFileKey::FromSlice(const leveldb::Slice& slice) {
+    return FromBytes(slice.ToString());
+}
+
+RecordFileKey RecordFileKey::FromLegacySlice(const leveldb::Slice& slice) {
     RecordFileKey key;
     std::memcpy(&key, slice.data(), std::min(sizeof(key), slice.size()));
     return key;
 }
 
 int RecordFileKey::compare(const RecordFileKey& lhs, const RecordFileKey& rhs) {
-    if (lhs.timestamp_ != rhs.timestamp_) {
-        return lhs.timestamp_ < rhs.timestamp_ ? -1 : 1;
-    } else if (lhs.count_ != rhs.count_) {
-        return lhs.count_ < rhs.count_ ? -1 : 1;
-    } else {
-        return 0;
-    }
+    auto lhs_str = lhs.ToBytes();
+    auto rhs_str = rhs.ToBytes();
+    return leveldb::BytewiseComparator()->Compare(leveldb::Slice(lhs_str), leveldb::Slice(rhs_str));
 }
 
 int RecordFileKeyLdbCmp::Compare(const leveldb::Slice& lhs, const leveldb::Slice& rhs) const {
-    return RecordFileKey::compare(RecordFileKey::FromSlice(lhs), RecordFileKey::FromSlice(rhs));
+    return RecordFileKey::compare(RecordFileKey::FromLegacySlice(lhs), RecordFileKey::FromLegacySlice(rhs));
 }
 
 const char* RecordFileKeyLdbCmp::Name() const {
@@ -70,7 +105,12 @@ const char* RecordFileKeyLdbCmp::Name() const {
     return name.c_str();
 }
 
-RecordFileIterator::RecordFileIterator(leveldb::Iterator* db_itr) : db_itr_(db_itr) {
+RecordFileIterator::RecordFileIterator(leveldb::Iterator* db_itr) : RecordFileIterator(db_itr, false) {
+}
+
+RecordFileIterator::RecordFileIterator(leveldb::Iterator* db_itr, const bool legacy)
+    : db_itr_(db_itr)
+    , legacy_(legacy) {
 }
 
 bool RecordFileIterator::Valid() const {
@@ -78,7 +118,7 @@ bool RecordFileIterator::Valid() const {
 }
 
 RecordFileKey RecordFileIterator::GetKey() const {
-    return RecordFileKey::FromSlice(db_itr_->key());
+    return legacy_ ? RecordFileKey::FromLegacySlice(db_itr_->key()) : RecordFileKey::FromSlice(db_itr_->key());
 }
 
 std::pair<RecordFileKey, std::string> RecordFileIterator::Get() const {
@@ -90,12 +130,17 @@ void RecordFileIterator::Next() {
 }
 
 RecordFile::RecordFile(std::string file_path) : file_path_(std::move(file_path)) {
-    static RecordFileKeyLdbCmp leveldb_cmp_;
-    leveldb::DB*               db;
-    leveldb::Options           options;
+    leveldb::DB*     db;
+    leveldb::Options options;
     options.create_if_missing = true;
-    options.comparator        = &leveldb_cmp_;
-    auto status               = leveldb::DB::Open(options, file_path_, &db);
+
+    auto status = leveldb::DB::Open(options, file_path_, &db);
+    if (!status.ok()) {
+        static RecordFileKeyLdbCmp legacy_cmp;
+        options.comparator = &legacy_cmp;
+        status             = leveldb::DB::Open(options, file_path_, &db);
+        legacy_            = true;
+    }
     if (!status.ok()) [[unlikely]] {
         LOG(ERROR) << __func__ << ": Failed to create record file \"" << file_path_
                    << "\", status: " << status.ToString();
@@ -117,7 +162,8 @@ void RecordFile::Write(std::string serialized_value) {
 }
 
 void RecordFile::Write(RecordFileKey key, std::string serialized_value) {
-    leveldb::Slice key_slice(reinterpret_cast<const char*>(&key), sizeof(key));
+    auto           key_str = key.ToBytes();
+    leveldb::Slice key_slice(key_str);
     leveldb::Slice value_slice = serialized_value;
     auto           status      = db_->Put(leveldb::WriteOptions(), key_slice, value_slice);
     if (!status.ok()) [[unlikely]] {
@@ -129,7 +175,7 @@ void RecordFile::Write(RecordFileKey key, std::string serialized_value) {
 RecordFileIterator RecordFile::Iterate() const {
     auto itr = db_->NewIterator(leveldb::ReadOptions());
     itr->SeekToFirst();
-    return RecordFileIterator(std::move(itr));
+    return RecordFileIterator(std::move(itr), legacy_);
 }
 
 bool RecordFile::Empty() const {

@@ -11,9 +11,15 @@
 namespace cris::core {
 
 struct RecordFileKey {
+    std::string ToBytes() const;
+
     static RecordFileKey Make();
 
+    static RecordFileKey FromBytes(const std::string& bytes);
+
     static RecordFileKey FromSlice(const leveldb::Slice& slice);
+
+    static RecordFileKey FromLegacySlice(const leveldb::Slice& slice);
 
     static int compare(const RecordFileKey& lhs, const RecordFileKey& rhs);
 
@@ -32,6 +38,8 @@ class RecordFileIterator {
    public:
     explicit RecordFileIterator(leveldb::Iterator* db_itr);
 
+    explicit RecordFileIterator(leveldb::Iterator* db_itr, const bool legacy);
+
     RecordFileIterator(const RecordFileIterator&) = delete;
     RecordFileIterator(RecordFileIterator&&)      = default;
     RecordFileIterator& operator=(const RecordFileIterator&) = delete;
@@ -48,6 +56,7 @@ class RecordFileIterator {
 
    protected:
     std::unique_ptr<leveldb::Iterator> db_itr_;
+    bool                               legacy_{false};
 };
 
 class RecordFile {
@@ -72,6 +81,7 @@ class RecordFile {
    protected:
     std::string                  file_path_;
     std::unique_ptr<leveldb::DB> db_;
+    bool                         legacy_{false};
 };
 
 }  // namespace cris::core
