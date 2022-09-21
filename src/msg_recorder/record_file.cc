@@ -52,7 +52,8 @@ RecordFileKey RecordFileKey::Make() {
 
 std::string RecordFileKey::ToBytes() const {
     std::ostringstream ss;
-    constexpr int      kMaxInt64HexDigits = 16;
+    constexpr int      kHexDigitsPerByte  = 2;
+    constexpr int      kMaxInt64HexDigits = sizeof(std::int64_t) * kHexDigitsPerByte;
     ss << std::hex << std::setfill('0') << std::setw(kMaxInt64HexDigits)
        << std::max(timestamp_, static_cast<decltype(timestamp_)>(0))  // just in case if timestamp is negative.
        << std::hex << std::setfill('0') << std::setw(kMaxInt64HexDigits) << count_;
@@ -60,7 +61,8 @@ std::string RecordFileKey::ToBytes() const {
 }
 
 RecordFileKey RecordFileKey::FromBytes(const std::string& str) {
-    constexpr int kMaxInt64HexDigits = 16;
+    constexpr int kHexDigitsPerByte  = 2;
+    constexpr int kMaxInt64HexDigits = sizeof(std::int64_t) * kHexDigitsPerByte;
     RecordFileKey key;
     std::size_t   current_idx = 0;
 
