@@ -78,6 +78,8 @@ class RecordFile {
 
     bool Empty() const;
 
+    void Compact();
+
    protected:
     std::string                  file_path_;
     std::unique_ptr<leveldb::DB> db_;

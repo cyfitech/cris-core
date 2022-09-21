@@ -5,6 +5,8 @@
 #include "cris/core/utils/time.h"
 
 #include "leveldb/comparator.h"
+#include "leveldb/db.h"
+#include "leveldb/slice.h"
 
 #include <algorithm>
 #include <array>
@@ -150,6 +152,9 @@ RecordFile::RecordFile(std::string file_path) : file_path_(std::move(file_path))
 
 RecordFile::~RecordFile() {
     const auto is_empty = Empty();
+
+    Compact();
+
     db_.reset();
     if (is_empty) {
         LOG(INFO) << "Record \"" << file_path_ << "\" is empty, removing.";
@@ -180,6 +185,10 @@ RecordFileIterator RecordFile::Iterate() const {
 
 bool RecordFile::Empty() const {
     return !Iterate().Valid();
+}
+
+void RecordFile::Compact() {
+    db_->CompactRange(nullptr, nullptr);
 }
 
 }  // namespace cris::core
