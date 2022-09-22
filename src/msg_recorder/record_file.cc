@@ -11,10 +11,13 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cmath>
 #include <cstddef>
 #include <filesystem>
-#include <ios>
+#include <iomanip>
+#include <limits>
 #include <memory>
+#include <regex>
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -45,43 +48,34 @@ RecordFileKey RecordFileKey::Make() {
         "kNumOfCounters must be power of 2 so that we can use bitwise-and to replace modulo.");
 
     return {
-        .timestamp_ = now,
-        .count_     = global_counters[now & (kNumOfCounters - 1)].fetch_add(1),
+        .timestamp_ns_ = now,
+        .count_        = global_counters[now & (kNumOfCounters - 1)].fetch_add(1),
     };
 }
 
 std::string RecordFileKey::ToBytes() const {
+    const int kMaxInt64Digits = static_cast<int>(std::ceil(std::log10(std::numeric_limits<std::uint64_t>::max())));
+
     std::ostringstream ss;
-    constexpr int      kHexDigitsPerByte  = 2;
-    constexpr int      kMaxInt64HexDigits = sizeof(std::int64_t) * kHexDigitsPerByte;
-    ss << std::hex << std::setfill('0') << std::setw(kMaxInt64HexDigits)
-       << std::max(timestamp_, static_cast<decltype(timestamp_)>(0))  // just in case if timestamp is negative.
-       << std::hex << std::setfill('0') << std::setw(kMaxInt64HexDigits) << count_;
+    ss << "T" << std::setfill('0') << std::setw(kMaxInt64Digits)
+       << std::max(timestamp_ns_, static_cast<decltype(timestamp_ns_)>(0))  // just in case if timestamp is negative.
+       << "ns" << std::setfill('0') << std::setw(kMaxInt64Digits) << count_;
     return ss.str();
 }
 
 RecordFileKey RecordFileKey::FromBytes(const std::string& str) {
-    constexpr int kHexDigitsPerByte  = 2;
-    constexpr int kMaxInt64HexDigits = sizeof(std::int64_t) * kHexDigitsPerByte;
-    RecordFileKey key;
-    std::size_t   current_idx = 0;
+    static const std::regex key_str_format("T([[:digit:]]+)ns([[:digit:]]+)");
 
-    if (str.size() > current_idx) {
-        auto val_str = str.substr(current_idx, kMaxInt64HexDigits);
-        current_idx += val_str.length();
-        if (val_str.length() == kMaxInt64HexDigits) {
-            key.timestamp_ = std::stoll(val_str, nullptr, /* base = */ 16);
-        }
-    }
+    std::smatch key_str_match;
 
-    if (str.size() > current_idx) {
-        auto val_str = str.substr(current_idx, kMaxInt64HexDigits);
-        current_idx += val_str.length();
-        if (val_str.length() == kMaxInt64HexDigits) {
-            key.count_ = std::stoull(val_str, nullptr, /* base = */ 16);
-        }
-    }
-    return key;
+    CHECK(std::regex_match(str, key_str_match, key_str_format))
+        << __func__ << ": Unknown key format: \"" << str << "\".";
+    CHECK_GT(key_str_match.size(), 2u);
+
+    return RecordFileKey{
+        .timestamp_ns_ = std::stoll(key_str_match[1].str(), nullptr),
+        .count_        = std::stoull(key_str_match[2].str(), nullptr),
+    };
 }
 
 RecordFileKey RecordFileKey::FromSlice(const leveldb::Slice& slice) {

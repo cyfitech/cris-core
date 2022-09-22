@@ -24,7 +24,7 @@ struct RecordFileKey {
     static int compare(const RecordFileKey& lhs, const RecordFileKey& rhs);
 
     // Use timestamp as primary for easier db merging and cross-db comparison.
-    cr_timestamp_nsec_t timestamp_{0};
+    cr_timestamp_nsec_t timestamp_ns_{0};
 
     // tie-breaker if timestamp happends to be the same.
     unsigned long long count_{0};

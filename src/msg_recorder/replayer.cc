@@ -51,11 +51,11 @@ void MessageReplayer::ReplayMessages() {
         auto [key, serialized_val] = top_reader.record_itr_.Get();
 
         if (!start_record_timestamp_) {
-            start_record_timestamp_ = key.timestamp_;
+            start_record_timestamp_ = key.timestamp_ns_;
             start_local_timestamp_  = GetSystemTimestampNsec();
         } else {
             auto expect_elapse_time_ns =
-                std::llround(static_cast<double>(key.timestamp_ - start_record_timestamp_) / speed_up_rate_);
+                std::llround(static_cast<double>(key.timestamp_ns_ - start_record_timestamp_) / speed_up_rate_);
             auto sleep_time = std::chrono::nanoseconds(
                 expect_elapse_time_ns - static_cast<long long>(GetSystemTimestampNsec() - start_local_timestamp_));
 
