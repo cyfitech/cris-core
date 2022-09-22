@@ -12,7 +12,9 @@ int main(int argc, char* argv[]) {
     google::InitGoogleLogging(argv[0]);
 
     auto old_file_path = std::filesystem::weakly_canonical(FLAGS_record_path);
-    auto new_file_path = old_file_path.parent_path() / (old_file_path.filename().string() + ".new.ldb");
+    auto new_file_path = old_file_path.parent_path() / (old_file_path.filename().string() + ".converted.ldb.d");
+
+    CHECK(!std::filesystem::exists(new_file_path)) << new_file_path << " exists.";
 
     cris::core::RecordFile old_file(old_file_path);
     cris::core::RecordFile new_file(new_file_path);
