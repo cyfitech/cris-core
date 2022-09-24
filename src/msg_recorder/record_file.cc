@@ -2,24 +2,14 @@
 
 #include "cris/core/utils/defs.h"
 #include "cris/core/utils/logging.h"
-#include "cris/core/utils/time.h"
 
 #include "leveldb/comparator.h"
 #include "leveldb/db.h"
 #include "leveldb/slice.h"
 
-#include <algorithm>
-#include <array>
-#include <atomic>
-#include <cmath>
-#include <cstddef>
 #include <filesystem>
-#include <iomanip>
-#include <limits>
-#include <memory>
-#include <regex>
-#include <sstream>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <utility>
 
@@ -37,7 +27,9 @@ class RecordFileKeyLdbCmp : public leveldb::Comparator {
 };
 
 int RecordFileKeyLdbCmp::Compare(const leveldb::Slice& lhs, const leveldb::Slice& rhs) const {
-    return RecordFileKey::compare(RecordFileKey::FromLegacySlice(lhs), RecordFileKey::FromLegacySlice(rhs));
+    return RecordFileKey::compare(
+        RecordFileKey::FromBytesLegacy(std::string_view(lhs.data(), lhs.size())),
+        RecordFileKey::FromBytesLegacy(std::string_view(rhs.data(), rhs.size())));
 }
 
 const char* RecordFileKeyLdbCmp::Name() const {
@@ -58,7 +50,9 @@ bool RecordFileIterator::Valid() const {
 }
 
 RecordFileKey RecordFileIterator::GetKey() const {
-    return legacy_ ? RecordFileKey::FromLegacySlice(db_itr_->key()) : RecordFileKey::FromSlice(db_itr_->key());
+    auto key_slice = db_itr_->key();
+    auto key_bytes = std::string_view(key_slice.data(), key_slice.size());
+    return legacy_ ? RecordFileKey::FromBytesLegacy(key_bytes) : RecordFileKey::FromBytes(key_bytes);
 }
 
 std::pair<RecordFileKey, std::string> RecordFileIterator::Get() const {

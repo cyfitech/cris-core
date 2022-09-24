@@ -1,6 +1,6 @@
 #pragma once
 
-#include "cris/core/utils/time.h"
+#include "cris/core/msg_recorder/record_key.h"
 
 #include "leveldb/db.h"
 
@@ -9,30 +9,6 @@
 #include <utility>
 
 namespace cris::core {
-
-struct RecordFileKey {
-    std::string ToBytes() const;
-
-    static RecordFileKey Make();
-
-    static RecordFileKey FromBytes(const std::string& bytes);
-
-    static RecordFileKey FromSlice(const leveldb::Slice& slice);
-
-    static RecordFileKey FromLegacySlice(const leveldb::Slice& slice);
-
-    static int compare(const RecordFileKey& lhs, const RecordFileKey& rhs);
-
-    // Use timestamp as primary for easier db merging and cross-db comparison.
-    cr_timestamp_nsec_t timestamp_ns_{0};
-
-    // tie-breaker if timestamp happends to be the same.
-    unsigned long long count_{0};
-
-    // If there are more fields needed, add them below for backward-compatibilitty.
-};
-
-static_assert(std::is_standard_layout_v<RecordFileKey>);
 
 class RecordFileIterator {
    public:

@@ -1,27 +1,18 @@
-#include "cris/core/msg_recorder/record_file.h"
+#include "cris/core/msg_recorder/record_key.h"
 
 #include "cris/core/utils/defs.h"
 #include "cris/core/utils/logging.h"
 #include "cris/core/utils/time.h"
 
-#include "leveldb/comparator.h"
-#include "leveldb/db.h"
-#include "leveldb/slice.h"
-
 #include <algorithm>
 #include <array>
 #include <atomic>
 #include <cmath>
-#include <cstddef>
-#include <filesystem>
+#include <cstring>
 #include <iomanip>
 #include <limits>
-#include <memory>
 #include <regex>
 #include <sstream>
-#include <string>
-#include <type_traits>
-#include <utility>
 
 namespace cris::core {
 
@@ -52,13 +43,15 @@ std::string RecordFileKey::ToBytes() const {
     return ss.str();
 }
 
-RecordFileKey RecordFileKey::FromBytes(const std::string& str) {
+RecordFileKey RecordFileKey::FromBytes(const std::string_view bytes) {
     static thread_local const std::regex key_str_format("T([[:digit:]]+)ns([[:digit:]]+)");
 
     std::smatch key_str_match;
 
-    CHECK(std::regex_match(str, key_str_match, key_str_format))
-        << __func__ << ": Unknown key format \"" << str << "\".";
+    std::string bytes_str(bytes);
+
+    CHECK(std::regex_match(bytes_str, key_str_match, key_str_format))
+        << __func__ << ": Unknown key format \"" << bytes_str << "\".";
     CHECK_GT(key_str_match.size(), 2u);
 
     return RecordFileKey{
@@ -67,20 +60,25 @@ RecordFileKey RecordFileKey::FromBytes(const std::string& str) {
     };
 }
 
-RecordFileKey RecordFileKey::FromSlice(const leveldb::Slice& slice) {
-    return FromBytes(slice.ToString());
-}
-
-RecordFileKey RecordFileKey::FromLegacySlice(const leveldb::Slice& slice) {
+RecordFileKey RecordFileKey::FromBytesLegacy(const std::string_view bytes) {
     RecordFileKey key;
-    std::memcpy(&key, slice.data(), std::min(sizeof(key), slice.size()));
+    std::memcpy(&key, bytes.data(), std::min(sizeof(key), bytes.size()));
     return key;
 }
 
 int RecordFileKey::compare(const RecordFileKey& lhs, const RecordFileKey& rhs) {
-    auto lhs_str = lhs.ToBytes();
-    auto rhs_str = rhs.ToBytes();
-    return leveldb::BytewiseComparator()->Compare(leveldb::Slice(lhs_str), leveldb::Slice(rhs_str));
+    auto lhs_bytes = lhs.ToBytes();
+    auto rhs_bytes = rhs.ToBytes();
+    int  res       = std::memcmp(lhs_bytes.data(), rhs_bytes.data(), std::min(lhs_bytes.size(), rhs_bytes.size()));
+    if (res == 0) {
+        if (lhs_bytes.size() < rhs_bytes.size()) {
+            res = -1;
+        }
+        if (lhs_bytes.size() > rhs_bytes.size()) {
+            res = 1;
+        }
+    }
+    return res;
 }
 
 }  // namespace cris::core

@@ -38,7 +38,19 @@ cris_cc_library (
 )
 
 cris_cc_library (
-    name = "msg_record_file",
+    name = "internal_msg_record_key",
+    srcs = ["src/msg_recorder/record_key.cc"],
+    hdrs = ["src/msg_recorder/record_key.h"],
+    include_prefix = "cris/core",
+    strip_include_prefix = "src",
+    deps = [
+        ":utils",
+    ],
+    visibility = ["//visibility:private"],
+)
+
+cris_cc_library (
+    name = "internal_msg_record_file",
     srcs = ["src/msg_recorder/record_file.cc"],
     hdrs = ["src/msg_recorder/record_file.h"],
     include_prefix = "cris/core",
@@ -51,6 +63,7 @@ cris_cc_library (
     ],
     deps = [
         ":utils",
+        ":internal_msg_record_key",
     ],
     visibility = ["//visibility:private"],
 )
@@ -58,7 +71,6 @@ cris_cc_library (
 cris_cc_library (
     name = "msg_recorder",
     srcs = [
-        "src/msg_recorder/record_key.cc",
         "src/msg_recorder/recorder.cc",
         "src/msg_recorder/replayer.cc",
         "src/msg_recorder/impl/utils.h",
@@ -72,7 +84,7 @@ cris_cc_library (
     strip_include_prefix = "src",
     deps = [
         ":msg",
-        ":msg_record_file",
+        ":internal_msg_record_file",
         "@fmt//:libfmt",
     ],
 )
