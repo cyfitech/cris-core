@@ -58,6 +58,7 @@ cris_cc_library (
 cris_cc_library (
     name = "msg_recorder",
     srcs = [
+        "src/msg_recorder/record_key.cc",
         "src/msg_recorder/recorder.cc",
         "src/msg_recorder/replayer.cc",
         "src/msg_recorder/impl/utils.h",
