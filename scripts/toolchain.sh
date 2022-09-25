@@ -2,7 +2,7 @@
 
 set -e
 
-pushd "$(dirname "$0")/.."
+pushd "$(dirname "$0")/.." >/dev/null
 
 . scripts/distro_cc.sh
 
@@ -39,4 +39,4 @@ ____________EOF
     done
 fi
 
-popd
+popd >/dev/null
