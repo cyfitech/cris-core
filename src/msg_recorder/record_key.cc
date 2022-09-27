@@ -69,16 +69,15 @@ RecordFileKey RecordFileKey::FromBytesLegacy(const std::string_view bytes) {
 int RecordFileKey::compare(const RecordFileKey& lhs, const RecordFileKey& rhs) {
     auto lhs_bytes = lhs.ToBytes();
     auto rhs_bytes = rhs.ToBytes();
-    int  res       = std::memcmp(lhs_bytes.data(), rhs_bytes.data(), std::min(lhs_bytes.size(), rhs_bytes.size()));
-    if (res == 0) {
-        if (lhs_bytes.size() < rhs_bytes.size()) {
-            res = -1;
-        }
-        if (lhs_bytes.size() > rhs_bytes.size()) {
-            res = 1;
-        }
+    if (const auto cmp =
+            std::memcmp(lhs_bytes.data(), rhs_bytes.data(), std::min(lhs_bytes.size(), rhs_bytes.size()))) {
+        return cmp;
+    } else if (lhs_bytes.size() < rhs_bytes.size()) {
+        return -1;
+    } else if (lhs_bytes.size() > rhs_bytes.size()) {
+        return 1;
     }
-    return res;
+    return 0;
 }
 
 }  // namespace cris::core
