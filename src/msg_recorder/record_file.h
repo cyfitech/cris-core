@@ -5,6 +5,7 @@
 #include "leveldb/db.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -24,15 +25,20 @@ class RecordFileIterator {
 
     bool Valid() const;
 
-    std::pair<RecordFileKey, std::string> Get() const;
-
     RecordFileKey GetKey() const;
+
+    std::pair<RecordFileKey, std::string> Get() const;
 
     void Next();
 
    protected:
+    std::optional<RecordFileKey> TryReadCurrentKey() const;
+
+    void ReadNextValidKey();
+
     std::unique_ptr<leveldb::Iterator> db_itr_;
     bool                               legacy_{false};
+    RecordFileKey                      current_key_;
 };
 
 class RecordFile {

@@ -43,7 +43,7 @@ std::string RecordFileKey::ToBytes() const {
     return ss.str();
 }
 
-RecordFileKey RecordFileKey::FromBytes(const std::string_view bytes) {
+std::optional<RecordFileKey> RecordFileKey::FromBytes(const std::string_view bytes) {
     static thread_local const std::regex key_str_format("T([[:digit:]]+)ns([[:digit:]]+)");
 
     std::smatch key_str_match;
@@ -60,7 +60,7 @@ RecordFileKey RecordFileKey::FromBytes(const std::string_view bytes) {
     };
 }
 
-RecordFileKey RecordFileKey::FromBytesLegacy(const std::string_view bytes) {
+std::optional<RecordFileKey> RecordFileKey::FromBytesLegacy(const std::string_view bytes) {
     RecordFileKey key;
     std::memcpy(&key, bytes.data(), std::min(sizeof(key), bytes.size()));
     return key;

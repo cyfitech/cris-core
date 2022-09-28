@@ -27,9 +27,17 @@ class RecordFileKeyLdbCmp : public leveldb::Comparator {
 };
 
 int RecordFileKeyLdbCmp::Compare(const leveldb::Slice& lhs, const leveldb::Slice& rhs) const {
-    return RecordFileKey::compare(
-        RecordFileKey::FromBytesLegacy(std::string_view(lhs.data(), lhs.size())),
-        RecordFileKey::FromBytesLegacy(std::string_view(rhs.data(), rhs.size())));
+    auto lhs_key_opt = RecordFileKey::FromBytesLegacy(std::string_view(lhs.data(), lhs.size()));
+    auto rhs_key_opt = RecordFileKey::FromBytesLegacy(std::string_view(rhs.data(), rhs.size()));
+
+    if (lhs_key_opt && rhs_key_opt) {
+        return RecordFileKey::compare(*lhs_key_opt, *rhs_key_opt);
+    } else if (lhs_key_opt) {
+        return 1;
+    } else if (rhs_key_opt) {
+        return -1;
+    }
+    return 0;
 }
 
 const char* RecordFileKeyLdbCmp::Name() const {
@@ -43,16 +51,22 @@ RecordFileIterator::RecordFileIterator(leveldb::Iterator* db_itr) : RecordFileIt
 RecordFileIterator::RecordFileIterator(leveldb::Iterator* db_itr, const bool legacy)
     : db_itr_(db_itr)
     , legacy_(legacy) {
+    db_itr_->SeekToFirst();
+    ReadNextValidKey();
 }
 
 bool RecordFileIterator::Valid() const {
     return db_itr_->Valid();
 }
 
-RecordFileKey RecordFileIterator::GetKey() const {
+std::optional<RecordFileKey> RecordFileIterator::TryReadCurrentKey() const {
     auto key_slice = db_itr_->key();
     auto key_bytes = std::string_view(key_slice.data(), key_slice.size());
     return legacy_ ? RecordFileKey::FromBytesLegacy(key_bytes) : RecordFileKey::FromBytes(key_bytes);
+}
+
+RecordFileKey RecordFileIterator::GetKey() const {
+    return current_key_;
 }
 
 std::pair<RecordFileKey, std::string> RecordFileIterator::Get() const {
@@ -61,6 +75,18 @@ std::pair<RecordFileKey, std::string> RecordFileIterator::Get() const {
 
 void RecordFileIterator::Next() {
     db_itr_->Next();
+    ReadNextValidKey();
+}
+
+void RecordFileIterator::ReadNextValidKey() {
+    for (; db_itr_->Valid(); db_itr_->Next()) {
+        auto key_opt = TryReadCurrentKey();
+        if (!key_opt) {
+            continue;
+        }
+        current_key_ = std::move(*key_opt);
+        break;
+    }
 }
 
 RecordFile::RecordFile(std::string file_path) : file_path_(std::move(file_path)) {

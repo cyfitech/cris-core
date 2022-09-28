@@ -2,6 +2,7 @@
 
 #include "cris/core/utils/time.h"
 
+#include <optional>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -13,9 +14,9 @@ struct RecordFileKey {
 
     static RecordFileKey Make();
 
-    static RecordFileKey FromBytes(const std::string_view bytes);
+    static std::optional<RecordFileKey> FromBytes(const std::string_view bytes);
 
-    static RecordFileKey FromBytesLegacy(const std::string_view bytes);
+    static std::optional<RecordFileKey> FromBytesLegacy(const std::string_view bytes);
 
     static int compare(const RecordFileKey& lhs, const RecordFileKey& rhs);
 

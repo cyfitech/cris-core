@@ -18,7 +18,7 @@ TEST(RecordKeyTest, Convert) {
             .count_        = 0,
         };
 
-        EXPECT_KEY_EQ(key, RecordFileKey::FromBytes(key.ToBytes()));
+        EXPECT_KEY_EQ(key, *RecordFileKey::FromBytes(key.ToBytes()));
     }
 
     {
@@ -27,7 +27,7 @@ TEST(RecordKeyTest, Convert) {
             .count_        = 0xFFFFFFFFFFFFFFFF,
         };
 
-        EXPECT_KEY_EQ(key, RecordFileKey::FromBytes(key.ToBytes()));
+        EXPECT_KEY_EQ(key, *RecordFileKey::FromBytes(key.ToBytes()));
     }
 }
 
