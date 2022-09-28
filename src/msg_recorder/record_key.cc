@@ -13,6 +13,7 @@
 #include <limits>
 #include <regex>
 #include <sstream>
+#include <stdexcept>
 
 namespace cris::core {
 
@@ -50,14 +51,20 @@ std::optional<RecordFileKey> RecordFileKey::FromBytes(const std::string_view byt
 
     std::string bytes_str(bytes);
 
-    CHECK(std::regex_match(bytes_str, key_str_match, key_str_format))
-        << __func__ << ": Unknown key format \"" << bytes_str << "\".";
-    CHECK_GT(key_str_match.size(), 2u);
+    if (!std::regex_match(bytes_str, key_str_match, key_str_format) || key_str_match.size() < 3) [[unlikely]] {
+        LOG(ERROR) << __func__ << ": Unknown key format \"" << bytes_str << "\".";
+        return std::nullopt;
+    }
 
-    return RecordFileKey{
-        .timestamp_ns_ = std::stoll(key_str_match[1].str(), nullptr),
-        .count_        = std::stoull(key_str_match[2].str(), nullptr),
-    };
+    try {
+        return RecordFileKey{
+            .timestamp_ns_ = std::stoll(key_str_match[1].str(), nullptr),
+            .count_        = std::stoull(key_str_match[2].str(), nullptr),
+        };
+    } catch (const std::out_of_range& oor) {
+        LOG(ERROR) << __func__ << ": Unknown key format \"" << bytes_str << "\". Integer out-of-range: " << oor.what();
+        return std::nullopt;
+    }
 }
 
 std::optional<RecordFileKey> RecordFileKey::FromBytesLegacy(const std::string_view bytes) {
