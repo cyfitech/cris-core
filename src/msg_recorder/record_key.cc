@@ -18,7 +18,7 @@
 namespace cris::core {
 
 RecordFileKey RecordFileKey::Make() {
-    // Those counters are the tie-breakers if the timestamps are the same
+    // Those counters are the tie-breakers if the timestamps are the same.
     constexpr unsigned                                                 kNumOfCounters = 1 << 4;
     static std::array<std::atomic<unsigned long long>, kNumOfCounters> global_counters{};
 
