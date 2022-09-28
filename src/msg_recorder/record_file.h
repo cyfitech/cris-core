@@ -1,36 +1,21 @@
 #pragma once
 
-#include "cris/core/utils/time.h"
+#include "cris/core/msg_recorder/record_key.h"
 
 #include "leveldb/db.h"
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 
 namespace cris::core {
 
-struct RecordFileKey {
-    static RecordFileKey Make();
-
-    static RecordFileKey FromSlice(const leveldb::Slice& slice);
-
-    static int compare(const RecordFileKey& lhs, const RecordFileKey& rhs);
-
-    // Use timestamp as primary for easier db merging and cross-db comparison.
-    cr_timestamp_nsec_t timestamp_{0};
-
-    // tie-breaker if timestamp happends to be the same.
-    unsigned long long count_{0};
-
-    // If there are more fields needed, add them below for backward-compatibilitty.
-};
-
-static_assert(std::is_standard_layout_v<RecordFileKey>);
-
 class RecordFileIterator {
    public:
     explicit RecordFileIterator(leveldb::Iterator* db_itr);
+
+    explicit RecordFileIterator(leveldb::Iterator* db_itr, const bool legacy);
 
     RecordFileIterator(const RecordFileIterator&) = delete;
     RecordFileIterator(RecordFileIterator&&)      = default;
@@ -40,14 +25,20 @@ class RecordFileIterator {
 
     bool Valid() const;
 
-    std::pair<RecordFileKey, std::string> Get() const;
-
     RecordFileKey GetKey() const;
+
+    std::pair<RecordFileKey, std::string> Get() const;
 
     void Next();
 
    protected:
+    std::optional<RecordFileKey> TryReadCurrentKey() const;
+
+    void ReadNextValidKey();
+
     std::unique_ptr<leveldb::Iterator> db_itr_;
+    bool                               legacy_{false};
+    RecordFileKey                      current_key_;
 };
 
 class RecordFile {
@@ -69,9 +60,12 @@ class RecordFile {
 
     bool Empty() const;
 
+    void Compact();
+
    protected:
     std::string                  file_path_;
     std::unique_ptr<leveldb::DB> db_;
+    bool                         legacy_{false};
 };
 
 }  // namespace cris::core
