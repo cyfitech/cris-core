@@ -20,7 +20,7 @@ runs:
     # Cache action only accepts up to 10 keys.
     run: |
       set -e
-      seq 0 1 9 | xargs -rI{} expr '(' "$(date -u '+%s')" '/' 3600 '/' 8 - {} ')' '*' 3600 '*' 8 | xargs -rI{} date -d @{} -u '+%FT%H' | nl -s ' ' -v0 | xargs printf '::set-output name=date-%d::%s\n'
+      seq 0 1 9 | xargs -rI{} expr '(' "$(date -u '+%s')" '/' 3600 '/' 8 - {} ')' '*' 3600 '*' 8 | xargs -rI{} date -d @{} -u '+%FT%H' | nl -s ' ' -v0 | xargs printf 'date-%d=%s\n' >> "$GITHUB_OUTPUT"
   - uses: actions/cache@v3
     with:
       path: |

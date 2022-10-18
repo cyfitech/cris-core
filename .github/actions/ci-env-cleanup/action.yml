@@ -3,6 +3,12 @@ name: Clean up CI Environment
 runs:
   using: "composite"
   steps:
+  - name: Verify cleanness
+    shell: bash
+    run: |
+      set -e
+      export HOME=/root
+      git --no-pager diff --exit-code --name-only
   - name: Summary
     shell: bash
     run: |
