@@ -13,7 +13,7 @@ std::string GetMessageRecordFileName(const std::string& message_type, const CRMe
         return !std::isalnum(c);
     };
     std::replace_if(message_record_filename.begin(), message_record_filename.end(), message_type_replace_pred, '_');
-    return message_record_filename + "_subid_" + std::to_string(subid) + ".ldb";
+    return message_record_filename + "_subid_" + std::to_string(subid) + ".ldb.d";
 }
 
 }  // namespace cris::core::impl
