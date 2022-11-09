@@ -89,7 +89,6 @@ static void SignalHandler(int signal_number, siginfo_t* signal_info, void* ucont
     switch (signal_number) {
         case SIGINT:
             SigIntHandler(signal_number, signal_info, ucontext);
-            break;
         default:
             DumpStacktrace();
             break;
