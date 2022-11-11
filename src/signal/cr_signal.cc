@@ -25,6 +25,11 @@
 
 namespace cris::core {
 
+static void WriteToGlog(const char* data, std::size_t size) {
+    std::string msg(data, size);
+    LOG(ERROR) << msg;
+}
+
 // Other signals may be captured by the default glog handler
 static const int kFailureSignals[] = {
     SIGINT,
@@ -111,6 +116,8 @@ static void InstallFailureSignalHandler() {
 }
 
 void InstallSignalHandler() {
+    google::InstallFailureSignalHandler();
+    google::InstallFailureWriter(WriteToGlog);
     InstallFailureSignalHandler();
 }
 
