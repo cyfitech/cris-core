@@ -32,13 +32,12 @@ static void WriteToGlog(const char* data, std::size_t size) {
 
 // Other signals may be captured by the default glog handler
 static const int kFailureSignals[] = {
-    SIGINT,
-    SIGTRAP,
-    SIGSEGV,
-    SIGILL,
-    SIGFPE,
     SIGABRT,
+    SIGILL,
+    SIGINT,
+    SIGSEGV,
     SIGTERM,
+    SIGTRAP,
 };
 
 // Invoke the default signal handler.
