@@ -7,32 +7,9 @@ def cris_deps_gflags(prefix = "."):
 
 def cris_deps_glog(prefix = "."):
     if not native.existing_rule("glog"):
-        native.new_local_repository(
+        native.local_repository(
             name = "com_github_google_glog",
             path = prefix + "/external/glog",
-            build_file_content = """
-load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
-
-filegroup(
-    name = "all_content",
-    srcs = glob(["**"]),
-    visibility = ["//visibility:private"],
-)
-
-cmake(
-    name = "glog",
-    lib_source = ":all_content",
-    cache_entries = {
-        "CMAKE_C_FLAGS" : "-Wno-fuse-ld-path",
-        "CMAKE_CXX_FLAGS" : "-Wno-fuse-ld-path",
-        "BUILD_SHARED_LIBS": "OFF",
-    },
-    generate_args = [
-        "-G Ninja",
-    ],
-    visibility = ["//visibility:public"],
-)
-            """,
         )
 
 def cris_deps_gtest(prefix = "."):
