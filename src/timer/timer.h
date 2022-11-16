@@ -62,6 +62,7 @@ class TimerReport {
     std::string                                         section_name_;
     cr_duration_nsec_t                                  timing_duration_{0};
     std::vector<impl::TimerStatEntryBucket>             report_buckets_;
+    cr_duration_nsec_t                                  max_duration_ns_{0};
     std::map<std::string, std::unique_ptr<TimerReport>> subsections_;
 };
 
