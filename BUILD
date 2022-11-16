@@ -15,16 +15,8 @@ cris_cc_library (
 
 cris_cc_library (
     name = "sched",
-    hdrs = glob([
-            "src/sched/**/*.h",
-        ],
-        exclude = [
-            "src/sched/**/*_impl.h",
-        ]),
-    srcs = glob([
-        "src/sched/**/*.cc",
-        "src/sched/**/*_impl.h",
-    ]),
+    srcs = glob(["src/sched/**/*.cc"]),
+    hdrs = glob(["src/sched/**/*.h"]),
     include_prefix = "cris/core",
     strip_include_prefix = "src",
     deps = [

@@ -1,6 +1,6 @@
 #include "cris/core/sched/spin_mutex.h"
 
-#include "nop_asm_impl.h"
+#include "cris/core/sched/spin_impl.h"
 
 #include <cstddef>
 #include <thread>
@@ -16,7 +16,7 @@ void HybridSpinMutex::lock() {
         if (try_lock()) {
             return;
         }
-        _CR_SPIN_FOR_ABOUT_1US_;
+        impl::SpinForAbout1us();
     }
 
     while (!try_lock()) {

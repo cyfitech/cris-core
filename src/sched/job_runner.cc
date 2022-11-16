@@ -1,11 +1,10 @@
 #include "cris/core/sched/job_runner.h"
 
+#include "cris/core/sched/spin_impl.h"
 #include "cris/core/sched/spin_mutex.h"
 #include "cris/core/utils/defs.h"
 #include "cris/core/utils/logging.h"
 #include "cris/core/utils/time.h"
-
-#include "nop_asm_impl.h"
 
 #if defined(__clang__)
 #pragma GCC diagnostic push
@@ -367,7 +366,7 @@ void JobRunnerWorker::WorkerLoop() {
             continue;
         }
         if (index_ < runner_->config_.always_active_thread_num_) {
-            _CR_SPIN_FOR_ABOUT_1US_;
+            impl::SpinForAbout1us();
             continue;
         }
         if (has_pending_jobs) {
@@ -375,7 +374,7 @@ void JobRunnerWorker::WorkerLoop() {
             has_pending_jobs      = false;
         }
         if (GetSystemTimestampNsec() < last_active_timestamp + active_time_nsec) {
-            _CR_SPIN_FOR_ABOUT_1US_;
+            impl::SpinForAbout1us();
             continue;
         }
         runner_->active_workers_num_.fetch_sub(1);
