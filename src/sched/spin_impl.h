@@ -2,6 +2,6 @@
 
 namespace cris::core::impl {
 
-void SpinForAbout1us();
+void SpinForApprox1us();
 
 }  // namespace cris::core::impl

@@ -16,7 +16,7 @@ void HybridSpinMutex::lock() {
         if (try_lock()) {
             return;
         }
-        impl::SpinForAbout1us();
+        impl::SpinForApprox1us();
     }
 
     while (!try_lock()) {

@@ -19,7 +19,7 @@
 
 namespace cris::core::impl {
 
-void SpinForAbout1us() {
+void SpinForApprox1us() {
     // Each iter takes ~3ns on Intel x86 boosting to 2.9-3.0GHz (measured).
     // Tested on Skylake Xeon and CoffeeLake Mobile.
     // Tested on GCC 10/11 and LLVM 12.
