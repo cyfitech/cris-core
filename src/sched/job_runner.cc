@@ -1,5 +1,6 @@
 #include "cris/core/sched/job_runner.h"
 
+#include "cris/core/sched/spin_impl.h"
 #include "cris/core/sched/spin_mutex.h"
 #include "cris/core/utils/defs.h"
 #include "cris/core/utils/logging.h"
@@ -365,6 +366,7 @@ void JobRunnerWorker::WorkerLoop() {
             continue;
         }
         if (index_ < runner_->config_.always_active_thread_num_) {
+            impl::SpinForApprox1us();
             continue;
         }
         if (has_pending_jobs) {
@@ -372,6 +374,7 @@ void JobRunnerWorker::WorkerLoop() {
             has_pending_jobs      = false;
         }
         if (GetSystemTimestampNsec() < last_active_timestamp + active_time_nsec) {
+            impl::SpinForApprox1us();
             continue;
         }
         runner_->active_workers_num_.fetch_sub(1);
