@@ -7,49 +7,95 @@
 #include "impl/utils.h"
 
 #include <filesystem>
+#include <thread>
 
 namespace cris::core {
 
+void MessageRecorder::SnapshotTimer::SetSnapshotInterval(auto function, int interval) {
+    this->clear = false;
+    std::thread t([=]() {
+        while (true) {
+            if (this->clear) {
+                return;
+            }
+            std::this_thread::sleep_for(std::chrono::hours(interval));
+            if (this->clear) {
+                return;
+            }
+            function();
+        }
+    });
+    t.detach();
+}
+
+void MessageRecorder::SnapshotTimer::SnapshotStop() {
+    this->clear = true;
+}
+
 MessageRecorder::MessageRecorder(const std::filesystem::path& record_dir_prefix, std::shared_ptr<JobRunner> runner)
     : Base(std::move(runner))
-    , record_dir_(record_dir_prefix / RecordDirNameGenerator()) {
-    auto temp_record_dir = record_dir_prefix;
-    temp_record_dir += std::string("_snapshots");
-    record_snapshot_dir_ = temp_record_dir;
-
+    , record_dir_(record_dir_prefix / RecordDirNameGenerator())
+    , subscription_strand_(runner ? runner->MakeStrand() : MakeStrand())
+    , timer(SnapshotTimer()) {
     std::filesystem::create_directories(record_dir_);
-    std::filesystem::create_directories(record_snapshot_dir_);
+    SnapshotStart();
+}
 
-    Timer t = Timer();
-    for (const auto& [type, pair] : snapshot_intervals_) {
-        GenerateSnapshot(pair.second);
-        const int& alias = pair.second;
-        t.setInterval([this, alias]() { GenerateSnapshot(alias); }, pair.first);
+void MessageRecorder::SnapshotStart() {
+    for (const auto& [interval, max] : snapshot_records_) {
+        const auto& alias_max = max;
+        GenerateSnapshot(alias_max);
+        timer.SetSnapshotInterval(
+            [this, alias_max]() {
+                AddJobToRunner([this, alias_max]() { GenerateSnapshot(alias_max); }, subscription_strand_);
+            },
+            int(interval));
     }
 }
 
+void MessageRecorder::SnapshotEnd() {
+    timer.SnapshotStop();
+    record_init_map.clear();
+}
+
 MessageRecorder::~MessageRecorder() {
+    SnapshotEnd();
     files_.clear();
 
     if (std::filesystem::is_empty(GetRecordDir())) {
         LOG(INFO) << "Record dir " << GetRecordDir() << " is empty, removing...";
         std::filesystem::remove(GetRecordDir());
     }
-
-    if (std::filesystem::is_empty(GetRecordSnapshotDir())) {
-        LOG(INFO) << "Record Snapshot dir " << GetRecordSnapshotDir() << " is empty, removing...";
-        std::filesystem::remove(GetRecordSnapshotDir());
-    }
 }
 
-void MessageRecorder::GenerateSnapshot(const int& keep_max) {
-    data_copied_ = false;
-    std::unique_lock lock(recorder_mtx_);
-    snapshot_cv_.wait(lock, [this] { return dataflow_paused; });
+void MessageRecorder::GenerateSnapshot(const MaxCopyNum& keep_max) {
+    // close db and remove symlinks
+
+    std::string prefix       = "";
+    std::string keep_max_str = std::to_string(int(keep_max));
+    switch (keep_max) {
+        case MaxCopyNum::DAILY:
+            prefix = "Daily_Snapshot_Max_" + keep_max_str;
+            break;
+        case MaxCopyNum::HOURLY:
+            prefix = "Hourly_Snapshot_Max_" + keep_max_str;
+            break;
+        case MaxCopyNum::WEEKLY:
+            prefix = "Weekly_Snapshot_Max_" + keep_max_str;
+            break;
+        default:
+            break;
+    }
+
+    // create dir for individual interval
+    std::filesystem::path interval_folder = record_dir_.parent_path() / prefix;
+    if (!std::filesystem::exists(interval_folder)) {
+        std::filesystem::create_directories(interval_folder);
+    }
 
     std::filesystem::directory_entry withdraw;
     int                              counter = 0;
-    for (auto const& dir_entry : std::filesystem::directory_iterator{record_snapshot_dir_}) {
+    for (auto const& dir_entry : std::filesystem::directory_iterator{interval_folder}) {
         counter++;
         if (!withdraw.exists() ||
             (withdraw.last_write_time().time_since_epoch().count() -
@@ -59,31 +105,27 @@ void MessageRecorder::GenerateSnapshot(const int& keep_max) {
     }
 
     // withdraw the earliest snapshot if needed
-    if (counter >= keep_max) {
+    if (counter >= int(keep_max)) {
         std::filesystem::remove_all(withdraw);
     }
 
-    // generate the latest snapshot dir
-    auto result_record_dir = record_snapshot_dir_;
-    result_record_dir += std::string("/");
-    result_record_dir += std::string(RecordDirNameGenerator());
-    std::filesystem::create_directories(result_record_dir);
-    std::filesystem::copy(record_dir_, result_record_dir, std::filesystem::copy_options::recursive);
+    const auto snapshot_dir = interval_folder / SnapshotDirNameGenerator();
+    std::filesystem::create_directories(snapshot_dir);
+    std::filesystem::copy(record_dir_, snapshot_dir, std::filesystem::copy_options::recursive);
 
-    data_copied_ = true;
-    snapshot_cv_.notify_all();
+    // init db back
 }
 
 std::string MessageRecorder::RecordDirNameGenerator() {
     return fmt::format("record.{:%Y%m%d-%H%M%S.%Z}.pid.{}", std::chrono::system_clock::now(), getpid());
 }
 
-std::filesystem::path MessageRecorder::GetRecordDir() const {
-    return record_dir_;
+std::string MessageRecorder::SnapshotDirNameGenerator() {
+    return fmt::format("snapshot.{:%Y%m%d-%H%M%S.%Z}.pid.{}", std::chrono::system_clock::now(), getpid());
 }
 
-std::filesystem::path MessageRecorder::GetRecordSnapshotDir() const {
-    return record_snapshot_dir_;
+std::filesystem::path MessageRecorder::GetRecordDir() const {
+    return record_dir_;
 }
 
 RecordFile* MessageRecorder::CreateFile(
