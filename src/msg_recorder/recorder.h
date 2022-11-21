@@ -20,10 +20,7 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
    public:
     using Base = CRNamedNode<MessageRecorder>;
 
-    explicit MessageRecorder(
-        const std::filesystem::path& record_dir_prefix,
-        const int&                   snapshot_interval,
-        std::shared_ptr<JobRunner>   runner);
+    explicit MessageRecorder(const std::filesystem::path& record_dir_prefix, std::shared_ptr<JobRunner> runner);
 
     MessageRecorder(const MessageRecorder&) = delete;
     MessageRecorder(MessageRecorder&&)      = delete;
@@ -31,6 +28,8 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     MessageRecorder& operator=(MessageRecorder&&) = delete;
 
     ~MessageRecorder();
+
+    void SetSnapshotInterval(const int& interval);
 
     template<CRMessageType message_t>
     void RegisterChannel(const channel_subid_t subid, const std::string& alias = "");
@@ -59,11 +58,12 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
         channel_subid_t init_subid;
         std::string     init_name;
         std::string     init_alias;
+        std::string     init_path;
     };
 
     const int                       keep_max_{48};
-    int                             snapshot_interval_;
-    std::vector<RecordFileInitData> record_init_datas;
+    int                             snapshot_interval_{1};
+    std::vector<RecordFileInitData> record_init_datas_;
     std::thread                     snapshot_thread_;
     std::atomic<bool>               snapshot_shutdown_flag_{false};
 };
@@ -71,12 +71,6 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
 template<CRMessageType message_t>
 void MessageRecorder::RegisterChannel(const MessageRecorder::channel_subid_t subid, const std::string& alias) {
     auto* record_file = CreateFile(GetTypeName<message_t>(), subid, alias);
-
-    RecordFileInitData new_record_data;
-    new_record_data.init_name  = GetTypeName<message_t>();
-    new_record_data.init_subid = subid;
-    new_record_data.init_alias = alias;
-    record_init_datas.emplace_back(new_record_data);
 
     this->Subscribe<message_t>(
         subid,

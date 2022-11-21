@@ -10,14 +10,10 @@
 
 namespace cris::core {
 
-MessageRecorder::MessageRecorder(
-    const std::filesystem::path& record_dir_prefix,
-    const int&                   snapshot_interval,
-    std::shared_ptr<JobRunner>   runner)
+MessageRecorder::MessageRecorder(const std::filesystem::path& record_dir_prefix, std::shared_ptr<JobRunner> runner)
     : Base(std::move(runner))
     , record_dir_(record_dir_prefix / RecordDirNameGenerator())
     , record_strand_(MakeStrand())
-    , snapshot_interval_(snapshot_interval)
     , snapshot_thread_(std::bind(&MessageRecorder::SnapshotStart, this)) {
     std::filesystem::create_directories(record_dir_);
 }
@@ -25,7 +21,7 @@ MessageRecorder::MessageRecorder(
 void MessageRecorder::SnapshotStart() {
     while (!snapshot_shutdown_flag_.load()) {
         AddJobToRunner([this]() { GenerateSnapshot(keep_max_); }, record_strand_);
-        std::this_thread::sleep_for(std::chrono::seconds(snapshot_interval_));
+        std::this_thread::sleep_for(std::chrono::hours(snapshot_interval_));
     }
 }
 
@@ -34,7 +30,7 @@ void MessageRecorder::SnapshotEnd() {
     if (snapshot_thread_.joinable()) {
         snapshot_thread_.join();
     }
-    record_init_datas.clear();
+    record_init_datas_.clear();
 }
 
 MessageRecorder::~MessageRecorder() {
@@ -47,12 +43,7 @@ MessageRecorder::~MessageRecorder() {
 }
 
 void MessageRecorder::GenerateSnapshot(const int& max) {
-    // remove symlinks and close DB
-    for (const auto& file : files_) {
-        if (!file->GetFilePath().empty() && !std::filesystem::is_empty(file->GetFilePath())) {
-            std::filesystem::remove_all(file->GetFilePath());
-        }
-    }
+    // close DB
     files_.clear();
 
     // create dir for individual interval
@@ -79,14 +70,12 @@ void MessageRecorder::GenerateSnapshot(const int& max) {
 
     const auto snapshot_dir = interval_folder / SnapshotDirNameGenerator();
     std::filesystem::create_directories(snapshot_dir);
-    std::filesystem::copy(
-        record_dir_,
-        snapshot_dir,
-        std::filesystem::copy_options::recursive | std::filesystem::copy_options::create_symlinks);
+    const auto copyOptions = std::filesystem::copy_options::copy_symlinks | std::filesystem::copy_options::recursive;
+    std::filesystem::copy(record_dir_, snapshot_dir, copyOptions);
 
     // init DB back
-    for (const auto& data : record_init_datas) {
-        CreateFile(data.init_name, data.init_subid, data.init_alias);
+    for (const auto& data : record_init_datas_) {
+        files_.emplace_back(std::make_unique<RecordFile>(data.init_path)).get();
     }
 }
 
@@ -96,6 +85,10 @@ std::string MessageRecorder::RecordDirNameGenerator() {
 
 std::string MessageRecorder::SnapshotDirNameGenerator() {
     return fmt::format("{:%Y%m%d-%H%M%S.%Z}", std::chrono::system_clock::now());
+}
+
+void MessageRecorder::SetSnapshotInterval(const int& interval) {
+    snapshot_interval_ = interval;
 }
 
 std::filesystem::path MessageRecorder::GetRecordDir() const {
@@ -110,6 +103,13 @@ RecordFile* MessageRecorder::CreateFile(
     auto path     = GetRecordDir() / filename;
 
     auto* record_file = files_.emplace_back(std::make_unique<RecordFile>(path)).get();
+
+    RecordFileInitData new_record_data;
+    new_record_data.init_name  = message_type;
+    new_record_data.init_subid = subid;
+    new_record_data.init_alias = alias;
+    new_record_data.init_path  = path;
+    record_init_datas_.emplace_back(new_record_data);
 
     if (!alias.empty()) {
         std::filesystem::create_symlink(filename, GetRecordDir() / alias);
