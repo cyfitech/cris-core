@@ -20,7 +20,10 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
    public:
     using Base = CRNamedNode<MessageRecorder>;
 
-    explicit MessageRecorder(const std::filesystem::path& record_dir_prefix, const int& snapshot_interval, std::shared_ptr<JobRunner> runner);
+    explicit MessageRecorder(
+        const std::filesystem::path& record_dir_prefix,
+        const int&                   snapshot_interval,
+        std::shared_ptr<JobRunner>   runner);
 
     MessageRecorder(const MessageRecorder&) = delete;
     MessageRecorder(MessageRecorder&&)      = delete;
@@ -70,9 +73,9 @@ void MessageRecorder::RegisterChannel(const MessageRecorder::channel_subid_t sub
     auto* record_file = CreateFile(GetTypeName<message_t>(), subid, alias);
 
     RecordFileInitData new_record_data;
-    new_record_data.init_name = GetTypeName<message_t>();
-    new_record_data.init_subid             = subid;
-    new_record_data.init_alias             = alias;
+    new_record_data.init_name  = GetTypeName<message_t>();
+    new_record_data.init_subid = subid;
+    new_record_data.init_alias = alias;
     record_init_datas.emplace_back(new_record_data);
 
     this->Subscribe<message_t>(

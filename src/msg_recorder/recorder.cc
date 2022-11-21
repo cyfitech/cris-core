@@ -10,10 +10,13 @@
 
 namespace cris::core {
 
-MessageRecorder::MessageRecorder(const std::filesystem::path& record_dir_prefix, const int& snapshot_interval, std::shared_ptr<JobRunner> runner)
+MessageRecorder::MessageRecorder(
+    const std::filesystem::path& record_dir_prefix,
+    const int&                   snapshot_interval,
+    std::shared_ptr<JobRunner>   runner)
     : Base(std::move(runner))
     , record_dir_(record_dir_prefix / RecordDirNameGenerator())
-    , record_strand_(runner ? runner->MakeStrand() : MakeStrand())
+    , record_strand_(MakeStrand())
     , snapshot_interval_(snapshot_interval)
     , snapshot_thread_(std::bind(&MessageRecorder::SnapshotStart, this)) {
     std::filesystem::create_directories(record_dir_);
@@ -76,7 +79,10 @@ void MessageRecorder::GenerateSnapshot(const int& max) {
 
     const auto snapshot_dir = interval_folder / SnapshotDirNameGenerator();
     std::filesystem::create_directories(snapshot_dir);
-    std::filesystem::copy(record_dir_, snapshot_dir, std::filesystem::copy_options::recursive | std::filesystem::copy_options::create_symlinks);
+    std::filesystem::copy(
+        record_dir_,
+        snapshot_dir,
+        std::filesystem::copy_options::recursive | std::filesystem::copy_options::create_symlinks);
 
     // init DB back
     for (const auto& data : record_init_datas) {
