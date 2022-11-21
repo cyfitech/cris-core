@@ -5,11 +5,13 @@
 #include "cris/core/msg_recorder/record_file.h"
 
 #include <atomic>
+#include <condition_variable>
 #include <filesystem>
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <utility>
@@ -66,6 +68,8 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     std::vector<RecordFileInitData> record_init_datas_;
     std::thread                     snapshot_thread_;
     std::atomic<bool>               snapshot_shutdown_flag_{false};
+    std::mutex                      snapshot_mtx;
+    std::condition_variable         snapshot_cv;
 };
 
 template<CRMessageType message_t>

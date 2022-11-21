@@ -19,18 +19,25 @@ MessageRecorder::MessageRecorder(const std::filesystem::path& record_dir_prefix,
 }
 
 void MessageRecorder::SnapshotStart() {
+    std::unique_lock<std::mutex> lock(snapshot_mtx);
     while (!snapshot_shutdown_flag_.load()) {
         AddJobToRunner([this]() { GenerateSnapshot(keep_max_); }, record_strand_);
-        std::this_thread::sleep_for(std::chrono::hours(snapshot_interval_));
+        snapshot_cv.wait_for(lock, std::chrono::hours(snapshot_interval_), [this] {
+            return snapshot_shutdown_flag_.load();
+        });
     }
 }
 
 void MessageRecorder::SnapshotEnd() {
-    snapshot_shutdown_flag_.store(true);
+    {
+        std::unique_lock<std::mutex> lock(snapshot_mtx);
+        snapshot_shutdown_flag_.store(true);
+    }
+    snapshot_cv.notify_all();
+    record_init_datas_.clear();
     if (snapshot_thread_.joinable()) {
         snapshot_thread_.join();
     }
-    record_init_datas_.clear();
 }
 
 MessageRecorder::~MessageRecorder() {
@@ -47,7 +54,7 @@ void MessageRecorder::GenerateSnapshot(const int& max) {
     files_.clear();
 
     // create dir for individual interval
-    std::filesystem::path interval_folder = record_dir_ / std::string("Snapshot") / std::string("HOURLY");
+    std::filesystem::path interval_folder = record_dir_.parent_path() / std::string("Snapshot") / std::string("HOURLY");
     if (!std::filesystem::exists(interval_folder)) {
         std::filesystem::create_directories(interval_folder);
     }
@@ -70,8 +77,7 @@ void MessageRecorder::GenerateSnapshot(const int& max) {
 
     const auto snapshot_dir = interval_folder / SnapshotDirNameGenerator();
     std::filesystem::create_directories(snapshot_dir);
-    const auto copyOptions = std::filesystem::copy_options::copy_symlinks | std::filesystem::copy_options::recursive;
-    std::filesystem::copy(record_dir_, snapshot_dir, copyOptions);
+    std::filesystem::copy(record_dir_, snapshot_dir, std::filesystem::copy_options::recursive);
 
     // init DB back
     for (const auto& data : record_init_datas_) {
