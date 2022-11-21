@@ -62,6 +62,8 @@ class RecordFile {
 
     void Compact();
 
+    std::string GetFilePath() const { return file_path_; };
+
    protected:
     std::string                  file_path_;
     std::unique_ptr<leveldb::DB> db_;

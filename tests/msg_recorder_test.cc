@@ -85,7 +85,7 @@ std::string MessageToStr(const TestMessage<T>& msg) {
 
 void RecorderTest::TestRecord() {
     auto            runner = core::JobRunner::MakeJobRunner({});
-    MessageRecorder recorder(GetTestTempDir(), runner);
+    MessageRecorder recorder(GetTestTempDir(), 1, runner);
 
     recorder.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
     recorder.RegisterChannel<TestMessage<double>>(kTestDoubleChannelSubId);
