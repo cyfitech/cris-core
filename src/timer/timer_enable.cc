@@ -69,6 +69,8 @@ class TimerStatCollector {
         void Merge(const CollectorEntry& another);
 
         std::array<impl::TimerStatEntryBucket, kTimerEntryBucketNum> duration_buckets_{};
+
+        cr_duration_nsec_t max_duration_ns_{0};
     };
 
     void Report(std::size_t index, cr_duration_nsec_t duration);
@@ -186,15 +188,21 @@ void TimerStatCollector::Report(std::size_t index, cr_duration_nsec_t duration) 
         return;
     }
 
-    auto& bucket = collector_entries_->at(index).duration_buckets_[bucket_idx];
+    auto& collector_entry = collector_entries_->at(index);
+    auto& bucket          = collector_entry.duration_buckets_[bucket_idx];
     ++bucket.hits_;
     bucket.total_duration_ns_ += duration;
+    collector_entry.max_duration_ns_ = std::max(collector_entry.max_duration_ns_, duration);
 }
 
 void TimerStatCollector::Merge(const TimerStatCollector& another) {
     std::scoped_lock lock(mutex_, another.mutex_);
     for (std::size_t i = 0; i < kCollectorSize; ++i) {
-        collector_entries_->at(i).Merge(another.collector_entries_->at(i));
+        auto& collector_entry         = collector_entries_->at(i);
+        auto& another_collector_entry = another.collector_entries_->at(i);
+        collector_entry.Merge(another_collector_entry);
+        collector_entry.max_duration_ns_ =
+            std::max(collector_entry.max_duration_ns_, another_collector_entry.max_duration_ns_);
     }
     last_merge_time_ = GetSystemTimestampNsec();
 }
@@ -204,6 +212,7 @@ void TimerStatCollector::UnsafeClear() {
         for (auto& bucket : entry.duration_buckets_) {
             bucket.Clear();
         }
+        entry.max_duration_ns_ = 0;
     }
     last_clear_time_ = GetSystemTimestampNsec();
     last_merge_time_ = last_clear_time_;
@@ -234,6 +243,7 @@ std::unique_ptr<TimerReport> TimerStatCollector::GetReport(TimerSection* section
             .total_duration_ns_ = static_cast<cr_duration_nsec_t>(entry.duration_buckets_[i].total_duration_ns_),
         });
     }
+    report->max_duration_ns_ = entry.max_duration_ns_;
 
     if (recursive) {
         std::shared_lock lock(section->shared_mtx_);
@@ -292,6 +302,9 @@ cr_duration_nsec_t TimerReport::GetPercentileDurationNsec(int percent) const {
         LOG(ERROR) << __func__ << ": percent greater than 100: " << percent;
         percent = 100;
     }
+    if (percent == 100) {
+        return max_duration_ns_;
+    }
 
     const auto total_hits  = GetTotalHits();
     const auto target_hits = static_cast<unsigned long long>(
@@ -338,6 +351,7 @@ void TimerReport::PrintToLog(unsigned indent_level) const {
         print_percentile(90);
         print_percentile(95);
         print_percentile(99);
+        print_percentile(100);
         LOG(INFO);
     }
     if (!subsections_.empty()) {

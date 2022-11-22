@@ -115,7 +115,8 @@ TEST(TimerTest, PercentileTest) {
         EXPECT_EQ(report->GetPercentileDurationNsec(70), (10 * (1 << 6) - 2) * 1000);
         EXPECT_EQ(report->GetPercentileDurationNsec(80), (10 * (1 << 7) - 2) * 1000);
         EXPECT_EQ(report->GetPercentileDurationNsec(90), (10 * (1 << 8) - 2) * 1000);
-        EXPECT_EQ(report->GetPercentileDurationNsec(100), (10 * (1 << 9) - 2) * 1000);
+        // 100p always provides the max value
+        EXPECT_EQ(report->GetPercentileDurationNsec(100), (10 * (1 << 9) - 1) * 1000);
 #endif  // ENABLE_PROFILING
         EXPECT_EQ(report->GetPercentileDurationNsec(200), report->GetPercentileDurationNsec(100));
     }
