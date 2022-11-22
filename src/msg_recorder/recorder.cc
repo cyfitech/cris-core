@@ -13,7 +13,7 @@ namespace cris::core {
 MessageRecorder::MessageRecorder(const std::filesystem::path& record_dir_prefix, std::shared_ptr<JobRunner> runner)
     : Base(std::move(runner))
     , record_dir_(record_dir_prefix / RecordDirNameGenerator())
-    , record_strand_(MakeStrand()){
+    , record_strand_(MakeStrand()) {
     std::filesystem::create_directories(record_dir_);
 }
 
@@ -94,7 +94,7 @@ std::string MessageRecorder::SnapshotDirNameGenerator() {
 
 void MessageRecorder::SetSnapshotInterval(const int& interval) {
     snapshot_interval_ = interval;
-    snapshot_thread_ = std::thread(std::bind(&MessageRecorder::SnapshotStart, this));
+    snapshot_thread_   = std::thread(std::bind(&MessageRecorder::SnapshotStart, this));
 }
 
 std::filesystem::path MessageRecorder::GetRecordDir() const {
