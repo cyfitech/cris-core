@@ -13,16 +13,15 @@ namespace cris::core {
 MessageRecorder::MessageRecorder(const std::filesystem::path& record_dir_prefix, std::shared_ptr<JobRunner> runner)
     : Base(std::move(runner))
     , record_dir_(record_dir_prefix / RecordDirNameGenerator())
-    , record_strand_(MakeStrand())
-    , snapshot_thread_(std::bind(&MessageRecorder::SnapshotStart, this)) {
+    , record_strand_(MakeStrand()){
     std::filesystem::create_directories(record_dir_);
 }
 
 void MessageRecorder::SnapshotStart() {
-    std::unique_lock<std::mutex> lock(snapshot_mtx);
     while (!snapshot_shutdown_flag_.load()) {
         AddJobToRunner([this]() { GenerateSnapshot(keep_max_); }, record_strand_);
-        snapshot_cv.wait_for(lock, std::chrono::hours(snapshot_interval_), [this] {
+        std::unique_lock<std::mutex> lock(snapshot_mtx);
+        snapshot_cv.wait_for(lock, std::chrono::seconds(snapshot_interval_), [this] {
             return snapshot_shutdown_flag_.load();
         });
     }
@@ -30,14 +29,14 @@ void MessageRecorder::SnapshotStart() {
 
 void MessageRecorder::SnapshotEnd() {
     {
-        std::unique_lock<std::mutex> lock(snapshot_mtx);
+        std::lock_guard<std::mutex> lock(snapshot_mtx);
         snapshot_shutdown_flag_.store(true);
+        snapshot_cv.notify_all();
     }
-    snapshot_cv.notify_all();
-    record_init_datas_.clear();
     if (snapshot_thread_.joinable()) {
         snapshot_thread_.join();
     }
+    record_init_datas_.clear();
 }
 
 MessageRecorder::~MessageRecorder() {
@@ -54,7 +53,7 @@ void MessageRecorder::GenerateSnapshot(const int& max) {
     files_.clear();
 
     // create dir for individual interval
-    std::filesystem::path interval_folder = record_dir_.parent_path() / std::string("Snapshot") / std::string("HOURLY");
+    std::filesystem::path interval_folder = record_dir_ / std::string("Snapshot") / std::string("HOURLY");
     if (!std::filesystem::exists(interval_folder)) {
         std::filesystem::create_directories(interval_folder);
     }
@@ -81,7 +80,7 @@ void MessageRecorder::GenerateSnapshot(const int& max) {
 
     // init DB back
     for (const auto& data : record_init_datas_) {
-        files_.emplace_back(std::make_unique<RecordFile>(data.init_path)).get();
+        files_.push_back(std::make_unique<RecordFile>(data.init_path));
     }
 }
 
@@ -95,6 +94,7 @@ std::string MessageRecorder::SnapshotDirNameGenerator() {
 
 void MessageRecorder::SetSnapshotInterval(const int& interval) {
     snapshot_interval_ = interval;
+    snapshot_thread_ = std::thread(std::bind(&MessageRecorder::SnapshotStart, this));
 }
 
 std::filesystem::path MessageRecorder::GetRecordDir() const {
@@ -115,7 +115,7 @@ RecordFile* MessageRecorder::CreateFile(
     new_record_data.init_subid = subid;
     new_record_data.init_alias = alias;
     new_record_data.init_path  = path;
-    record_init_datas_.emplace_back(new_record_data);
+    record_init_datas_.push_back(new_record_data);
 
     if (!alias.empty()) {
         std::filesystem::create_symlink(filename, GetRecordDir() / alias);
