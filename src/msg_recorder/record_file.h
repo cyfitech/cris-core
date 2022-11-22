@@ -62,10 +62,13 @@ class RecordFile {
 
     void Compact();
 
+    void ShouldRemoveDir(const bool& flag);
+
    protected:
     std::string                  file_path_;
     std::unique_ptr<leveldb::DB> db_;
     bool                         legacy_{false};
+    bool                         should_remove_dir_{true};
 };
 
 }  // namespace cris::core

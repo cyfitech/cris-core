@@ -114,7 +114,7 @@ RecordFile::~RecordFile() {
     Compact();
 
     db_.reset();
-    if (is_empty) {
+    if (is_empty && should_remove_dir_) {
         LOG(INFO) << "Record \"" << file_path_ << "\" is empty, removing.";
         std::filesystem::remove_all(file_path_);
     }
@@ -147,6 +147,10 @@ bool RecordFile::Empty() const {
 
 void RecordFile::Compact() {
     db_->CompactRange(nullptr, nullptr);
+}
+
+void RecordFile::ShouldRemoveDir(const bool& flag) {
+    should_remove_dir_ = flag;
 }
 
 }  // namespace cris::core

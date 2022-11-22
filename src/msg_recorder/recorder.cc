@@ -17,13 +17,16 @@ MessageRecorder::MessageRecorder(const std::filesystem::path& record_dir_prefix,
     std::filesystem::create_directories(record_dir_);
 }
 
+void MessageRecorder::SetSnapshotInterval(const std::string& interval) {
+    SetChronoDuration(interval);
+    snapshot_thread_ = std::thread(std::bind(&MessageRecorder::SnapshotStart, this));
+}
+
 void MessageRecorder::SnapshotStart() {
     while (!snapshot_shutdown_flag_.load()) {
         AddJobToRunner([this]() { GenerateSnapshot(keep_max_); }, record_strand_);
         std::unique_lock<std::mutex> lock(snapshot_mtx);
-        snapshot_cv.wait_for(lock, std::chrono::seconds(snapshot_interval_), [this] {
-            return snapshot_shutdown_flag_.load();
-        });
+        snapshot_cv.wait_for(lock, snapshot_interval_, [this] { return snapshot_shutdown_flag_.load(); });
     }
 }
 
@@ -41,16 +44,25 @@ void MessageRecorder::SnapshotEnd() {
 
 MessageRecorder::~MessageRecorder() {
     SnapshotEnd();
-    files_.clear();
+    ClearRecordFileMap(true);
     if (std::filesystem::is_empty(GetRecordDir())) {
         LOG(INFO) << "Record dir " << GetRecordDir() << " is empty, removing...";
         std::filesystem::remove(GetRecordDir());
     }
 }
 
+void MessageRecorder::ClearRecordFileMap(const bool& should_remove_dir) {
+    for (int i = 0; i < int(files_map_.size()); i++) {
+        if (files_map_[i]) {
+            files_map_[i]->ShouldRemoveDir(should_remove_dir);
+        }
+    }
+    files_map_.clear();
+}
+
 void MessageRecorder::GenerateSnapshot(const int& max) {
     // close DB
-    files_.clear();
+    ClearRecordFileMap(false);
 
     // create dir for individual interval
     std::filesystem::path interval_folder = record_dir_ / std::string("Snapshot") / std::string("HOURLY");
@@ -80,7 +92,7 @@ void MessageRecorder::GenerateSnapshot(const int& max) {
 
     // init DB back
     for (const auto& data : record_init_datas_) {
-        files_.push_back(std::make_unique<RecordFile>(data.init_path));
+        files_map_[int(files_map_.size())] = std::make_unique<RecordFile>(data.init_path);
     }
 }
 
@@ -92,23 +104,59 @@ std::string MessageRecorder::SnapshotDirNameGenerator() {
     return fmt::format("{:%Y%m%d-%H%M%S.%Z}", std::chrono::system_clock::now());
 }
 
-void MessageRecorder::SetSnapshotInterval(const int& interval) {
-    snapshot_interval_ = interval;
-    snapshot_thread_   = std::thread(std::bind(&MessageRecorder::SnapshotStart, this));
-}
-
 std::filesystem::path MessageRecorder::GetRecordDir() const {
     return record_dir_;
 }
 
-RecordFile* MessageRecorder::CreateFile(
+void MessageRecorder::SetChronoDuration(const std::string& interval) {
+    int number = std::stoi(interval.substr(0, interval.size() - 1));
+    switch (interval.back()) {
+        case 's': {
+            std::chrono::seconds second_duration(number);
+            snapshot_interval_ = second_duration;
+            break;
+        }
+        case 'm': {
+            std::chrono::minutes minute_duration(number);
+            snapshot_interval_ = minute_duration;
+            break;
+        }
+        case 'h': {
+            std::chrono::hours hour_duration(number);
+            snapshot_interval_ = hour_duration;
+            break;
+        }
+        case 'd': {
+            std::chrono::hours hour_duration(number * 24);
+            snapshot_interval_ = hour_duration;
+            break;
+        }
+        case 'w': {
+            std::chrono::hours hour_duration(number * 24 * 7);
+            snapshot_interval_ = hour_duration;
+            break;
+        }
+        case 'M': {
+            std::chrono::hours hour_duration(number * 24 * 7 * 4);
+            snapshot_interval_ = hour_duration;
+            break;
+        }
+        default: {
+            std::chrono::hours hour_duration(number);
+            snapshot_interval_ = hour_duration;
+            break;
+        }
+    }
+}
+
+int MessageRecorder::CreateFile(
     const std::string&                     message_type,
     const MessageRecorder::channel_subid_t subid,
     const std::string&                     alias) {
     auto filename = impl::GetMessageRecordFileName(message_type, subid);
     auto path     = GetRecordDir() / filename;
 
-    auto* record_file = files_.emplace_back(std::make_unique<RecordFile>(path)).get();
+    files_map_[int(files_map_.size())] = std::make_unique<RecordFile>(path);
 
     RecordFileInitData new_record_data;
     new_record_data.init_name  = message_type;
@@ -121,7 +169,7 @@ RecordFile* MessageRecorder::CreateFile(
         std::filesystem::create_symlink(filename, GetRecordDir() / alias);
     }
 
-    return record_file;
+    return int(files_map_.size()) - 1;
 }
 
 }  // namespace cris::core
