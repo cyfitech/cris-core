@@ -39,6 +39,10 @@ class RecorderTest : public testing::Test {
 
     void TestReplayCanceled();
 
+    void TestRecordFilePause();
+
+    void TestRecordFileDataCheck(double speed_up);
+
    private:
     path test_temp_dir_{temp_directory_path() / (std::string("CRTestTmpDir.") + std::to_string(getpid()))};
     path record_dir_;
@@ -211,12 +215,122 @@ void RecorderTest::TestReplayCanceled() {
     EXPECT_TRUE(run_post_finish);
 }
 
+void RecorderTest::TestRecordFilePause() {
+    auto            runner = core::JobRunner::MakeJobRunner({});
+    MessageRecorder recorder(GetTestTempDir(), runner);
+
+    recorder.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
+    recorder.RegisterChannel<TestMessage<double>>(kTestDoubleChannelSubId);
+    record_dir_ = recorder.GetRecordDir();
+
+    core::CRNode publisher;
+
+    for (std::size_t i = 0; i < kMessageNum; ++i) {
+        if (i == 5) {
+            recorder.MakeInstantSnapshot();
+        }
+        if (i % 2 == 0) {
+            auto test_message = std::make_shared<TestMessage<int>>(static_cast<int>(i));
+            publisher.Publish(kTestIntChannelSubId, std::move(test_message));
+        } else {
+            auto test_message = std::make_shared<TestMessage<double>>(static_cast<double>(i));
+            publisher.Publish(kTestDoubleChannelSubId, std::move(test_message));
+        }
+        std::this_thread::sleep_for(kSleepBetweenMessages);
+    }
+    // Make sure messages arrive records
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+}
+
+void RecorderTest::TestRecordFileDataCheck(double speed_up) {
+    auto            runner = core::JobRunner::MakeJobRunner({});
+    MessageReplayer replayer(record_dir_);
+    core::CRNode    subscriber(runner);
+
+    replayer.SetSpeedupRate(speed_up);
+    replayer.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
+    replayer.RegisterChannel<TestMessage<double>>(kTestDoubleChannelSubId);
+
+    auto int_msg_count    = std::make_shared<std::atomic<int>>(0);
+    auto double_msg_count = std::make_shared<std::atomic<int>>(0);
+
+    int previous_int    = -2;
+    int previous_double = -1;
+
+    std::chrono::steady_clock::time_point first_message_timestamp{};
+
+    subscriber.Subscribe<TestMessage<int>>(
+        kTestIntChannelSubId,
+        [int_msg_count, &previous_int, speed_up, &first_message_timestamp](
+            const std::shared_ptr<TestMessage<int>>& message) {
+            auto current = int_msg_count->fetch_add(1);
+            auto value   = message->value_;
+            // consecutive data without loss
+            EXPECT_TRUE(value - previous_int == 2);
+            EXPECT_TRUE(value % 2 == 0);
+            EXPECT_EQ(value / 2, current);
+            if (value == 0) {
+                first_message_timestamp = std::chrono::steady_clock::now();
+            } else {
+                auto elasped = std::chrono::steady_clock::now() - first_message_timestamp;
+                CR_EXPECT_NEAR_DURATION(elasped * speed_up, value * kSleepBetweenMessages, 0.3);
+            }
+            previous_int = value;
+        },
+        /* allow_concurrency = */ false);
+    subscriber.Subscribe<TestMessage<double>>(
+        kTestDoubleChannelSubId,
+        [double_msg_count, &previous_double, speed_up, &first_message_timestamp](
+            const std::shared_ptr<TestMessage<double>>& message) {
+            auto current   = double_msg_count->fetch_add(1);
+            auto int_value = static_cast<int>(message->value_);
+            EXPECT_TRUE(int_value - previous_double == 2);
+            EXPECT_FALSE(int_value % 2 == 0);
+            EXPECT_EQ(int_value / 2, current);
+            auto elasped = std::chrono::steady_clock::now() - first_message_timestamp;
+            CR_EXPECT_NEAR_DURATION(elasped * speed_up, int_value * kSleepBetweenMessages, 0.3);
+            previous_double = int_value;
+        },
+        /* allow_concurrency = */ false);
+
+    bool run_post_start  = false;
+    bool run_pre_finish  = false;
+    bool run_post_finish = false;
+    replayer.SetPostStartCallback([&run_post_start, &replayer] {
+        run_post_start = true;
+        EXPECT_FALSE(replayer.IsEnded());
+    });
+    replayer.SetPreFinishCallback([&run_pre_finish, &replayer] {
+        run_pre_finish = true;
+        EXPECT_FALSE(replayer.IsEnded());
+    });
+    replayer.SetPostFinishCallback([&run_post_finish, &replayer] {
+        run_post_finish = true;
+        EXPECT_TRUE(replayer.IsEnded());
+    });
+    auto replayer_start = std::chrono::steady_clock::now();
+    replayer.MainLoop();
+    auto replayer_end      = std::chrono::steady_clock::now();
+    auto replayer_duration = replayer_end - replayer_start;
+    EXPECT_TRUE(run_post_start);
+    EXPECT_TRUE(run_pre_finish);
+    EXPECT_TRUE(run_post_finish);
+
+    // Make sure messages arrive the node
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    EXPECT_EQ(int_msg_count->load(), kMessageNum / 2);
+    CR_EXPECT_NEAR_DURATION(replayer_duration * speed_up, kTotalRecordTime, 0.3);
+}
+
 TEST_F(RecorderTest, RecorderTest) {
     TestRecord();
     TestReplay(1.0);
     TestReplay(2.0);
     TestReplay(0.5);
     TestReplayCanceled();
+    TestRecordFilePause();
+    TestRecordFileDataCheck(1.0);
 }
 
 }  // namespace cris::core

@@ -149,7 +149,7 @@ void RecordFile::Compact() {
     db_->CompactRange(nullptr, nullptr);
 }
 
-void RecordFile::ShouldRemoveDir(const bool& flag) {
+void RecordFile::ShouldRemoveDir(const bool flag) {
     should_remove_dir_ = flag;
 }
 

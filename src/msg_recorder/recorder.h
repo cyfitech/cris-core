@@ -32,7 +32,9 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
 
     ~MessageRecorder();
 
-    void SetSnapshotInterval(const std::string& interval);
+    void SetSnapshotInterval(const std::vector<int64_t>& sec_intervals);
+
+    void MakeInstantSnapshot();
 
     template<CRMessageType message_t>
     void RegisterChannel(const channel_subid_t subid, const std::string& alias = "");
@@ -42,7 +44,7 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
    private:
     using msg_serializer = std::function<std::string(const CRMessageBasePtr&)>;
 
-    int CreateFile(const std::string& message_type, const channel_subid_t subid, const std::string& alias);
+    void CreateFile(const std::string& message_type, const channel_subid_t subid, const std::string& alias);
 
     void GenerateSnapshot(const int& max);
 
@@ -52,13 +54,12 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     void SnapshotStart();
     void SnapshotEnd();
 
-    void SetChronoDuration(const std::string& interval);
+    void SetChronoDuration(const std::vector<int64_t>& sec_intervals);
 
-    void ClearRecordFileMap(const bool& should_remove_dir);
-
-    const std::filesystem::path                  record_dir_;
-    std::map<int, std::unique_ptr<RecordFile>>   files_map_;
-    std::shared_ptr<cris::core::JobRunnerStrand> record_strand_;
+    const std::filesystem::path                                            record_dir_;
+    std::map<std::string, std::unique_ptr<RecordFile>>                     files_map_;
+    std::map<std::filesystem::path, std::chrono::steady_clock::time_point> snapshot_time_map_;
+    std::shared_ptr<cris::core::JobRunnerStrand>                           record_strand_;
 
     struct RecordFileInitData {
         channel_subid_t init_subid;
@@ -69,22 +70,25 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
 
     const int                       keep_max_{48};
     std::chrono::duration<int>      snapshot_interval_;
-    std::vector<RecordFileInitData> record_init_datas_;
+    std::vector<RecordFileInitData> record_init_data_;
     std::thread                     snapshot_thread_;
     std::atomic<bool>               snapshot_shutdown_flag_{false};
     std::mutex                      snapshot_mtx;
     std::condition_variable         snapshot_cv;
+    std::string                     snapshot_subdir_name_;
+    std::string                     snapshot_dir_name = std::string("Snapshot");
 };
 
 template<CRMessageType message_t>
 void MessageRecorder::RegisterChannel(const MessageRecorder::channel_subid_t subid, const std::string& alias) {
-    int index = CreateFile(GetTypeName<message_t>(), subid, alias);
+    const std::string message_type = GetTypeName<message_t>();
+    CreateFile(message_type, subid, alias);
 
     this->Subscribe<message_t>(
         subid,
-        [this, index](const std::shared_ptr<message_t>& message) {
-            if (files_map_[index]) {
-                files_map_[index]->Write(MessageToStr(*message));
+        [this, message_type](const std::shared_ptr<message_t>& message) {
+            if (files_map_[message_type]) {
+                files_map_[message_type]->Write(MessageToStr(*message));
             }
         },
         record_strand_);

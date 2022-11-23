@@ -62,7 +62,7 @@ class RecordFile {
 
     void Compact();
 
-    void ShouldRemoveDir(const bool& flag);
+    void ShouldRemoveDir(const bool flag);
 
    protected:
     std::string                  file_path_;
