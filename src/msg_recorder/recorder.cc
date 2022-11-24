@@ -10,23 +10,32 @@
 
 namespace cris::core {
 
-MessageRecorder::MessageRecorder(const std::filesystem::path& record_dir_prefix, std::shared_ptr<JobRunner> runner)
+MessageRecorder::MessageRecorder(const RecorderConfigPtr recorder_ptr, std::shared_ptr<JobRunner> runner)
     : Base(std::move(runner))
-    , record_dir_(record_dir_prefix / RecordDirNameGenerator())
+    , record_dir_(std::filesystem::path(recorder_ptr->record_dir_) / RecordDirNameGenerator())
     , record_strand_(MakeStrand()) {
     std::filesystem::create_directories(record_dir_);
+    if (recorder_ptr->enable_snapshot_) {
+        SetSnapshotInterval(recorder_ptr->snapshot_intervals_);
+    }
 }
 
-void MessageRecorder::SetSnapshotInterval(const std::vector<int64_t>& sec_intervals) {
-    if (sec_intervals.size() > 1) {
-        // TODO: support multi-intervals
+void MessageRecorder::SetSnapshotInterval(const std::vector<std::chrono::duration<int>>& intervals) {
+    if (intervals.size() > 1) {
+        // TODO (YuzhouGuo, https://github.com/cyfitech/cris-core/issues/97) support multi-intervals
+        LOG(WARNING)
+            << "More than one single interval received, multi-interval snapshot feature has not been supported";
         return;
     }
-    SetChronoDuration(sec_intervals);
-    snapshot_thread_ = std::thread(std::bind(&MessageRecorder::SnapshotStart, this));
+    if (snapshot_thread_.joinable()) {
+        return;
+    }
+    snapshot_interval_    = intervals.back();
+    snapshot_subdir_name_ = std::string("SECONDLY");
+    snapshot_thread_      = std::thread(std::bind(&MessageRecorder::SnapshotWorkerStart, this));
 }
 
-void MessageRecorder::SnapshotStart() {
+void MessageRecorder::SnapshotWorkerStart() {
     while (!snapshot_shutdown_flag_.load()) {
         AddJobToRunner([this]() { GenerateSnapshot(keep_max_); }, record_strand_);
         std::unique_lock<std::mutex> lock(snapshot_mtx);
@@ -34,11 +43,11 @@ void MessageRecorder::SnapshotStart() {
     }
 }
 
-void MessageRecorder::MakeInstantSnapshot() {
+void MessageRecorder::MakeSnapshot() {
     AddJobToRunner([this]() { GenerateSnapshot(keep_max_); }, record_strand_);
 }
 
-void MessageRecorder::SnapshotEnd() {
+void MessageRecorder::SnapshotWorkerEnd() {
     {
         std::lock_guard<std::mutex> lock(snapshot_mtx);
         snapshot_shutdown_flag_.store(true);
@@ -47,12 +56,11 @@ void MessageRecorder::SnapshotEnd() {
     if (snapshot_thread_.joinable()) {
         snapshot_thread_.join();
     }
-    record_init_data_.clear();
     snapshot_time_map_.clear();
 }
 
 MessageRecorder::~MessageRecorder() {
-    SnapshotEnd();
+    SnapshotWorkerEnd();
     files_.clear();
     if (std::filesystem::is_empty(GetRecordDir())) {
         LOG(INFO) << "Record dir " << GetRecordDir() << " is empty, removing...";
@@ -61,11 +69,9 @@ MessageRecorder::~MessageRecorder() {
 }
 
 void MessageRecorder::GenerateSnapshot(const int& max) {
-    // close DB
     for (const auto& file : files_) {
-        file->ShouldRemoveDir(false);
+        file->CloseDB();
     }
-    files_.clear();
 
     // create dir for individual interval
     std::filesystem::path interval_folder = record_dir_.parent_path() / snapshot_dir_name / snapshot_subdir_name_;
@@ -92,9 +98,8 @@ void MessageRecorder::GenerateSnapshot(const int& max) {
     std::filesystem::copy(record_dir_, snapshot_dir, std::filesystem::copy_options::recursive);
     snapshot_time_map_[snapshot_dir] = std::chrono::steady_clock::now();
 
-    // init DB back
-    for (const auto& data : record_init_data_) {
-        files_.push_back(std::make_unique<RecordFile>(data.init_path));
+    for (const auto& file : files_) {
+        file->RestoreDB();
     }
 }
 
@@ -110,33 +115,20 @@ std::filesystem::path MessageRecorder::GetRecordDir() const {
     return record_dir_;
 }
 
-void MessageRecorder::SetChronoDuration(const std::vector<int64_t>& sec_intervals) {
-    auto last_interval    = sec_intervals.back();
-    snapshot_interval_    = std::chrono::seconds(last_interval);
-    snapshot_subdir_name_ = std::string("SECONDLY");
-}
-
-unsigned long MessageRecorder::CreateFile(
+RecordFile* MessageRecorder::CreateFile(
     const std::string&                     message_type,
     const MessageRecorder::channel_subid_t subid,
     const std::string&                     alias) {
     auto filename = impl::GetMessageRecordFileName(message_type, subid);
     auto path     = GetRecordDir() / filename;
 
-    files_.push_back(std::make_unique<RecordFile>(path));
-
-    RecordFileInitData new_record_data;
-    new_record_data.init_name  = message_type;
-    new_record_data.init_subid = subid;
-    new_record_data.init_alias = alias;
-    new_record_data.init_path  = path;
-    record_init_data_.push_back(new_record_data);
+    auto* record_file = files_.emplace_back(std::make_unique<RecordFile>(path)).get();
 
     if (!alias.empty()) {
         std::filesystem::create_symlink(filename, GetRecordDir() / alias);
     }
 
-    return files_.size() - 1;
+    return record_file;
 }
 
 }  // namespace cris::core

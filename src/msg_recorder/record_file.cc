@@ -114,10 +114,27 @@ RecordFile::~RecordFile() {
     Compact();
 
     db_.reset();
-    if (is_empty && should_remove_dir_) {
+    if (is_empty) {
         LOG(INFO) << "Record \"" << file_path_ << "\" is empty, removing.";
         std::filesystem::remove_all(file_path_);
     }
+}
+
+void RecordFile::RestoreDB() {
+    // constructed but closed
+    if (!db_ && !file_path_.empty()) {
+        leveldb::DB*     db;
+        leveldb::Options options;
+        options.create_if_missing = true;
+
+        leveldb::DB::Open(options, file_path_, &db);
+        db_.reset(db);
+    }
+}
+
+void RecordFile::CloseDB() {
+    Compact();
+    db_.reset();
 }
 
 void RecordFile::Write(std::string serialized_value) {
@@ -147,10 +164,6 @@ bool RecordFile::Empty() const {
 
 void RecordFile::Compact() {
     db_->CompactRange(nullptr, nullptr);
-}
-
-void RecordFile::ShouldRemoveDir(const bool flag) {
-    should_remove_dir_ = flag;
 }
 
 }  // namespace cris::core
