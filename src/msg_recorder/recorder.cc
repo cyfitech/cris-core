@@ -53,7 +53,7 @@ void MessageRecorder::SnapshotEnd() {
 
 MessageRecorder::~MessageRecorder() {
     SnapshotEnd();
-    files_map_.clear();
+    files_.clear();
     if (std::filesystem::is_empty(GetRecordDir())) {
         LOG(INFO) << "Record dir " << GetRecordDir() << " is empty, removing...";
         std::filesystem::remove(GetRecordDir());
@@ -62,10 +62,10 @@ MessageRecorder::~MessageRecorder() {
 
 void MessageRecorder::GenerateSnapshot(const int& max) {
     // close DB
-    for (const auto& data : record_init_data_) {
-        files_map_[data.init_name]->ShouldRemoveDir(false);
+    for (const auto& file : files_) {
+        file->ShouldRemoveDir(false);
     }
-    files_map_.clear();
+    files_.clear();
 
     // create dir for individual interval
     std::filesystem::path interval_folder = record_dir_.parent_path() / snapshot_dir_name / snapshot_subdir_name_;
@@ -75,7 +75,7 @@ void MessageRecorder::GenerateSnapshot(const int& max) {
     for (auto const& dir_entry : std::filesystem::directory_iterator{interval_folder}) {
         counter++;
         if (!withdraw.exists() ||
-            snapshot_time_map_[withdraw.path()].time_since_epoch() <
+            snapshot_time_map_[withdraw.path()].time_since_epoch() >
                 snapshot_time_map_[dir_entry.path()].time_since_epoch()) {
             withdraw = dir_entry;
         }
@@ -94,7 +94,7 @@ void MessageRecorder::GenerateSnapshot(const int& max) {
 
     // init DB back
     for (const auto& data : record_init_data_) {
-        files_map_[data.init_name] = std::make_unique<RecordFile>(data.init_path);
+        files_.push_back(std::make_unique<RecordFile>(data.init_path));
     }
 }
 
@@ -116,14 +116,14 @@ void MessageRecorder::SetChronoDuration(const std::vector<int64_t>& sec_interval
     snapshot_subdir_name_ = std::string("SECONDLY");
 }
 
-void MessageRecorder::CreateFile(
+unsigned long MessageRecorder::CreateFile(
     const std::string&                     message_type,
     const MessageRecorder::channel_subid_t subid,
     const std::string&                     alias) {
     auto filename = impl::GetMessageRecordFileName(message_type, subid);
     auto path     = GetRecordDir() / filename;
 
-    files_map_[message_type] = std::make_unique<RecordFile>(path);
+    files_.push_back(std::make_unique<RecordFile>(path));
 
     RecordFileInitData new_record_data;
     new_record_data.init_name  = message_type;
@@ -135,6 +135,8 @@ void MessageRecorder::CreateFile(
     if (!alias.empty()) {
         std::filesystem::create_symlink(filename, GetRecordDir() / alias);
     }
+
+    return files_.size() - 1;
 }
 
 }  // namespace cris::core
