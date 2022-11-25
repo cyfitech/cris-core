@@ -4,6 +4,9 @@
 #include "cris/core/msg_recorder/replayer.h"
 #include "cris/core/sched/job_runner.h"
 
+#include "fmt/chrono.h"
+#include "fmt/core.h"
+
 #include "gtest/gtest.h"
 
 #include <chrono>
@@ -25,22 +28,23 @@ static constexpr channel_subid_t kTestSnapshotSingleInterval = 5;
 
 namespace cris::core {
 
-class RecorderSnapshotTest : public testing::Test {
+class RecorderPauseTest : public testing::Test {
    public:
-    void SetUp() override { create_directories(GetTestTempDir()); }
+    void SetUp() override { create_directories(GetRecordTestTempDir()); }
 
-    void TearDown() override { remove_all(GetTestTempDir()); }
+    void TearDown() override { remove_all(GetRecordTestTempDir()); }
 
-    path GetTestTempDir() { return test_temp_dir_; }
+    path GetRecordTestTempDir() { return record_test_temp_dir_; }
 
-    RecorderConfigPtr GetSingleIntervalTestConfig();
+    RecorderConfigPtr GetTestConfig();
 
     void TestRecordFilePause();
 
-    void TestRecordFileDataCheck();
+    void TestRecordDataConsecutive();
 
    private:
-    path test_temp_dir_{temp_directory_path() / (std::string("CRSnapshotTestTmpDir.") + std::to_string(getpid()))};
+    path record_test_temp_dir_{
+        temp_directory_path() / (std::string("CRSnapshotTestTmpDir.") + std::to_string(getpid()))};
     path record_dir_;
 
     static constexpr std::size_t kThreadNum            = 4;
@@ -72,19 +76,19 @@ std::string MessageToStr(const TestMessage<T>& msg) {
     return serialized_msg;
 }
 
-RecorderConfigPtr RecorderSnapshotTest::GetSingleIntervalTestConfig() {
+RecorderConfigPtr RecorderPauseTest::GetTestConfig() {
     RecorderConfig temp_config;
     temp_config.snapshot_intervals_ = {std::chrono::duration<int>(kTestSnapshotSingleInterval)};
-    temp_config.record_dir_         = GetTestTempDir().string();
+    temp_config.record_dir_         = GetRecordTestTempDir().string();
     return std::make_shared<RecorderConfig>(temp_config);
 }
 
-void RecorderSnapshotTest::TestRecordFilePause() {
+void RecorderPauseTest::TestRecordFilePause() {
     JobRunner::Config config = {
         .thread_num_ = kThreadNum,
     };
     auto            runner = JobRunner::MakeJobRunner(config);
-    MessageRecorder recorder(GetSingleIntervalTestConfig(), runner);
+    MessageRecorder recorder(GetTestConfig(), runner);
 
     recorder.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
     record_dir_ = recorder.GetRecordDir();
@@ -92,7 +96,7 @@ void RecorderSnapshotTest::TestRecordFilePause() {
     core::CRNode publisher;
 
     for (std::size_t i = 0; i < kMessageNum; ++i) {
-        if (i == kMessageNum / 2) {
+        if (i == 5) {
             recorder.MakeSnapshot();
         }
         auto test_message = std::make_shared<TestMessage<int>>(static_cast<int>(i));
@@ -103,7 +107,7 @@ void RecorderSnapshotTest::TestRecordFilePause() {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
-void RecorderSnapshotTest::TestRecordFileDataCheck() {
+void RecorderPauseTest::TestRecordDataConsecutive() {
     JobRunner::Config config = {
         .thread_num_ = kThreadNum,
     };
@@ -148,9 +152,9 @@ void RecorderSnapshotTest::TestRecordFileDataCheck() {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
-TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
+TEST_F(RecorderPauseTest, RecorderPauseTest) {
     TestRecordFilePause();
-    TestRecordFileDataCheck();
+    TestRecordDataConsecutive();
 }
 
 }  // namespace cris::core
