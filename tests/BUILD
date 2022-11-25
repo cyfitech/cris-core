@@ -29,6 +29,16 @@ cris_cc_test (
 )
 
 cris_cc_test (
+    name = "recorder_snapshot_test",
+    srcs = ["recorder_snapshot_test.cc"],
+    deps = [
+        "//:msg_recorder",
+        "@gtest//:gtest_main",
+    ],
+    flaky = True,
+)
+
+cris_cc_test (
     name = "node_test",
     srcs = ["node_test.cc"],
     env = {
