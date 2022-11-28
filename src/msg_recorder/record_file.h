@@ -62,7 +62,7 @@ class RecordFile {
 
     void Compact();
 
-    void RestoreDB();
+    void OpenDB();
 
     void CloseDB();
 

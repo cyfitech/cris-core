@@ -35,17 +35,6 @@ cris_cc_test (
         "//:msg_recorder",
         "@gtest//:gtest_main",
     ],
-    flaky = True,
-)
-
-cris_cc_test (
-    name = "snapshot_test",
-    srcs = ["snapshot_test.cc"],
-    deps = [
-        "//:msg_recorder",
-        "@gtest//:gtest_main",
-    ],
-    flaky = True,
 )
 
 cris_cc_test (

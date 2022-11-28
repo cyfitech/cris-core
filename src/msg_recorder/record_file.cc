@@ -90,51 +90,45 @@ void RecordFileIterator::ReadNextValidKey() {
 }
 
 RecordFile::RecordFile(std::string file_path) : file_path_(std::move(file_path)) {
-    leveldb::DB*     db;
-    leveldb::Options options;
-    options.create_if_missing = true;
-
-    auto status = leveldb::DB::Open(options, file_path_, &db);
-    if (!status.ok()) {
-        static RecordFileKeyLdbCmp legacy_cmp;
-        options.comparator = &legacy_cmp;
-        status             = leveldb::DB::Open(options, file_path_, &db);
-        legacy_            = true;
-    }
-    if (!status.ok()) [[unlikely]] {
-        LOG(ERROR) << __func__ << ": Failed to create record file \"" << file_path_
-                   << "\", status: " << status.ToString();
-    }
-    db_.reset(db);
+    OpenDB();
 }
 
 RecordFile::~RecordFile() {
     const auto is_empty = Empty();
-
-    Compact();
-
-    db_.reset();
+    CloseDB();
     if (is_empty) {
         LOG(INFO) << "Record \"" << file_path_ << "\" is empty, removing.";
         std::filesystem::remove_all(file_path_);
     }
 }
 
-void RecordFile::RestoreDB() {
-    // constructed but closed
+void RecordFile::OpenDB() {
     if (!db_ && !file_path_.empty()) {
         leveldb::DB*     db;
         leveldb::Options options;
         options.create_if_missing = true;
 
-        leveldb::DB::Open(options, file_path_, &db);
+        auto status = leveldb::DB::Open(options, file_path_, &db);
+
+        if (!status.ok()) {
+            static RecordFileKeyLdbCmp legacy_cmp;
+            options.comparator = &legacy_cmp;
+            status             = leveldb::DB::Open(options, file_path_, &db);
+            legacy_            = true;
+        }
+        if (!status.ok()) [[unlikely]] {
+            LOG(ERROR) << __func__ << ": Failed to create record file \"" << file_path_
+                       << "\", status: " << status.ToString();
+        }
         db_.reset(db);
     }
 }
 
 void RecordFile::CloseDB() {
-    Compact();
-    db_.reset();
+    if (db_) {
+        Compact();
+        db_.reset();
+    }
 }
 
 void RecordFile::Write(std::string serialized_value) {

@@ -10,41 +10,57 @@
 
 namespace cris::core {
 
-MessageRecorder::MessageRecorder(const RecorderConfigPtr recorder_ptr, std::shared_ptr<JobRunner> runner)
+MessageRecorder::MessageRecorder(const RecorderConfigPtr recorder_config_ptr, std::shared_ptr<JobRunner> runner)
     : Base(std::move(runner))
-    , record_dir_(std::filesystem::path(recorder_ptr->record_dir_) / RecordDirNameGenerator())
+    , record_dir_(recorder_config_ptr->record_dir_ / RecordDirNameGenerator())
     , record_strand_(MakeStrand()) {
     std::filesystem::create_directories(record_dir_);
-    if (recorder_ptr->enable_snapshot_) {
-        SetSnapshotInterval(recorder_ptr->snapshot_intervals_);
-    }
+    SetSnapshotInterval(recorder_config_ptr);
 }
 
-void MessageRecorder::SetSnapshotInterval(const std::vector<std::chrono::duration<int>>& intervals) {
-    if (intervals.size() > 1) {
+void MessageRecorder::SetSnapshotInterval(const RecorderConfigPtr recorder_config_ptr) {
+    if (recorder_config_ptr->snapshot_intervals_.empty()) {
+        return;
+    }
+    if (recorder_config_ptr->snapshot_intervals_.size() > 1) {
         // TODO (YuzhouGuo, https://github.com/cyfitech/cris-core/issues/97) support multi-intervals
-        LOG(WARNING)
-            << "More than one single interval received, multi-interval snapshot feature has not been supported";
-        return;
+        LOG(WARNING) << "More than one single interval received, multi-interval snapshot feature has not been "
+                        "supported, only using the last interval specified";
     }
-    if (snapshot_thread_.joinable()) {
-        return;
-    }
-    snapshot_interval_    = intervals.back();
-    snapshot_subdir_name_ = std::string("SECONDLY");
-    snapshot_thread_      = std::thread(std::bind(&MessageRecorder::SnapshotWorkerStart, this));
+    snapshot_interval_    = recorder_config_ptr->snapshot_intervals_.back();
+    snapshot_subdir_name_ = recorder_config_ptr->interval_name_;
+    snapshot_threads_.push_back(std::thread(std::bind(&MessageRecorder::SnapshotWorkerStart, this)));
 }
 
 void MessageRecorder::SnapshotWorkerStart() {
     while (!snapshot_shutdown_flag_.load()) {
-        AddJobToRunner([this]() { GenerateSnapshot(keep_max_); }, record_strand_);
+        auto before = std::chrono::system_clock::now();
+        MakeSnapshot();
         std::unique_lock<std::mutex> lock(snapshot_mtx);
-        snapshot_cv.wait_for(lock, snapshot_interval_, [this] { return snapshot_shutdown_flag_.load(); });
+        auto                         after      = std::chrono::system_clock::now();
+        auto                         difference = std::chrono::duration_cast<std::chrono::seconds>(after - before);
+        snapshot_cv.wait_until(lock, after + snapshot_interval_ - difference, [this] {
+            return snapshot_shutdown_flag_.load();
+        });
     }
 }
 
 void MessageRecorder::MakeSnapshot() {
-    AddJobToRunner([this]() { GenerateSnapshot(keep_max_); }, record_strand_);
+    snapshot_threads_.push_back(std::thread(std::bind(&MessageRecorder::DoSnapshotWork, this)));
+}
+
+void MessageRecorder::DoSnapshotWork() {
+    std::unique_lock<std::mutex> lock(snapshot_mtx);
+    snapshot_pause_flag_.store(false);
+    AddJobToRunner(
+        [this]() {
+            GenerateSnapshot(keep_max_);
+            snapshot_pause_flag_.store(true);
+        },
+        record_strand_);
+
+    // wait until the current generation to be finished
+    snapshot_cv.wait(lock, [this] { return snapshot_pause_flag_.load(); });
 }
 
 void MessageRecorder::SnapshotWorkerEnd() {
@@ -53,10 +69,13 @@ void MessageRecorder::SnapshotWorkerEnd() {
         snapshot_shutdown_flag_.store(true);
         snapshot_cv.notify_all();
     }
-    if (snapshot_thread_.joinable()) {
-        snapshot_thread_.join();
+    for (auto& thread : snapshot_threads_) {
+        if (thread.joinable()) {
+            thread.join();
+        }
     }
-    snapshot_time_map_.clear();
+    snapshots_.clear();
+    snapshot_threads_.clear();
 }
 
 MessageRecorder::~MessageRecorder() {
@@ -74,32 +93,23 @@ void MessageRecorder::GenerateSnapshot(const int& max) {
     }
 
     // create dir for individual interval
-    std::filesystem::path interval_folder = record_dir_.parent_path() / snapshot_dir_name / snapshot_subdir_name_;
+    std::filesystem::path interval_folder = record_dir_.parent_path() / snapshot_dir_name_ / snapshot_subdir_name_;
     std::filesystem::create_directories(interval_folder);
-    std::filesystem::directory_entry withdraw;
-    int                              counter = 0;
-    for (auto const& dir_entry : std::filesystem::directory_iterator{interval_folder}) {
-        counter++;
-        if (!withdraw.exists() ||
-            snapshot_time_map_[withdraw.path()].time_since_epoch() >
-                snapshot_time_map_[dir_entry.path()].time_since_epoch()) {
-            withdraw = dir_entry;
-        }
-    }
-
-    // withdraw the earliest snapshot if needed
-    if (counter >= max) {
-        std::filesystem::remove_all(withdraw);
-        snapshot_time_map_.erase(withdraw.path());
-    }
 
     const auto snapshot_dir = interval_folder / SnapshotDirNameGenerator();
     std::filesystem::create_directories(snapshot_dir);
     std::filesystem::copy(record_dir_, snapshot_dir, std::filesystem::copy_options::recursive);
-    snapshot_time_map_[snapshot_dir] = std::chrono::steady_clock::now();
+
+    snapshots_.push_back(snapshot_dir);
+
+    while (int(snapshots_.size()) > max) {
+        auto old_snapshot = snapshots_.front();
+        std::filesystem::remove_all(old_snapshot);
+        snapshots_.pop_front();
+    }
 
     for (const auto& file : files_) {
-        file->RestoreDB();
+        file->OpenDB();
     }
 }
 

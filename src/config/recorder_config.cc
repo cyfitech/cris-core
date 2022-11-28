@@ -15,14 +15,13 @@ using namespace std;
 
 namespace cris::core {
 template<class T>
-[[noreturn]] static void Fail(const T&, const string& info, simdjson::error_code ec) {
+static void Fail(const T&, const string& info, simdjson::error_code ec) {
     RAW_LOG_FATAL(
         "%s: Failed to parse %s object. %s %s",
         __func__,
         core::GetTypeName<remove_cvref_t<T>>().c_str(),
         info.c_str(),
         simdjson::simdjson_error(ec).what());
-    abort();
 }
 
 void ConfigDataParser(RecorderConfigPtr& config, simdjson::ondemand::value& val) {
@@ -43,19 +42,20 @@ void ConfigDataParser(RecorderConfigPtr& config, simdjson::ondemand::value& val)
         if (const auto ec = data.get(each_interval)) {
             Fail(config, "\"intervals\" is required.", ec);
         }
-        config->snapshot_intervals_.push_back(std::chrono::duration<int>(each_interval));
+        config->snapshot_intervals_.push_back(std::chrono::seconds(each_interval));
     }
 
     string_view record_dir_str;
     if (const auto ec = obj["record_dir"].get(record_dir_str)) {
         Fail(config, "\"record_dir\" is required.", ec);
     }
-
-    if (const auto ec = obj["enable_snapshot"].get(config->enable_snapshot_)) {
-        Fail(config, "\"enable_snapshot\" is required.", ec);
-    }
-
     config->record_dir_ = string(record_dir_str.data(), record_dir_str.size());
+
+    string_view interval_name_str;
+    if (const auto ec = obj["interval_name_"].get(interval_name_str)) {
+        Fail(config, "\"interval_name_\" is required.", ec);
+    }
+    config->interval_name_ = string(interval_name_str.data(), interval_name_str.size());
 }
 
 }  // namespace cris::core

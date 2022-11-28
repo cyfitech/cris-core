@@ -16,25 +16,19 @@
 #include <thread>
 #include <utility>
 
-using std::filesystem::create_directories;
-using std::filesystem::path;
-using std::filesystem::remove_all;
-using std::filesystem::temp_directory_path;
-
 using channel_subid_t = cris::core::CRMessageBase::channel_subid_t;
 
-static constexpr channel_subid_t kTestIntChannelSubId        = 11;
-static constexpr channel_subid_t kTestSnapshotSingleInterval = 5;
+static constexpr channel_subid_t kTestIntChannelSubId = 11;
 
 namespace cris::core {
 
 class RecorderPauseTest : public testing::Test {
    public:
-    void SetUp() override { create_directories(GetRecordTestTempDir()); }
+    void SetUp() override { std::filesystem::create_directories(GetTestTempDir()); }
 
-    void TearDown() override { remove_all(GetRecordTestTempDir()); }
+    void TearDown() override { std::filesystem::remove_all(GetTestTempDir()); }
 
-    path GetRecordTestTempDir() { return record_test_temp_dir_; }
+    std::filesystem::path GetTestTempDir() { return test_temp_dir_; }
 
     RecorderConfigPtr GetTestConfig();
 
@@ -43,9 +37,9 @@ class RecorderPauseTest : public testing::Test {
     void TestRecordDataConsecutive();
 
    private:
-    path record_test_temp_dir_{
-        temp_directory_path() / (std::string("CRSnapshotTestTmpDir.") + std::to_string(getpid()))};
-    path record_dir_;
+    std::filesystem::path test_temp_dir_{
+        std::filesystem::temp_directory_path() / (std::string("CRPauseTestTmpDir.") + std::to_string(getpid()))};
+    std::filesystem::path record_dir_;
 
     static constexpr std::size_t kThreadNum            = 4;
     static constexpr std::size_t kMessageNum           = 10;
@@ -78,8 +72,9 @@ std::string MessageToStr(const TestMessage<T>& msg) {
 
 RecorderConfigPtr RecorderPauseTest::GetTestConfig() {
     RecorderConfig temp_config;
-    temp_config.snapshot_intervals_ = {std::chrono::duration<int>(kTestSnapshotSingleInterval)};
-    temp_config.record_dir_         = GetRecordTestTempDir().string();
+    temp_config.snapshot_intervals_ = {};
+    temp_config.interval_name_      = "";
+    temp_config.record_dir_         = GetTestTempDir();
     return std::make_shared<RecorderConfig>(temp_config);
 }
 
