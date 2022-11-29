@@ -29,6 +29,15 @@ cris_cc_test (
 )
 
 cris_cc_test (
+    name = "recorder_pause_test",
+    srcs = ["recorder_pause_test.cc"],
+    deps = [
+        "//:msg_recorder",
+        "@gtest//:gtest_main",
+    ],
+)
+
+cris_cc_test (
     name = "node_test",
     srcs = ["node_test.cc"],
     env = {
