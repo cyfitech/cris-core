@@ -82,9 +82,17 @@ cmake(
             """,
         )
 
+def cris_deps_bazel_clang_tidy(prefix = "."):
+    if not native.existing_rule("bazel_clang_tidy"):
+        native.local_repository(
+            name = "bazel_clang_tidy",
+            path = prefix + "/external/bazel_clang_tidy",
+        )
+
 def cris_core_deps(prefix = "."):
     cris_deps_gflags(prefix)
     cris_deps_glog(prefix)
     cris_deps_gtest(prefix)
     cris_deps_fmt(prefix)
     cris_deps_simdjson(prefix)
+    cris_deps_bazel_clang_tidy(prefix)
