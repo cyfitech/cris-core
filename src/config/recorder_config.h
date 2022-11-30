@@ -6,17 +6,33 @@
 #include <filesystem>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace cris::core {
 
 struct RecorderConfig {
-    std::vector<std::chrono::seconds> snapshot_intervals_;
-    std::string                       interval_name_;
+    enum class DirName : int64_t {
+        SECONDLY = 1,
+        MINUTELY = 1 * 60,
+        HOURLY = 1 * 60 * 60,
+        DAILY = 1 * 60 * 60 * 24,
+        WEEKLY = 1 * 60 * 60 * 24 * 7,
+        MONTHLY = 1 * 60 * 60 * 24 * 7 * 4,
+    };
+
+    struct IntervalConfig {
+        std::string dir_name_;
+        std::chrono::seconds interval_sec_;
+    };
+
+    std::vector<IntervalConfig> snapshot_intervals_;
     std::filesystem::path             record_dir_;
 };
 
-using RecorderConfigPtr = std::shared_ptr<RecorderConfig>;
+std::vector<RecorderConfig::DirName> dir_names_ = {RecorderConfig::DirName::SECONDLY, RecorderConfig::DirName::MINUTELY, RecorderConfig::DirName::HOURLY, RecorderConfig::DirName::DAILY, RecorderConfig::DirName::WEEKLY, RecorderConfig::DirName::MONTHLY};
 
-void ConfigDataParser(RecorderConfigPtr& config, simdjson::ondemand::value& val);
+void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val);
+
+std::string GenrerateDirName(int64_t interval);
 
 }  // namespace cris::core

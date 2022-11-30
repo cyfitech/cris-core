@@ -83,8 +83,8 @@ cris_cc_library (
     include_prefix = "cris/core",
     strip_include_prefix = "src",
     deps = [
-        ":msg",
         ":config",
+        ":msg",
         ":internal_msg_record_file",
         "@fmt//:libfmt",
     ],

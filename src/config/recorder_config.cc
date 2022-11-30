@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <string>
+#include <iostream>
 #include <string_view>
 #include <type_traits>
 
@@ -25,9 +26,7 @@ static void Fail(const T&, const string& info, simdjson::error_code ec) {
         simdjson::simdjson_error(ec).what());
 }
 
-void ConfigDataParser(RecorderConfigPtr& config, simdjson::ondemand::value& val) {
-    config = std::make_shared<RecorderConfig>();
-
+void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
     simdjson::ondemand::object obj;
     if (const auto ec = val.get(obj)) {
         Fail(config, "JSON object required.", ec);
@@ -35,30 +34,38 @@ void ConfigDataParser(RecorderConfigPtr& config, simdjson::ondemand::value& val)
 
     simdjson::ondemand::array array_intervals;
     if (const auto ec = obj["snapshot_intervals_sec"].get(array_intervals)) {
-        Fail(config, "\"snapshot_intervals_\" is required.", ec);
+        Fail(config, "\"snapshot_intervals_sec\" is required.", ec);
     }
 
     for (auto&& data : array_intervals) {
         int64_t each_interval_sec = 0;
         if (const auto ec = data.get(each_interval_sec)) {
-            Fail(config, "\"intervals\" is required.", ec);
+            Fail(config, "an actual interval in seconds is required.", ec);
         }
-        config->snapshot_intervals_.push_back(std::chrono::seconds(each_interval_sec));
+        config.snapshot_intervals_.push_back(
+            RecorderConfig::IntervalConfig{
+                .dir_name_ = GenrerateDirName(each_interval_sec),
+                .interval_sec_ = std::chrono::seconds(each_interval_sec),
+            }
+            );
     }
 
     string_view record_dir_str;
     if (const auto ec = obj["record_dir"].get(record_dir_str)) {
         Fail(config, "\"record_dir\" is required.", ec);
     }
-    config->record_dir_ = string(record_dir_str.data(), record_dir_str.size());
+    config.record_dir_ = string(record_dir_str.data(), record_dir_str.size());
+}
 
-    string_view interval_name_str;
-    if (const auto ec = obj["interval_name_"].get(interval_name_str)) {
-        Fail(config, "\"interval_name_\" is required.", ec);
+std::string GenrerateDirName(int64_t interval){
+    auto selected = RecorderConfig::DirName::SECONDLY;
+    for(auto name : dir_names_){
+        if(interval < int64_t(name)){
+            break;
+        }
+        selected = name;
     }
-
-    // TODO (YuzhouGuo, https://github.com/cyfitech/cris-core/issues/97) auto-generated name
-    config->interval_name_ = string(interval_name_str.data(), interval_name_str.size());
+    return to_string(int64_t(selected));
 }
 
 }  // namespace cris::core
