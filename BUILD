@@ -144,3 +144,8 @@ cris_cc_library (
         "@simdjson//:libsimdjson",
     ],
 )
+
+filegroup(
+    name = "clang_tidy_config",
+    srcs = [".clang-tidy"],
+)
