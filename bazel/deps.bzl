@@ -90,9 +90,9 @@ def cris_deps_bazel_clang_tidy(prefix = "."):
         )
 
 def cris_core_deps(prefix = "."):
+    cris_deps_bazel_clang_tidy(prefix)
     cris_deps_gflags(prefix)
     cris_deps_glog(prefix)
     cris_deps_gtest(prefix)
     cris_deps_fmt(prefix)
     cris_deps_simdjson(prefix)
-    cris_deps_bazel_clang_tidy(prefix)
