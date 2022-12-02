@@ -1,5 +1,7 @@
 #include "cris/core/config/config.h"
 
+#include "cris/core/config/recorder_config.h"
+
 #include <gtest/gtest.h>
 
 #include <fmt/core.h>
@@ -167,6 +169,80 @@ TEST_F(ConfigTest, WrongFilePath) {
     int default_val = 100;
     EXPECT_EQ(empty_config.Get<int>("key", default_val)->GetValue(), default_val);
     EXPECT_EQ(invalid_file_config.Get<int>("key", default_val)->GetValue(), default_val);
+}
+
+class RecordConfigTest : public testing::Test {
+   public:
+    RecordConfigTest()
+        : testing::Test()
+        , test_config_path_(fs::temp_directory_path() / fmt::format("record_config_test.pid.{}.json", getpid())) {}
+
+    ~RecordConfigTest() { fs::remove(test_config_path_); }
+
+    ConfigFile MakeRecordConfigFile(std::string content) const {
+        std::ofstream config_file(test_config_path_);
+        config_file << std::move(content);
+        config_file.flush();
+        return ConfigFile(test_config_path_);
+    }
+
+    fs::path GetRecordConfigPath() const { return test_config_path_; };
+
+   private:
+    fs::path test_config_path_;
+};
+
+TEST_F(RecordConfigTest, RecorderConfigTest) {
+    const std::string config_key                 = "recorder";
+    const std::string intervals_key              = "snapshot_intervals_sec";
+    const std::string interval_name_key          = "interval_name";
+    const std::string interval_name_value_first  = "SECONDLY";
+    const std::string interval_name_value_second = "HOURLY";
+    const std::string interval_sec_key           = "interval_sec";
+    const std::string record_dir_key             = "record_dir";
+    const std::string record_dir_value           = "record_test";
+
+    const std::chrono::seconds interval_sec_value_first  = std::chrono::seconds(5);
+    const std::chrono::seconds interval_sec_value_second = std::chrono::seconds(1);
+
+    auto recorder_config_file = MakeRecordConfigFile(fmt::format(
+        R"({{
+            "{}": {{
+                "{}" : [
+                    {{
+                        "{}": "{}",
+                        "{}": {}
+                    }},
+                    {{
+                        "{}": "{}",
+                        "{}": {}
+                    }}
+                ],
+                "{}": "{}"
+            }}
+        }})",
+        config_key,
+        intervals_key,
+        interval_name_key,
+        interval_name_value_first,
+        interval_sec_key,
+        5,
+        interval_name_key,
+        interval_name_value_second,
+        interval_sec_key,
+        1,
+        record_dir_key,
+        record_dir_value));
+
+    auto           config_recorder_file = ConfigFile(GetRecordConfigPath());
+    RecorderConfig recorder_config      = recorder_config_file.Get<RecorderConfig>(config_key)->GetValue();
+
+    EXPECT_EQ(recorder_config.snapshot_intervals_.size(), 2);
+    EXPECT_EQ(recorder_config.snapshot_intervals_.front().name_, interval_name_value_first);
+    EXPECT_EQ(recorder_config.snapshot_intervals_.front().interval_sec_, interval_sec_value_first);
+    EXPECT_EQ(recorder_config.snapshot_intervals_.back().name_, interval_name_value_second);
+    EXPECT_EQ(recorder_config.snapshot_intervals_.back().interval_sec_, interval_sec_value_second);
+    EXPECT_EQ(recorder_config.record_dir_, record_dir_value);
 }
 
 }  // namespace cris::core
