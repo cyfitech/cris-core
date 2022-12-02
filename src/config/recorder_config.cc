@@ -8,8 +8,8 @@
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
-#include <string>
 #include <iostream>
+#include <string>
 #include <string_view>
 #include <type_traits>
 
@@ -38,16 +38,15 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
     }
 
     for (auto&& data : array_intervals) {
-        int64_t each_interval_sec = 0;
-        if (const auto ec = data.get(each_interval_sec)) {
+        int64_t interval_long_sec;
+        if (const auto ec = data.get(interval_long_sec)) {
             Fail(config, "an actual interval in seconds is required.", ec);
         }
-        config.snapshot_intervals_.push_back(
-            RecorderConfig::IntervalConfig{
-                .dir_name_ = GenrerateDirName(each_interval_sec),
-                .interval_sec_ = std::chrono::seconds(each_interval_sec),
-            }
-            );
+        auto interval_chrono_sec = std::chrono::seconds(interval_long_sec);
+        config.snapshot_intervals_.push_back(RecorderConfig::IntervalConfig{
+            .name_         = GenrerateDirName(interval_chrono_sec),
+            .interval_sec_ = interval_chrono_sec,
+        });
     }
 
     string_view record_dir_str;
@@ -57,15 +56,9 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
     config.record_dir_ = string(record_dir_str.data(), record_dir_str.size());
 }
 
-std::string GenrerateDirName(int64_t interval){
-    auto selected = RecorderConfig::DirName::SECONDLY;
-    for(auto name : dir_names_){
-        if(interval < int64_t(name)){
-            break;
-        }
-        selected = name;
-    }
-    return to_string(int64_t(selected));
+std::string GenrerateDirName(std::chrono::seconds interval) {
+    // TODO (YuzhouGuo, https://github.com/cyfitech/cris-core/issues/97) auto-generated name
+    return to_string(interval.count());
 }
 
 }  // namespace cris::core
