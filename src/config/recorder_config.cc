@@ -38,14 +38,19 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
     }
 
     for (auto&& data : array_intervals) {
-        int64_t interval_long_sec;
-        if (const auto ec = data.get(interval_long_sec)) {
-            Fail(config, "an actual interval in seconds is required.", ec);
+        string_view interval_name;
+        if (const auto ec = data["interval_name"].get(interval_name)) {
+            Fail(config, "\"interval_name\" is required.", ec);
         }
-        auto interval_chrono_sec = std::chrono::seconds(interval_long_sec);
+
+        int64_t interval_sec = 0;
+        if (const auto ec = data["interval_sec"].get(interval_sec)) {
+            Fail(config, "\"interval_sec\" is required.", ec);
+        }
+
         config.snapshot_intervals_.push_back(RecorderConfig::IntervalConfig{
-            .name_         = GenrerateDirName(interval_chrono_sec),
-            .interval_sec_ = interval_chrono_sec,
+            .name_         = string(interval_name.data(), interval_name.size()),
+            .interval_sec_ = std::chrono::seconds(interval_sec),
         });
     }
 
@@ -54,11 +59,6 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
         Fail(config, "\"record_dir\" is required.", ec);
     }
     config.record_dir_ = string(record_dir_str.data(), record_dir_str.size());
-}
-
-std::string GenrerateDirName(std::chrono::seconds interval) {
-    // TODO (YuzhouGuo, https://github.com/cyfitech/cris-core/issues/97) auto-generated name
-    return to_string(interval.count());
 }
 
 }  // namespace cris::core

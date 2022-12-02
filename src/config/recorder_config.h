@@ -22,6 +22,4 @@ struct RecorderConfig {
 
 void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val);
 
-std::string GenrerateDirName(std::chrono::seconds interval);
-
 }  // namespace cris::core
