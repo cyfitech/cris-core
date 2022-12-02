@@ -62,6 +62,10 @@ class RecordFile {
 
     void Compact();
 
+    void OpenDB();
+
+    void CloseDB();
+
    protected:
     std::string                  file_path_;
     std::unique_ptr<leveldb::DB> db_;
