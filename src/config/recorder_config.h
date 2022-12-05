@@ -1,11 +1,13 @@
 #pragma once
 
-#include <simdjson.h>
-
 #include <chrono>
 #include <filesystem>
 #include <string>
 #include <vector>
+
+namespace simdjson::SIMDJSON_BUILTIN_IMPLEMENTATION::ondemand {
+class value;
+}
 
 namespace cris::core {
 
@@ -19,6 +21,6 @@ struct RecorderConfig {
     std::filesystem::path       record_dir_;
 };
 
-void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val);
+void ConfigDataParser(RecorderConfig& config, simdjson::SIMDJSON_BUILTIN_IMPLEMENTATION::ondemand::value& val);
 
 }  // namespace cris::core

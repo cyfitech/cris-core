@@ -48,7 +48,7 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
             Fail(config, "\"interval_sec\" is required.", ec);
         }
 
-        config.snapshot_intervals_.push_back(RecorderConfig::IntervalConfig{
+        config.snapshot_intervals_.emplace_back(RecorderConfig::IntervalConfig{
             .name_         = string(interval_name.data(), interval_name.size()),
             .interval_sec_ = std::chrono::seconds(interval_sec),
         });
