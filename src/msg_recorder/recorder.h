@@ -25,7 +25,7 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     MessageRecorder& operator=(const MessageRecorder&) = delete;
     MessageRecorder& operator=(MessageRecorder&&) = delete;
 
-    ~MessageRecorder();
+    ~MessageRecorder() override;
 
     template<CRMessageType message_t>
     void RegisterChannel(const channel_subid_t subid, const std::string& alias = "");

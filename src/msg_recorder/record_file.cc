@@ -22,8 +22,8 @@ class RecordFileKeyLdbCmp : public leveldb::Comparator {
     const char* Name() const override;
 
     // Ignore the following.
-    void FindShortestSeparator(std::string*, const leveldb::Slice&) const override {}
-    void FindShortSuccessor(std::string*) const override {}
+    void FindShortestSeparator(std::string* /* start */, const leveldb::Slice& /* limit */) const override {}
+    void FindShortSuccessor(std::string* /* key */) const override {}
 };
 
 int RecordFileKeyLdbCmp::Compare(const leveldb::Slice& lhs, const leveldb::Slice& rhs) const {
@@ -84,7 +84,7 @@ void RecordFileIterator::ReadNextValidKey() {
         if (!key_opt) {
             continue;
         }
-        current_key_ = std::move(*key_opt);
+        current_key_ = *key_opt;
         break;
     }
 }
@@ -113,7 +113,7 @@ void RecordFile::OpenDB() {
         return;
     }
 
-    leveldb::DB*     db;
+    leveldb::DB*     db = nullptr;
     leveldb::Options options;
     options.create_if_missing = true;
 
@@ -156,9 +156,9 @@ void RecordFile::Write(RecordFileKey key, std::string serialized_value) {
 }
 
 RecordFileIterator RecordFile::Iterate() const {
-    auto itr = db_->NewIterator(leveldb::ReadOptions());
+    auto* itr = db_->NewIterator(leveldb::ReadOptions());
     itr->SeekToFirst();
-    return RecordFileIterator(std::move(itr), legacy_);
+    return RecordFileIterator(itr, legacy_);
 }
 
 bool RecordFile::Empty() const {
