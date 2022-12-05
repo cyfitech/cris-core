@@ -37,32 +37,32 @@ void MessageRecorder::SnapshotWorkerStart() {
     while (!snapshot_shutdown_flag_.load()) {
         auto before = std::chrono::system_clock::now();
         MakeSnapshot();
-        std::unique_lock<std::mutex> lck(snapshot_mtx);
-        snapshot_cv.wait_until(lck, before + snapshot_interval_, [this] { return snapshot_shutdown_flag_.load(); });
+        std::unique_lock<std::mutex> lck(snapshot_mtx_);
+        snapshot_cv_.wait_until(lck, before + snapshot_interval_, [this] { return snapshot_shutdown_flag_.load(); });
     }
 }
 
 void MessageRecorder::MakeSnapshot() {
-    std::unique_lock<std::mutex> lock(snapshot_mtx);
+    std::unique_lock<std::mutex> lock(snapshot_mtx_);
     snapshot_pause_flag_.store(false);
     AddJobToRunner(
         [this]() {
             GenerateSnapshot(keep_max_);
             snapshot_pause_flag_.store(true);
-            snapshot_cv.notify_all();
+            snapshot_cv_.notify_all();
         },
         record_strand_);
 
     // wait until the current generation to be finished
-    snapshot_cv.wait(lock, [this] { return snapshot_pause_flag_.load(); });
+    snapshot_cv_.wait(lock, [this] { return snapshot_pause_flag_.load(); });
 }
 
 void MessageRecorder::SnapshotWorkerEnd() {
     {
-        std::unique_lock<std::mutex> lock(snapshot_mtx);
+        std::unique_lock<std::mutex> lock(snapshot_mtx_);
         snapshot_shutdown_flag_.store(true);
     }
-    snapshot_cv.notify_all();
+    snapshot_cv_.notify_all();
     if (snapshot_thread_.joinable()) {
         snapshot_thread_.join();
     }

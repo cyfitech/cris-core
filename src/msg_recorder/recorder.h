@@ -65,8 +65,8 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     std::thread                       snapshot_thread_;
     std::atomic<bool>                 snapshot_shutdown_flag_{false};
     std::atomic<bool>                 snapshot_pause_flag_{false};
-    std::mutex                        snapshot_mtx;
-    std::condition_variable           snapshot_cv;
+    std::mutex                        snapshot_mtx_;
+    std::condition_variable           snapshot_cv_;
     std::string                       snapshot_subdir_name_;
     const std::string                 snapshot_dir_name_ = std::string("Snapshot");
     std::deque<std::filesystem::path> snapshots_;
