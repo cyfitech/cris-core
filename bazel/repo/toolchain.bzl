@@ -1,5 +1,5 @@
 def cc_autoconf_toolchain_impl(repo_ctx):
-    clang_tidy_bin_raw = repo_ctx.os.environ.get("CLANG_TIDY_BIN", "clang-tidy")
+    clang_tidy_bin_raw = repo_ctx.os.environ.get("CLANG_TIDY", "clang-tidy")
     clang_tidy_bin_full_path = repo_ctx.which(clang_tidy_bin_raw)
     repo_ctx.file(
         "BUILD",
@@ -14,13 +14,13 @@ filegroup(
         "clang_tidy_wrapper.sh",
         Label("@cris-core//bazel/repo:clang_tidy_wrapper.sh.tpl"),
         {
-            "%{CLANG_TIDY_BIN}": str(clang_tidy_bin_full_path),
+            "%{CLANG_TIDY}": str(clang_tidy_bin_full_path),
         },
     )
 
 cc_autoconf_toolchain = repository_rule(
     environ = [
-        "CLANG_TIDY_BIN",
+        "CLANG_TIDY",
     ],
     implementation = cc_autoconf_toolchain_impl,
     configure = True,

@@ -12,7 +12,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20220808
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20221204
     steps:
     - uses: actions/checkout@v3
     - name: Config
@@ -37,7 +37,7 @@ jobs:
   llvm11-debian11:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20220808
+      image: ghcr.io/cyfitech/cris-build-debian11:20221204
     env:
       CC: clang-11
       CXX: clang++-11
@@ -55,7 +55,7 @@ jobs:
   llvm12-ubuntu2004:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20220808
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20221204
     env:
       CC: clang-12
       CXX: clang++-12
@@ -70,10 +70,28 @@ jobs:
       run: export HOME=/root && scripts/bazel_wrapper.sh test --config=rel --config=prof --nocache_test_results --test_output=all -s //...
     - uses: ./.github/actions/ci-env-cleanup
 
+  llvm13-debian11:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyfitech/cris-build-debian11:20221204
+    env:
+      CC: clang-13
+      CXX: clang++-13
+    steps:
+    - uses: actions/checkout@v3
+    - uses: ./.github/actions/ci-env-setup
+      with:
+        key: ${{ github.job }}
+        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
+    - name: Build and Test
+      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=rel --config=prof --nocache_test_results --test_output=all -s //...
+    - uses: ./.github/actions/ci-env-cleanup
+
   llvm14-ubuntu2204:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20220808
+      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20221204
     env:
       CC: clang-14
       CXX: clang++-14
@@ -91,7 +109,7 @@ jobs:
   gcc10-debian11:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20220808
+      image: ghcr.io/cyfitech/cris-build-debian11:20221204
     env:
       CC: gcc-10
       CXX: g++-10
@@ -109,7 +127,7 @@ jobs:
   gcc10-ubuntu2004:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20220808
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20221204
     env:
       CC: gcc-10
       CXX: g++-10
@@ -127,7 +145,7 @@ jobs:
   gcc11-ubuntu2204:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20220808
+      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20221204
     env:
       # Cannot use gcc-12 because of https://github.com/protocolbuffers/protobuf/issues/9948 (requires protobuf v3.21.0 or gcc 12.2)
       # https://github.com/protocolbuffers/protobuf/pull/10118 is needed for upgrading protobuf
@@ -147,10 +165,10 @@ jobs:
   asan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20220808
+      image: ghcr.io/cyfitech/cris-build-debian11:20221204
     env:
-      CC: clang-11
-      CXX: clang++-11
+      CC: clang-13
+      CXX: clang++-13
     steps:
     - uses: actions/checkout@v3
     - uses: ./.github/actions/ci-env-setup
@@ -165,10 +183,10 @@ jobs:
   ubsan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20220808
+      image: ghcr.io/cyfitech/cris-build-debian11:20221204
     env:
-      CC: clang-11
-      CXX: clang++-11
+      CC: clang-13
+      CXX: clang++-13
     steps:
     - uses: actions/checkout@v3
     - uses: ./.github/actions/ci-env-setup
@@ -182,12 +200,11 @@ jobs:
 
   tsan:
     runs-on: ubuntu-latest
-    # Using ubuntu 20.04/clang-12 for tsan because of https://github.com/google/sanitizers/issues/1259
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20220808
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20221204
     env:
-      CC: clang-12
-      CXX: clang++-12
+      CC: clang-13
+      CXX: clang++-13
     steps:
     - uses: actions/checkout@v3
     - uses: ./.github/actions/ci-env-setup
@@ -202,10 +219,10 @@ jobs:
   make-llvm:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20220808
+      image: ghcr.io/cyfitech/cris-build-debian11:20221204
     env:
-      CC: clang-11
-      CXX: clang++-11
+      CC: clang-13
+      CXX: clang++-13
     steps:
     - uses: actions/checkout@v3
     - uses: ./.github/actions/ci-env-setup
@@ -220,7 +237,7 @@ jobs:
   make-gcc:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20220808
+      image: ghcr.io/cyfitech/cris-build-debian11:20221204
     env:
       CC: gcc-10
       CXX: g++-10
