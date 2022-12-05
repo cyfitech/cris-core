@@ -6,7 +6,7 @@ export MKDIR = mkdir -p
 export RM = rm -rf
 
 export CMD ?= bash
-export DOCKER_IMAGE ?= cajunhotpot/cris-build-debian11:20220808
+export DOCKER_IMAGE ?= cajunhotpot/cris-build-debian11:20221204
 
 .PHONY: all
 all: ci
