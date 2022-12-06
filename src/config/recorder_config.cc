@@ -3,12 +3,9 @@
 #include "cris/core/utils/defs.h"
 #include "cris/core/utils/logging.h"
 
-#include <simdjson.h>
-
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
-#include <iostream>
 #include <string>
 #include <string_view>
 #include <type_traits>
