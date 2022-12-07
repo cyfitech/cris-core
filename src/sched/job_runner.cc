@@ -95,6 +95,8 @@ class JobRunnerStrand : public std::enable_shared_from_this<JobRunnerStrand> {
 
     explicit JobRunnerStrand(std::weak_ptr<JobRunner> runner) : runner_weak_(runner) {}
 
+    ~JobRunnerStrand();
+
     bool AddJob(job_t&& job);
 
     bool AddJob(std::function<void(JobAliveTokenPtr&&)>&& job);
@@ -114,6 +116,16 @@ JobAliveToken::~JobAliveToken() {
     // When the current job is finishing, try pushing the next one.
     if (auto strand = strand_weak_.lock()) {
         strand->PushToRunnerIfNeeded(/* is_in_running_job = */ true);
+    }
+}
+
+JobRunnerStrand::~JobRunnerStrand() {
+    while (!pending_jobs_.empty()) {
+        job_t* data = nullptr;
+        pending_jobs_.pop(data);
+        if (data) {
+            delete data;
+        }
     }
 }
 
