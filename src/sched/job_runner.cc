@@ -130,7 +130,7 @@ bool JobRunnerStrand::AddJob(JobRunnerStrand::job_t&& job) {
 }
 
 bool JobRunnerStrand::AddJob(std::function<void(JobAliveTokenPtr&&)>&& job) {
-    if (finished_) {
+    if (finished_) [[unlikely]] {
         LOG(WARNING) << __func__ << ": JobRunnerStrand have finished.";
         return false;
     }
@@ -186,7 +186,7 @@ bool JobRunnerStrand::AddJob(std::function<void(JobAliveTokenPtr&&)>&& job) {
 //  be visible to the next D/d. If we looks at the non-d- decision before it, it can only be D+/d-, and both
 //  of them comes with a next D/d. Liveness proved.
 void JobRunnerStrand::PushToRunnerIfNeeded(const bool is_in_running_job) {
-    if (finished_) {
+    if (finished_) [[unlikely]] {
         LOG(WARNING) << __func__ << ": JobRunnerStrand have finished.";
         return;
     }
