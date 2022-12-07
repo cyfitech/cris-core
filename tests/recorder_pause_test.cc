@@ -1,17 +1,9 @@
-#include "cris/core/config/recorder_config.h"
-#include "cris/core/msg/node.h"
-#include "cris/core/msg_recorder/recorder.h"
-#include "cris/core/msg_recorder/replayer.h"
-#include "cris/core/sched/job_runner.h"
-
-#include "fmt/chrono.h"
-#include "fmt/core.h"
+#include "cris/core/msg_recorder/record_file.h"
 
 #include "gtest/gtest.h"
 
 #include <unistd.h>
 
-#include <algorithm>
 #include <chrono>
 #include <cstring>
 #include <filesystem>
@@ -20,136 +12,58 @@
 #include <thread>
 #include <utility>
 
-using channel_subid_t = cris::core::CRMessageBase::channel_subid_t;
-
-static constexpr channel_subid_t kTestIntChannelSubId = 11;
-
 namespace cris::core {
 
 class RecorderPauseTest : public testing::Test {
    public:
-    void SetUp() override { std::filesystem::create_directories(GetTestTempDir()); }
+    void SetUp() override { std::filesystem::create_directories(test_temp_dir_); }
 
-    void TearDown() override { std::filesystem::remove_all(GetTestTempDir()); }
+    void TearDown() override { std::filesystem::remove_all(test_temp_dir_); }
 
-    std::filesystem::path GetTestTempDir() { return test_temp_dir_; }
-
-    RecorderConfig GetTestConfig();
-
-    void TestRecordFilePause();
-
-    void TestRecordDataConsecutive();
-
-   private:
     std::filesystem::path test_temp_dir_{
         std::filesystem::temp_directory_path() / (std::string("CRPauseTestTmpDir.") + std::to_string(getpid()))};
-    std::filesystem::path record_dir_;
 
-    static constexpr std::size_t kThreadNum            = 4;
-    static constexpr std::size_t kMessageNum           = 10;
-    static constexpr auto        kSleepBetweenMessages = std::chrono::milliseconds(100);
+    const std::string exchange_symbol_str = std::string("TEST_HUOBI") + "__" + std::string("TEST_PERPETUAL");
+    const std::string filename            = exchange_symbol_str + "_subid_0.ldb.d";
+
+    const std::filesystem::path record_file_path = test_temp_dir_ / filename;
+
+    static constexpr std::size_t kMessageNum = 10;
 };
-
-template<class T>
-    requires std::is_standard_layout_v<T>
-struct TestMessage : public CRMessage<TestMessage<T>> {
-    using data_type = T;
-
-    TestMessage() = default;
-
-    explicit TestMessage(T val) : value_(std::move(val)) {}
-
-    T value_{};
-};
-
-template<class T>
-void MessageFromStr(TestMessage<T>& msg, const std::string& serialized_msg) {
-    std::memcpy(&msg.value_, serialized_msg.c_str(), std::min(sizeof(T), serialized_msg.size()));
-}
-
-template<class T>
-std::string MessageToStr(const TestMessage<T>& msg) {
-    std::string serialized_msg(sizeof(T), 0);
-    std::memcpy(&serialized_msg[0], &msg.value_, serialized_msg.size());
-    return serialized_msg;
-}
-
-RecorderConfig RecorderPauseTest::GetTestConfig() {
-    return RecorderConfig{.snapshot_intervals_ = {}, .record_dir_ = GetTestTempDir()};
-}
-
-void RecorderPauseTest::TestRecordFilePause() {
-    JobRunner::Config config = {
-        .thread_num_ = kThreadNum,
-    };
-    auto            runner = JobRunner::MakeJobRunner(config);
-    MessageRecorder recorder(GetTestConfig(), runner);
-
-    recorder.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
-    record_dir_ = recorder.GetRecordDir();
-
-    core::CRNode publisher;
-
-    for (std::size_t i = 0; i < kMessageNum; ++i) {
-        if (i == 5) {
-            recorder.MakeSnapshot();
-        }
-        auto test_message = std::make_shared<TestMessage<int>>(static_cast<int>(i));
-        publisher.Publish(kTestIntChannelSubId, std::move(test_message));
-        std::this_thread::sleep_for(kSleepBetweenMessages);
-    }
-    // Make sure messages arrive records
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-}
-
-void RecorderPauseTest::TestRecordDataConsecutive() {
-    JobRunner::Config config = {
-        .thread_num_ = kThreadNum,
-    };
-    auto            runner = JobRunner::MakeJobRunner(config);
-    MessageReplayer replayer(record_dir_);
-    core::CRNode    subscriber(runner);
-
-    replayer.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
-
-    int previous_int = -1;
-
-    subscriber.Subscribe<TestMessage<int>>(
-        kTestIntChannelSubId,
-        [&previous_int](const std::shared_ptr<TestMessage<int>>& message) {
-            // consecutive data without loss
-            EXPECT_TRUE(message->value_ - previous_int == 1);
-            previous_int = message->value_;
-        },
-        /* allow_concurrency = */ false);
-
-    bool run_post_start  = false;
-    bool run_pre_finish  = false;
-    bool run_post_finish = false;
-    replayer.SetPostStartCallback([&run_post_start, &replayer] {
-        run_post_start = true;
-        EXPECT_FALSE(replayer.IsEnded());
-    });
-    replayer.SetPreFinishCallback([&run_pre_finish, &replayer] {
-        run_pre_finish = true;
-        EXPECT_FALSE(replayer.IsEnded());
-    });
-    replayer.SetPostFinishCallback([&run_post_finish, &replayer] {
-        run_post_finish = true;
-        EXPECT_TRUE(replayer.IsEnded());
-    });
-    replayer.MainLoop();
-    EXPECT_TRUE(run_post_start);
-    EXPECT_TRUE(run_pre_finish);
-    EXPECT_TRUE(run_post_finish);
-
-    // Make sure messages arrive the node
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-}
 
 TEST_F(RecorderPauseTest, RecorderPauseTest) {
-    TestRecordFilePause();
-    TestRecordDataConsecutive();
+    std::filesystem::create_directories(record_file_path);
+    auto record_file = std::make_unique<RecordFile>(record_file_path);
+
+    // repeatedly open and close the DB
+    for (std::size_t i = 0; i < kMessageNum; ++i) {
+        if (i % 2 == 0) {
+            record_file->CloseDB();
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            record_file->OpenDB();
+        }
+        record_file->Write(std::to_string(i));
+    }
+
+    int previous_int  = -1;
+    int int_msg_count = 0;
+
+    for (auto itr = record_file->Iterate(); itr.Valid(); itr.Next()) {
+        int current_value = std::stoi(itr.Get().second);
+
+        // first element expect to be zero
+        if (int_msg_count == 0) {
+            EXPECT_EQ(current_value, 0);
+        }
+
+        // data consecutive check
+        EXPECT_EQ(current_value - previous_int, 1);
+        previous_int = current_value;
+        int_msg_count++;
+    }
+
+    // total number of element check
+    EXPECT_EQ(int_msg_count, kMessageNum);
 }
 
 }  // namespace cris::core
