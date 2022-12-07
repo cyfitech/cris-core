@@ -30,8 +30,8 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
     }
 
     simdjson::ondemand::array array_intervals;
-    if (const auto ec = obj["snapshot_intervals_sec"].get(array_intervals)) {
-        Fail(config, "\"snapshot_intervals_sec\" is required.", ec);
+    if (const auto ec = obj["snapshot_intervals"].get(array_intervals)) {
+        Fail(config, "\"snapshot_intervals\" is required.", ec);
     }
 
     for (auto&& data : array_intervals) {
