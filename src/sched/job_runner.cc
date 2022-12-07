@@ -108,6 +108,7 @@ class JobRunnerStrand : public std::enable_shared_from_this<JobRunnerStrand> {
     HybridSpinMutex          hybrid_spin_mtx_;
     bool                     has_ready_job_{false};
     job_queue_t              pending_jobs_{kInitialQueueCapacity};
+    bool                     finished_{false};
 
     static constexpr std::size_t kInitialQueueCapacity = 8192;
 };
@@ -120,13 +121,8 @@ JobAliveToken::~JobAliveToken() {
 }
 
 JobRunnerStrand::~JobRunnerStrand() {
-    while (!pending_jobs_.empty()) {
-        job_t* data = nullptr;
-        pending_jobs_.pop(data);
-        if (data) {
-            delete data;
-        }
-    }
+    finished_ = true;
+    pending_jobs_.consume_all([](job_t* const job_ptr) { delete job_ptr; });
 }
 
 bool JobRunnerStrand::AddJob(JobRunnerStrand::job_t&& job) {
@@ -134,6 +130,11 @@ bool JobRunnerStrand::AddJob(JobRunnerStrand::job_t&& job) {
 }
 
 bool JobRunnerStrand::AddJob(std::function<void(JobAliveTokenPtr&&)>&& job) {
+    if (finished_) {
+        LOG(WARNING) << __func__ << ": JobRunnerStrand have finished.";
+        return false;
+    }
+
     auto serialized_job = [job         = std::move(job),
                            alive_token = std::make_shared<JobAliveToken>(weak_from_this())]() mutable {
         job(std::move(alive_token));
