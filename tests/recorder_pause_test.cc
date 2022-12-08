@@ -22,12 +22,12 @@ class RecorderPauseTest : public testing::Test {
 
     std::filesystem::path GetRecordFilePath() { return record_file_path; }
 
-    static constexpr std::size_t kMessageNum = 10;
-    static constexpr std::size_t kManipulatePatternNum = 2;
+    static constexpr std::size_t kMessageNum              = 10;
+    static constexpr std::size_t kMessageNumBetweenReopen = 2;
 
    private:
-    const std::string exchange_symbol_str = std::string("TEST_EXCHANGE") + "__" + std::string("SYMBOL");
-    const std::string filename            = exchange_symbol_str + "_id_0.ldb.d";
+    const std::string     exchange_symbol_str = std::string("TEST_EXCHANGE") + "__" + std::string("SYMBOL");
+    const std::string     filename            = exchange_symbol_str + "_id_0.ldb.d";
     std::filesystem::path test_temp_dir_{
         std::filesystem::temp_directory_path() / (std::string("CRPauseTestTmpDir.") + std::to_string(getpid()))};
     const std::filesystem::path record_file_path = test_temp_dir_ / filename;
@@ -39,14 +39,14 @@ TEST_F(RecorderPauseTest, RecorderPauseTest) {
 
     // repeatedly open and close the DB
     for (std::size_t i = 0; i < kMessageNum; ++i) {
-        if (i % kManipulatePatternNum == 0) {
+        if (i % kMessageNumBetweenReopen == 0) {
             record_file->CloseDB();
             record_file->OpenDB();
         }
         record_file->Write(std::to_string(i));
     }
 
-    int previous_int  = -1;
+    int         previous_int  = -1;
     std::size_t int_msg_count = 0;
 
     for (auto itr = record_file->Iterate(); itr.Valid(); itr.Next(), ++int_msg_count) {
