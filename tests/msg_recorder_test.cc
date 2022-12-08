@@ -1,4 +1,3 @@
-#include "cris/core/config/recorder_config.h"
 #include "cris/core/msg/node.h"
 #include "cris/core/msg_recorder/recorder.h"
 #include "cris/core/msg_recorder/replayer.h"
@@ -14,6 +13,11 @@
 #include <thread>
 #include <utility>
 
+using std::filesystem::create_directories;
+using std::filesystem::path;
+using std::filesystem::remove_all;
+using std::filesystem::temp_directory_path;
+
 using channel_subid_t = cris::core::CRMessageBase::channel_subid_t;
 
 static constexpr channel_subid_t kTestIntChannelSubId    = 11;
@@ -23,13 +27,11 @@ namespace cris::core {
 
 class RecorderTest : public testing::Test {
    public:
-    void SetUp() override { std::filesystem::create_directories(GetTestTempDir()); }
+    void SetUp() override { create_directories(GetTestTempDir()); }
 
-    void TearDown() override { std::filesystem::remove_all(GetTestTempDir()); }
+    void TearDown() override { remove_all(GetTestTempDir()); }
 
-    std::filesystem::path GetTestTempDir() { return test_temp_dir_; }
-
-    RecorderConfig GetTestConfig();
+    path GetTestTempDir() { return test_temp_dir_; }
 
     void TestRecord();
 
@@ -38,9 +40,8 @@ class RecorderTest : public testing::Test {
     void TestReplayCanceled();
 
    private:
-    std::filesystem::path test_temp_dir_{
-        std::filesystem::temp_directory_path() / (std::string("CRTestTmpDir.") + std::to_string(getpid()))};
-    std::filesystem::path record_dir_;
+    path test_temp_dir_{temp_directory_path() / (std::string("CRTestTmpDir.") + std::to_string(getpid()))};
+    path record_dir_;
 
     static constexpr int         kMessageManagerThreadNum = 1;
     static constexpr std::size_t kMessageNum              = 10;
@@ -82,13 +83,9 @@ std::string MessageToStr(const TestMessage<T>& msg) {
     return serialized_msg;
 }
 
-RecorderConfig RecorderTest::GetTestConfig() {
-    return RecorderConfig{.snapshot_intervals_ = {}, .record_dir_ = GetTestTempDir()};
-}
-
 void RecorderTest::TestRecord() {
     auto            runner = core::JobRunner::MakeJobRunner({});
-    MessageRecorder recorder(GetTestConfig(), runner);
+    MessageRecorder recorder(GetTestTempDir(), runner);
 
     recorder.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
     recorder.RegisterChannel<TestMessage<double>>(kTestDoubleChannelSubId);
