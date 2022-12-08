@@ -109,6 +109,7 @@ class JobRunnerStrand : public std::enable_shared_from_this<JobRunnerStrand> {
     bool                     has_ready_job_{false};
     job_queue_t              pending_jobs_{kInitialQueueCapacity};
     bool                     finished_{false};
+    std::mutex               pending_jobs_mutex_;
 
     static constexpr std::size_t kInitialQueueCapacity = 8192;
 };
@@ -121,6 +122,7 @@ JobAliveToken::~JobAliveToken() {
 }
 
 JobRunnerStrand::~JobRunnerStrand() {
+    std::lock_guard<std::mutex> lck(pending_jobs_mutex_);
     finished_ = true;
     pending_jobs_.consume_all([](job_t* const job_ptr) { delete job_ptr; });
 }
@@ -130,17 +132,19 @@ bool JobRunnerStrand::AddJob(JobRunnerStrand::job_t&& job) {
 }
 
 bool JobRunnerStrand::AddJob(std::function<void(JobAliveTokenPtr&&)>&& job) {
-    if (finished_) [[unlikely]] {
-        LOG(WARNING) << __func__ << ": JobRunnerStrand have finished.";
-        return false;
-    }
-
     auto serialized_job = [job         = std::move(job),
                            alive_token = std::make_shared<JobAliveToken>(weak_from_this())]() mutable {
         job(std::move(alive_token));
     };
 
-    pending_jobs_.push(new job_t(std::move(serialized_job)));
+    {
+        std::lock_guard<std::mutex> lck(pending_jobs_mutex_);
+        if (finished_) [[unlikely]] {
+            LOG(ERROR) << __func__ << ": JobRunnerStrand have destoryed.";
+            return false;
+        }
+        pending_jobs_.push(new job_t(std::move(serialized_job)));
+    }
     PushToRunnerIfNeeded(/* is_in_running_job = */ false);
     return true;
 }
@@ -186,8 +190,9 @@ bool JobRunnerStrand::AddJob(std::function<void(JobAliveTokenPtr&&)>&& job) {
 //  be visible to the next D/d. If we looks at the non-d- decision before it, it can only be D+/d-, and both
 //  of them comes with a next D/d. Liveness proved.
 void JobRunnerStrand::PushToRunnerIfNeeded(const bool is_in_running_job) {
+    std::lock_guard<std::mutex> lck(pending_jobs_mutex_);
     if (finished_) [[unlikely]] {
-        LOG(WARNING) << __func__ << ": JobRunnerStrand have finished.";
+        LOG(ERROR) << __func__ << ": JobRunnerStrand have destoryed.";
         return;
     }
 
