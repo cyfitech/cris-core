@@ -29,9 +29,15 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
         Fail(config, "JSON object required.", ec);
     }
 
+    string_view record_dir_str;
+    if (const auto ec = obj["record_dir"].get(record_dir_str)) {
+        Fail(config, "\"record_dir\" is required.", ec);
+    }
+    config.record_dir_ = string(record_dir_str.data(), record_dir_str.size());
+
     simdjson::ondemand::array array_intervals;
     if (const auto ec = obj["snapshot_intervals"].get(array_intervals)) {
-        Fail(config, "\"snapshot_intervals\" is required.", ec);
+        return;
     }
 
     for (auto&& data : array_intervals) {
@@ -50,12 +56,6 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
             .interval_sec_ = std::chrono::seconds(interval_sec),
         });
     }
-
-    string_view record_dir_str;
-    if (const auto ec = obj["record_dir"].get(record_dir_str)) {
-        Fail(config, "\"record_dir\" is required.", ec);
-    }
-    config.record_dir_ = string(record_dir_str.data(), record_dir_str.size());
 }
 
 }  // namespace cris::core

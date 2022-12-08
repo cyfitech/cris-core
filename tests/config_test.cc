@@ -197,8 +197,21 @@ TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
         auto recorder_config_file = MakeRecordConfigFile(
             R"({
                 "recorder": {
-                    "snapshot_intervals" : [
-                    ],
+                    "record_dir": "record_test"
+                }
+            })");
+
+        RecorderConfig recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
+
+        EXPECT_EQ(recorder_config.snapshot_intervals_.size(), 0);
+        EXPECT_EQ(recorder_config.record_dir_, "record_test");
+    }
+
+    {
+        auto recorder_config_file = MakeRecordConfigFile(
+            R"({
+                "recorder": {
+                    "snapshot_intervals" : [],
                     "record_dir": "record_test"
                 }
             })");
@@ -254,16 +267,14 @@ TEST_F(RecordConfigTest, RecorderConfigTestInvalid) {
 
         EXPECT_DEATH(
             recorder_config_file.Get<RecorderConfig>("recorder"),
-            "\"interval_sec\" is required. The JSON document has an improper structure: missing or superfluous commas, "
-            "braces, missing keys, etc.");
+            "\"interval_sec\" is required. The JSON document has an improper structure");
     }
 
     {
         auto recorder_config_file = MakeRecordConfigFile(
             R"({
             "recorder": {
-                "snapshot_intervals" : [
-                ],
+                "snapshot_intervals" : [],
                 "record_dir": 
             }
         })");
