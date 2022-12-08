@@ -293,32 +293,6 @@ TEST_F(RecordConfigTest, RecorderConfigTestDefault) {
         EXPECT_EQ(recorder_config.snapshot_intervals_.size(), 0);
         EXPECT_EQ(recorder_config.record_dir_, "");
     }
-
-    {
-        auto recorder_config_file = MakeRecordConfigFile("no content");
-
-        RecorderConfig recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
-        EXPECT_EQ(recorder_config.snapshot_intervals_.size(), 0);
-        EXPECT_EQ(recorder_config.record_dir_, "");
-    }
-
-    {
-        auto recorder_config_file = MakeRecordConfigFile(
-            R"({
-            "wrong_key": {
-                "snapshot_intervals" : [
-                    {
-                        "interval_name": "SECONDLY",
-                    },
-                ],
-                "record_dir": "record_test"
-            }
-        })");
-
-        RecorderConfig recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
-        EXPECT_EQ(recorder_config.snapshot_intervals_.size(), 0);
-        EXPECT_EQ(recorder_config.record_dir_, "");
-    }
 }
 
 }  // namespace cris::core
