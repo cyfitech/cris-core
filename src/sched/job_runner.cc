@@ -108,8 +108,7 @@ class JobRunnerStrand : public std::enable_shared_from_this<JobRunnerStrand> {
     HybridSpinMutex          hybrid_spin_mtx_;
     bool                     has_ready_job_{false};
     job_queue_t              pending_jobs_{kInitialQueueCapacity};
-    bool                     finished_{false};
-    std::mutex               pending_jobs_mutex_;
+    std::atomic<bool>        finished_{false};
 
     static constexpr std::size_t kInitialQueueCapacity = 8192;
 };
@@ -122,9 +121,21 @@ JobAliveToken::~JobAliveToken() {
 }
 
 JobRunnerStrand::~JobRunnerStrand() {
-    std::lock_guard<std::mutex> lck(pending_jobs_mutex_);
-    finished_ = true;
-    pending_jobs_.consume_all([](job_t* const job_ptr) { delete job_ptr; });
+    finished_.store(true);
+    while (true) {
+        {
+            std::unique_lock lock(hybrid_spin_mtx_);
+            if (pending_jobs_.empty()) {
+                break;
+            }
+        }
+
+        std::unique_ptr<job_t> next;
+        pending_jobs_.consume_one([&next](job_t* const job_ptr) { next.reset(job_ptr); });
+        if (auto runner = runner_weak_.lock()) {
+            runner->AddJob(std::move(*next));
+        }
+    }
 }
 
 bool JobRunnerStrand::AddJob(JobRunnerStrand::job_t&& job) {
@@ -132,19 +143,17 @@ bool JobRunnerStrand::AddJob(JobRunnerStrand::job_t&& job) {
 }
 
 bool JobRunnerStrand::AddJob(std::function<void(JobAliveTokenPtr&&)>&& job) {
+    if (finished_.load()) [[unlikely]] {
+        LOG(INFO) << __func__ << ": JobRunnerStrand have destoryed.";
+        return false;
+    }
+
     auto serialized_job = [job         = std::move(job),
                            alive_token = std::make_shared<JobAliveToken>(weak_from_this())]() mutable {
         job(std::move(alive_token));
     };
 
-    {
-        std::lock_guard<std::mutex> lck(pending_jobs_mutex_);
-        if (finished_) [[unlikely]] {
-            LOG(ERROR) << __func__ << ": JobRunnerStrand have destoryed.";
-            return false;
-        }
-        pending_jobs_.push(new job_t(std::move(serialized_job)));
-    }
+    pending_jobs_.push(new job_t(std::move(serialized_job)));
     PushToRunnerIfNeeded(/* is_in_running_job = */ false);
     return true;
 }
@@ -190,12 +199,6 @@ bool JobRunnerStrand::AddJob(std::function<void(JobAliveTokenPtr&&)>&& job) {
 //  be visible to the next D/d. If we looks at the non-d- decision before it, it can only be D+/d-, and both
 //  of them comes with a next D/d. Liveness proved.
 void JobRunnerStrand::PushToRunnerIfNeeded(const bool is_in_running_job) {
-    std::lock_guard<std::mutex> lck(pending_jobs_mutex_);
-    if (finished_) [[unlikely]] {
-        LOG(ERROR) << __func__ << ": JobRunnerStrand have destoryed.";
-        return;
-    }
-
     std::unique_ptr<job_t> next;
 
     // Decision(D/d). It is protected by lock and it decides whether Push is needed.
