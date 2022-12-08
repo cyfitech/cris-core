@@ -104,7 +104,8 @@ RecordFile::~RecordFile() {
 
 void RecordFile::OpenDB() {
     if (db_ || file_path_.empty()) {
-        LOG(ERROR) << __func__ << "Valid DB or the file path may be empty: RecordFile OpenDB action cannot perform";
+        LOG(ERROR) << __func__
+                   << ": Failed to open the database, db_ has already been set or the file path may be empty.";
         return;
     }
 
@@ -129,7 +130,7 @@ void RecordFile::OpenDB() {
 
 void RecordFile::CloseDB() {
     if (!db_) {
-        LOG(ERROR) << __func__ << "Invalid DB: RecordFile CloseDB action cannot perform";
+        LOG(ERROR) << __func__ << ": Failed to close the database.";
         return;
     }
     Compact();
