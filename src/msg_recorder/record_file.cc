@@ -103,9 +103,13 @@ RecordFile::~RecordFile() {
 }
 
 void RecordFile::OpenDB() {
-    if (db_ || file_path_.empty()) {
-        LOG(ERROR) << __func__
-                   << ": Failed to open the database, db_ has already been set or the file path may be empty.";
+    if (db_) {
+        LOG(ERROR) << __func__ << ": Failed to open the database, it has been opened elsewhere.";
+        return;
+    }
+
+    if (file_path_.empty()) {
+        LOG(ERROR) << __func__ << ": Failed to open the database, the file path may be empty.";
         return;
     }
 
@@ -114,7 +118,6 @@ void RecordFile::OpenDB() {
     options.create_if_missing = true;
 
     auto status = leveldb::DB::Open(options, file_path_, &db);
-
     if (!status.ok()) {
         static RecordFileKeyLdbCmp legacy_cmp;
         options.comparator = &legacy_cmp;

@@ -46,24 +46,11 @@ TEST_F(RecorderPauseTest, RecorderPauseTest) {
         record_file->Write(std::to_string(i));
     }
 
-    int         previous_int  = -1;
-    std::size_t int_msg_count = 0;
-
-    for (auto itr = record_file->Iterate(); itr.Valid(); itr.Next(), ++int_msg_count) {
+    int expected_value = 0;
+    for (auto itr = record_file->Iterate(); itr.Valid(); itr.Next(), ++expected_value) {
         int current_value = std::stoi(itr.Get().second);
-
-        // first element expect to be zero
-        if (int_msg_count == 0) {
-            EXPECT_EQ(current_value, 0);
-        }
-
-        // data consecutive check
-        EXPECT_EQ(current_value - previous_int, 1);
-        previous_int = current_value;
+        EXPECT_EQ(current_value, expected_value);
     }
-
-    // total number of element check
-    EXPECT_EQ(int_msg_count, kMessageNum);
 }
 
 }  // namespace cris::core
