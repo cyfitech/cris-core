@@ -37,7 +37,10 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
 
     simdjson::ondemand::array array_intervals;
     if (const auto ec = obj["snapshot_intervals"].get(array_intervals)) {
-        return;
+        if (simdjson::simdjson_error(ec).error() == simdjson::NO_SUCH_FIELD) {
+            return;
+        }
+        Fail(config, "\"interval_name\" parsing error", ec);
     }
 
     for (auto&& data : array_intervals) {
