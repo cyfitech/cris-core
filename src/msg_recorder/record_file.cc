@@ -133,7 +133,7 @@ void RecordFile::OpenDB() {
 
 void RecordFile::CloseDB() {
     if (!db_) {
-        LOG(ERROR) << __func__ << ": Failed to close the database.";
+        LOG(ERROR) << __func__ << ": The data has already been closed.";
         return;
     }
     Compact();
