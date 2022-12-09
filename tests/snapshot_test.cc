@@ -18,26 +18,18 @@
 #include <thread>
 #include <utility>
 
-using std::filesystem::create_directories;
-using std::filesystem::path;
-using std::filesystem::remove_all;
-using std::filesystem::temp_directory_path;
-
 using channel_subid_t = cris::core::CRMessageBase::channel_subid_t;
-
-static constexpr channel_subid_t kTestIntChannelSubId = 11;
 
 namespace cris::core {
 
 class SnapshotTest : public testing::Test {
    public:
-    void SetUp() override { create_directories(GetTestTempDir()); }
+    SnapshotTest() : testing::Test() { std::filesystem::create_directories(GetTestTempDir()); }
+    ~SnapshotTest() { std::filesystem::remove_all(GetTestTempDir()); }
 
-    void TearDown() override { remove_all(GetTestTempDir()); }
+    std::filesystem::path GetTestTempDir() { return record_test_temp_dir_; }
 
-    path GetTestTempDir() { return record_test_temp_dir_; }
-
-    path GetSnapshotTestTempDir() { return snapshot_test_temp_dir_; }
+    std::filesystem::path GetSnapshotTestTempDir() { return snapshot_test_temp_dir_; }
 
     RecorderConfig GetTestConfig();
 
@@ -48,17 +40,18 @@ class SnapshotTest : public testing::Test {
     void TestSnapshotContent();
 
    private:
-    const std::string SnapshotDirName    = std::string("Snapshot");
-    const std::string SnapshotSubdirName = std::string("SECONDLY");
-    path              record_test_temp_dir_{
-        temp_directory_path() / (std::string("CRSnapshotTestTmpDir.") + std::to_string(getpid()))};
-    path snapshot_test_temp_dir_{record_test_temp_dir_ / SnapshotDirName / SnapshotSubdirName};
-    path record_dir_;
+    const std::string     SnapshotDirName    = std::string("Snapshot");
+    const std::string     SnapshotSubdirName = std::string("SECONDLY");
+    std::filesystem::path record_test_temp_dir_{
+        std::filesystem::temp_directory_path() / (std::string("CRSnapshotTestTmpDir.") + std::to_string(getpid()))};
+    std::filesystem::path snapshot_test_temp_dir_{record_test_temp_dir_ / SnapshotDirName / SnapshotSubdirName};
+    std::filesystem::path record_dir_;
     std::map<std::string, std::size_t> snapshot_made_map_;
 
-    static constexpr std::size_t kThreadNum            = 1;
-    static constexpr std::size_t kMessageNum           = 4;
-    static constexpr auto        kSleepBetweenMessages = std::chrono::seconds(1);
+    static constexpr std::size_t     kThreadNum            = 4;
+    static constexpr std::size_t     kMessageNum           = 4;
+    static constexpr auto            kSleepBetweenMessages = std::chrono::seconds(1);
+    static constexpr channel_subid_t kTestIntChannelSubId  = 11;
 };
 
 template<class T>
@@ -149,11 +142,8 @@ void SnapshotTest::TestSnapshotContent() {
         subscriber.Subscribe<TestMessage<int>>(
             kTestIntChannelSubId,
             [&previous_int](const std::shared_ptr<TestMessage<int>>& message) {
-                // consecutive data without loss in snapshot as well
+                // consecutive data without loss in snapshot
                 EXPECT_EQ(message->value_ - previous_int->load(), 1);
-                if (previous_int->load() == -1 || previous_int->load() == int(kMessageNum)) {
-                    EXPECT_TRUE(message->value_ == 0);
-                }
                 previous_int->store(message->value_);
             },
             /* allow_concurrency = */ false);

@@ -45,21 +45,13 @@ void MessageRecorder::SnapshotWorkerStart() {
 }
 
 void MessageRecorder::MakeSnapshot() {
-    std::unique_lock<std::mutex> lock(snapshot_mtx_);
-    snapshot_pause_flag_ = false;
-    AddJobToRunner(
-        [this]() {
-            GenerateSnapshot();
-            snapshot_pause_flag_ = true;
-            snapshot_cv_.notify_all();
-        },
-        record_strand_);
-
-    // wait until the current generation to be finished
-    snapshot_cv_.wait(lock, [this] { return snapshot_pause_flag_; });
+    AddJobToRunner([this]() { GenerateSnapshot(); }, record_strand_);
 }
 
 void MessageRecorder::SnapshotWorkerEnd() {
+    if (auto runner = runner_weak_.lock()) {
+        runner->Stop();
+    }
     {
         std::unique_lock<std::mutex> lock(snapshot_mtx_);
         snapshot_shutdown_flag_ = true;
@@ -85,6 +77,8 @@ void MessageRecorder::StopMainLoop() {
 }
 
 void MessageRecorder::GenerateSnapshot() {
+    std::unique_lock<std::mutex> lock(snapshot_mtx_);
+
     std::for_each(files_.begin(), files_.end(), [](auto& file) { file->CloseDB(); });
 
     // create dir for individual interval
@@ -129,7 +123,8 @@ RecordFile* MessageRecorder::CreateFile(
     auto filename = impl::GetMessageRecordFileName(message_type, subid);
     auto path     = GetRecordDir() / filename;
 
-    auto* record_file = files_.emplace_back(std::make_unique<RecordFile>(path)).get();
+    std::unique_lock<std::mutex> lock(snapshot_mtx_);
+    auto*                        record_file = files_.emplace_back(std::make_unique<RecordFile>(path)).get();
 
     if (!alias.empty()) {
         std::filesystem::create_symlink(filename, GetRecordDir() / alias);
