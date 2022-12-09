@@ -22,12 +22,11 @@ class RecorderPauseTest : public testing::Test {
 
     std::filesystem::path GetRecordFilePath() { return record_file_path; }
 
-    static constexpr std::size_t kMessageNum              = 10;
-    static constexpr std::size_t kMessageNumBetweenReopen = 2;
+    static constexpr int kMessageNum              = 10;
+    static constexpr int kMessageNumBetweenReopen = 2;
 
    private:
-    const std::string     exchange_symbol_str = std::string("TEST_EXCHANGE") + "__" + std::string("SYMBOL");
-    const std::string     filename            = exchange_symbol_str + "_id_0.ldb.d";
+    const std::string     filename = std::string("test_filename");
     std::filesystem::path test_temp_dir_{
         std::filesystem::temp_directory_path() / (std::string("CRPauseTestTmpDir.") + std::to_string(getpid()))};
     const std::filesystem::path record_file_path = test_temp_dir_ / filename;
@@ -38,7 +37,7 @@ TEST_F(RecorderPauseTest, RecorderPauseTest) {
     auto record_file = std::make_unique<RecordFile>(GetRecordFilePath());
 
     // repeatedly open and close the DB
-    for (std::size_t i = 0; i < kMessageNum; ++i) {
+    for (int i = 0; i < kMessageNum; ++i) {
         if (i % kMessageNumBetweenReopen == 0) {
             record_file->CloseDB();
             record_file->OpenDB();
