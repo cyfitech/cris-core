@@ -22,8 +22,8 @@ class RecorderPauseTest : public testing::Test {
 
     std::filesystem::path GetRecordFilePath() { return record_file_path; }
 
-    static constexpr int kMessageNum              = 10;
-    static constexpr int kMessageNumBetweenReopen = 2;
+    static constexpr std::size_t kMessageNum              = 10;
+    static constexpr std::size_t kMessageNumBetweenReopen = 2;
 
    private:
     const std::string     filename = std::string("test_filename");
@@ -37,7 +37,7 @@ TEST_F(RecorderPauseTest, RecorderPauseTest) {
     auto record_file = std::make_unique<RecordFile>(GetRecordFilePath());
 
     // repeatedly open and close the DB
-    for (int i = 0; i < kMessageNum; ++i) {
+    for (std::size_t i = 0; i < kMessageNum; ++i) {
         if (i % kMessageNumBetweenReopen == 0) {
             record_file->CloseDB();
             record_file->OpenDB();
@@ -45,9 +45,9 @@ TEST_F(RecorderPauseTest, RecorderPauseTest) {
         record_file->Write(std::to_string(i));
     }
 
-    int expected_value = 0;
+    std::size_t expected_value = 0;
     for (auto itr = record_file->Iterate(); itr.Valid(); itr.Next(), ++expected_value) {
-        int current_value = std::stoi(itr.Get().second);
+        std::size_t current_value = static_cast<std::size_t>(std::stoi(itr.Get().second));
         EXPECT_EQ(current_value, expected_value);
     }
 }
