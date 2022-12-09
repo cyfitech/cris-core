@@ -1,6 +1,9 @@
 def cc_autoconf_toolchain_impl(repo_ctx):
     clang_tidy_bin_raw = repo_ctx.os.environ.get("CLANG_TIDY", "clang-tidy")
-    clang_tidy_bin_full_path = repo_ctx.which(clang_tidy_bin_raw)
+    if '/' in clang_tidy_bin_raw or '\\' in clang_tidy_bin_raw:
+       clang_tidy_bin_full_path = clang_tidy_bin_raw
+    else:
+        clang_tidy_bin_full_path = repo_ctx.which(clang_tidy_bin_raw)
     repo_ctx.file(
         "BUILD",
         """

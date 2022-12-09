@@ -40,3 +40,12 @@ ____________EOF
 fi
 
 popd >/dev/null
+
+export CLANG_TIDY="${CLANG_TIDY:-$(which clang-tidy-13 || which clang-tidy)}"
+
+if [ -z "$CLANG_TIDY" ]; then
+    printf '\033[33m[WARNING] Clang Tidy (13) has not been installed.\033[0m\n' >&2
+else
+    "$CLANG_TIDY" -dump-config | grep '^Checks:' > /dev/null \
+    || { printf '\033[31m[ERROR] "'"$CLANG_TIDY"'" is not a valid clang-tidy.\033[0m\n' >&2 && exit 1; }
+fi

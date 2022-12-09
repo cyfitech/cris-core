@@ -1,11 +1,9 @@
 UseColor: true
 
-#Checks: >
-#     bugprone-*,
-#     cppcoreguidelines-*,
-#     google-*,
-#     performance-*,
+Checks: >
+    -clang-analyzer-cplusplus.NewDeleteLeaks,
+    -clang-diagnostic-defaulted-function-deleted,
+
+WarningsAsErrors: "*"
 
 HeaderFilterRegex: 'cris.*'
-
-# WarningsAsErrors: "*"
