@@ -31,13 +31,16 @@ void MessageRecorder::SetSnapshotInterval(const RecorderConfig& recorder_config)
 }
 
 void MessageRecorder::SnapshotWorkerStart() {
+    static constexpr auto kEpselonMs   = std::chrono::milliseconds(100);
+    auto                  origin_time  = std::chrono::system_clock::now();
+    auto                  wake_up_time = origin_time;
     while (!snapshot_shutdown_flag_) {
-        auto before = std::chrono::system_clock::now();
-        MakeSnapshot();
+        if (std::chrono::system_clock::now() <= (wake_up_time + kEpselonMs)) {
+            MakeSnapshot();
+        }
+        wake_up_time += snapshot_config_.interval_sec_;
         std::unique_lock<std::mutex> lck(snapshot_mtx_);
-        snapshot_cv_.wait_until(lck, before + snapshot_config_.interval_sec_, [this] {
-            return snapshot_shutdown_flag_;
-        });
+        snapshot_cv_.wait_until(lck, wake_up_time, [this] { return snapshot_shutdown_flag_; });
     }
 }
 
