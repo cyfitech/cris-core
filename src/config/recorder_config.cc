@@ -31,7 +31,9 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
 
     string_view record_dir_str;
     if (const auto ec = obj["record_dir"].get(record_dir_str)) {
-        Fail(config, "\"record_dir\" is required.", ec);
+        if (simdjson::simdjson_error(ec).error() != simdjson::NO_SUCH_FIELD) {
+            Fail(config, "Expect a string for \"record_dir\".", ec);
+        }
     }
     config.record_dir_ = string(record_dir_str.data(), record_dir_str.size());
 
@@ -40,7 +42,7 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
         if (simdjson::simdjson_error(ec).error() == simdjson::NO_SUCH_FIELD) {
             return;
         }
-        Fail(config, "\"interval_name\" parsing error", ec);
+        Fail(config, "Expect a list of objects for \"snapshot_intervals\".", ec);
     }
 
     for (auto&& data : array_intervals) {

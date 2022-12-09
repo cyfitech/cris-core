@@ -258,8 +258,8 @@ TEST_F(RecordConfigTest, RecorderConfigTestInvalid) {
             "recorder": {
                 "snapshot_intervals" : [
                     {
-                        "interval_name": "SECONDLY",
-                    },
+                        "interval_name": "SECONDLY"
+                    }
                 ],
                 "record_dir": "record_test"
             }
@@ -267,7 +267,7 @@ TEST_F(RecordConfigTest, RecorderConfigTestInvalid) {
 
         EXPECT_DEATH(
             recorder_config_file.Get<RecorderConfig>("recorder"),
-            "\"interval_sec\" is required. The JSON document has an improper structure");
+            "\"interval_sec\" is required. The JSON field referenced does not exist in this object.");
     }
 
     {
@@ -275,13 +275,13 @@ TEST_F(RecordConfigTest, RecorderConfigTestInvalid) {
             R"({
             "recorder": {
                 "snapshot_intervals" : [],
-                "record_dir": 
+                "record_dir": 5
             }
         })");
 
         EXPECT_DEATH(
             recorder_config_file.Get<RecorderConfig>("recorder"),
-            "\"record_dir\" is required. The JSON element does not have the requested type");
+            "Expect a string for \"record_dir\". The JSON element does not have the requested type.");
     }
 }
 
