@@ -93,6 +93,7 @@ cris_cc_library (
     include_prefix = "cris/core",
     strip_include_prefix = "src",
     deps = [
+        ":config",
         ":msg",
         ":internal_msg_record_file",
         ":internal_msg_recorder_utils",
