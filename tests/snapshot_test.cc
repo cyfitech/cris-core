@@ -121,8 +121,7 @@ TEST_F(SnapshotTest, SnapshotSingleIntervalTest) {
 
     for (const auto& path : snapshot_path_list) {
         MessageReplayer replayer(path);
-        auto            path_runner = JobRunner::MakeJobRunner(config);
-        core::CRNode    subscriber(path_runner);
+        core::CRNode    subscriber(runner);
 
         replayer.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
         replayer.SetSpeedupRate(kSpeedUpFactor);
@@ -148,7 +147,6 @@ TEST_F(SnapshotTest, SnapshotSingleIntervalTest) {
         EXPECT_EQ(previous_int->load(), snapshot_point_list[dir_entry_counter]);
 
         dir_entry_counter++;
-        path_runner->Stop();
     }
 
     EXPECT_EQ(dir_entry_counter, snapshot_point_list.size());
