@@ -109,7 +109,7 @@ void RecordFile::OpenDB() {
     }
 
     if (file_path_.empty()) {
-        LOG(ERROR) << __func__ << ": Failed to open the database, the file path may be empty.";
+        LOG(ERROR) << __func__ << ": Failed to open the database, the file path is empty.";
         return;
     }
 
