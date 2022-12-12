@@ -31,8 +31,9 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
         if (simdjson::simdjson_error(ec).error() != simdjson::NO_SUCH_FIELD) {
             Fail("Expect a string for \"record_dir\".", ec);
         }
+    } else {
+        config.record_dir_ = string(record_dir_str.data(), record_dir_str.size());
     }
-    config.record_dir_ = string(record_dir_str.data(), record_dir_str.size());
 
     simdjson::ondemand::array array_intervals;
     if (const auto ec = obj["snapshot_intervals"].get(array_intervals)) {

@@ -249,6 +249,27 @@ TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
         EXPECT_EQ(recorder_config.snapshot_intervals_.back().interval_sec_, std::chrono::seconds(1));
         EXPECT_EQ(recorder_config.record_dir_, "record_test");
     }
+
+    {
+        auto recorder_config_file = MakeRecordConfigFile(
+            R"({
+                "recorder": {
+                    "snapshot_intervals" : [
+                        {
+                            "interval_name": "SECONDLY",
+                            "interval_sec": 5
+                        }
+                    ]
+                }
+            })");
+
+        RecorderConfig recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
+
+        EXPECT_EQ(recorder_config.snapshot_intervals_.size(), 1);
+        EXPECT_EQ(recorder_config.snapshot_intervals_.front().name_, "SECONDLY");
+        EXPECT_EQ(recorder_config.snapshot_intervals_.front().interval_sec_, std::chrono::seconds(5));
+        EXPECT_EQ(recorder_config.record_dir_, "");
+    }
 }
 
 TEST_F(RecordConfigTest, RecorderConfigTestInvalid) {
