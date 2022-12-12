@@ -90,6 +90,29 @@ void RecordFileIterator::ReadNextValidKey() {
 }
 
 RecordFile::RecordFile(std::string file_path) : file_path_(std::move(file_path)) {
+    OpenDB();
+}
+
+RecordFile::~RecordFile() {
+    const auto is_empty = Empty();
+    CloseDB();
+    if (is_empty) {
+        LOG(INFO) << "Record \"" << file_path_ << "\" is empty, removing.";
+        std::filesystem::remove_all(file_path_);
+    }
+}
+
+void RecordFile::OpenDB() {
+    if (db_) {
+        LOG(ERROR) << __func__ << ": Failed to open the database, it has been opened elsewhere.";
+        return;
+    }
+
+    if (file_path_.empty()) {
+        LOG(ERROR) << __func__ << ": Failed to open the database, the file path is empty.";
+        return;
+    }
+
     leveldb::DB*     db;
     leveldb::Options options;
     options.create_if_missing = true;
@@ -108,16 +131,13 @@ RecordFile::RecordFile(std::string file_path) : file_path_(std::move(file_path))
     db_.reset(db);
 }
 
-RecordFile::~RecordFile() {
-    const auto is_empty = Empty();
-
-    Compact();
-
-    db_.reset();
-    if (is_empty) {
-        LOG(INFO) << "Record \"" << file_path_ << "\" is empty, removing.";
-        std::filesystem::remove_all(file_path_);
+void RecordFile::CloseDB() {
+    if (!db_) {
+        LOG(ERROR) << __func__ << ": The database has already been closed elsewhere.";
+        return;
     }
+    Compact();
+    db_.reset();
 }
 
 void RecordFile::Write(std::string serialized_value) {

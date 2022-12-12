@@ -29,6 +29,15 @@ cris_cc_test (
 )
 
 cris_cc_test (
+    name = "record_file_db_reopen_test",
+    srcs = ["record_file_db_reopen_test.cc"],
+    deps = [
+        "//:msg_recorder",
+        "@gtest//:gtest_main",
+    ],
+)
+
+cris_cc_test (
     name = "node_test",
     srcs = ["node_test.cc"],
     env = {
