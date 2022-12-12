@@ -40,6 +40,12 @@ cris_cc_test (
 cris_cc_test (
     name = "snapshot_test",
     srcs = ["snapshot_test.cc"],
+    env = {
+        "TSAN_OPTIONS": "suppressions=$(execpath job_runner_tsan_suppressions)",
+    },
+    data = [
+        ":job_runner_tsan_suppressions",
+    ],
     deps = [
         "//:msg_recorder",
         "@gtest//:gtest_main",

@@ -27,9 +27,9 @@ class SnapshotTest : public testing::Test {
     SnapshotTest() : testing::Test() { std::filesystem::create_directories(GetTestTempDir()); }
     ~SnapshotTest() { std::filesystem::remove_all(GetTestTempDir()); }
 
-    std::filesystem::path GetTestTempDir() { return record_test_temp_dir_; }
+    std::filesystem::path GetTestTempDir() const { return record_test_temp_dir_; }
 
-    std::filesystem::path GetSnapshotTestTempDir() { return snapshot_test_temp_dir_; }
+    std::filesystem::path GetSnapshotTestTempDir() const { return snapshot_test_temp_dir_; }
 
     RecorderConfig GetTestConfig();
 
@@ -40,16 +40,15 @@ class SnapshotTest : public testing::Test {
     void TestSnapshotContent();
 
    private:
-    const std::string     SnapshotDirName    = std::string("Snapshot");
-    const std::string     SnapshotSubdirName = std::string("SECONDLY");
     std::filesystem::path record_test_temp_dir_{
         std::filesystem::temp_directory_path() / (std::string("CRSnapshotTestTmpDir.") + std::to_string(getpid()))};
-    std::filesystem::path snapshot_test_temp_dir_{record_test_temp_dir_ / SnapshotDirName / SnapshotSubdirName};
-    std::filesystem::path record_dir_;
+    std::filesystem::path snapshot_test_temp_dir_{
+        record_test_temp_dir_ / std::string("Snapshot") / std::string("SECONDLY")};
     std::map<std::string, std::size_t> snapshot_made_map_;
 
     static constexpr std::size_t     kThreadNum            = 4;
     static constexpr std::size_t     kMessageNum           = 4;
+    static constexpr double          kSpeedUpFactor        = 20.0f;
     static constexpr auto            kSleepBetweenMessages = std::chrono::seconds(1);
     static constexpr channel_subid_t kTestIntChannelSubId  = 11;
 };
@@ -98,7 +97,6 @@ void SnapshotTest::TestMakeSnapshots() {
     MessageRecorder recorder(GetTestConfig(), runner);
 
     recorder.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
-    record_dir_ = recorder.GetRecordDir();
 
     core::CRNode publisher;
 
@@ -136,6 +134,7 @@ void SnapshotTest::TestSnapshotContent() {
         core::CRNode    subscriber(runner);
 
         replayer.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
+        replayer.SetSpeedupRate(kSpeedUpFactor);
 
         auto previous_int = std::make_shared<std::atomic<int>>(-1);
 

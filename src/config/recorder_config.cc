@@ -1,35 +1,3 @@
-Skip to content
-Search or jump to…
-Pull requests
-Issues
-Codespaces
-Marketplace
-Explore
- 
-@YuzhouGuo 
-cyfitech
-/
-cris-core
-Public
-Code
-Issues
-4
-Pull requests
-5
-Actions
-Projects
-Wiki
-Security
-Insights
-cris-core/src/config/recorder_config.cc
-@YuzhouGuo
-YuzhouGuo Add message recorder config file (#106)
-…
-Latest commit f01ad3e 1 hour ago
- History
- 1 contributor
-64 lines (53 sloc)  1.96 KB
-
 #include "recorder_config.h"
 
 #include "cris/core/utils/defs.h"
@@ -94,17 +62,3 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
 }
 
 }  // namespace cris::core
-Footer
-© 2022 GitHub, Inc.
-Footer navigation
-Terms
-Privacy
-Security
-Status
-Docs
-Contact GitHub
-Pricing
-API
-Training
-Blog
-About
