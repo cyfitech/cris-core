@@ -11,12 +11,14 @@
 
 #include <unistd.h>
 
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
 #include <memory>
 #include <string>
 #include <thread>
 #include <utility>
+#include <vector>
 
 using channel_subid_t = cris::core::CRMessageBase::channel_subid_t;
 
@@ -62,13 +64,12 @@ std::string MessageToStr(const TestMessage<T>& msg) {
     return serialized_msg;
 }
 
-TEST_F(SnapshotTest, SnapshotTest) {
+TEST_F(SnapshotTest, SnapshotSingleIntervalTest) {
     static constexpr std::size_t     kThreadNum             = 4;
     static constexpr std::size_t     kMessageNum            = 4;
     static constexpr std::size_t     kMessagePerIntervalNum = 10;
     static constexpr double          kSpeedUpFactor         = 30.0f;
     static constexpr channel_subid_t kTestIntChannelSubId   = 11;
-    std::vector<int>                 snapshot_point_list;
 
     JobRunner::Config config = {
         .thread_num_ = kThreadNum,
@@ -89,11 +90,13 @@ TEST_F(SnapshotTest, SnapshotTest) {
     recorder.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
     core::CRNode publisher;
 
-    // Make snapshots
-    auto wake_up_time = std::chrono::system_clock::now();
+    // Origin snapshot
+    std::vector<int> snapshot_point_list;
     snapshot_point_list.push_back(0);
 
     // Publish integer number 1-40 in 5 seconds
+    auto wake_up_time = std::chrono::system_clock::now();
+
     for (std::size_t i = 1; i <= kMessageNum; ++i) {
         for (std::size_t j = 1; j <= kMessagePerIntervalNum; ++j) {
             auto test_message = std::make_shared<TestMessage<int>>(static_cast<int>((i - 1) * 10 + j));
@@ -106,14 +109,20 @@ TEST_F(SnapshotTest, SnapshotTest) {
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    // Test content under each snapshot directory
-    std::size_t                                 dir_entry_counter   = 0;
-    std::deque<std::filesystem::path>           snapshot_path_deque = recorder.GetSnapshotPathDeque();
-    std::deque<std::filesystem::path>::iterator path_itr            = snapshot_path_deque.begin();
+    // Sort the path strings so that it matched with the snapshot_point_list values
+    std::vector<std::filesystem::path> snapshot_path_list;
+    for (const auto& dir_entry : std::filesystem::directory_iterator{GetSnapshotTestTempDir()}) {
+        snapshot_path_list.push_back(dir_entry.path());
+    }
+    std::sort(snapshot_path_list.begin(), snapshot_path_list.end());
 
-    while (path_itr != snapshot_path_deque.end()) {
-        MessageReplayer replayer(*path_itr);
-        core::CRNode    subscriber(runner);
+    // Test content under each snapshot directory
+    std::size_t dir_entry_counter = 0;
+
+    for (const auto& path : snapshot_path_list) {
+        MessageReplayer replayer(path);
+        auto            path_runner = JobRunner::MakeJobRunner(config);
+        core::CRNode    subscriber(path_runner);
 
         replayer.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
         replayer.SetSpeedupRate(kSpeedUpFactor);
@@ -139,7 +148,7 @@ TEST_F(SnapshotTest, SnapshotTest) {
         EXPECT_EQ(previous_int->load(), snapshot_point_list[dir_entry_counter]);
 
         dir_entry_counter++;
-        *path_itr++;
+        path_runner->Stop();
     }
 
     EXPECT_EQ(dir_entry_counter, snapshot_point_list.size());

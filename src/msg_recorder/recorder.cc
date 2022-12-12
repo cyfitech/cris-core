@@ -115,10 +115,6 @@ std::filesystem::path MessageRecorder::GetRecordDir() const {
     return record_dir_;
 }
 
-std::deque<std::filesystem::path> MessageRecorder::GetSnapshotPathDeque() const {
-    return snapshots_paths_;
-}
-
 RecordFile* MessageRecorder::CreateFile(
     const std::string&                     message_type,
     const MessageRecorder::channel_subid_t subid,
