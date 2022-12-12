@@ -20,7 +20,7 @@ class RecordFileDbReopenTest : public testing::Test {
 
     ~RecordFileDbReopenTest() { std::filesystem::remove_all(test_temp_dir_); }
 
-    std::filesystem::path GetRecordFilePath() { return record_file_path; }
+    std::filesystem::path GetRecordFilePath() const { return record_file_path; }
 
     static constexpr std::size_t kMessageNum              = 10;
     static constexpr std::size_t kMessageNumBetweenReopen = 2;
