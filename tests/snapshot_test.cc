@@ -31,7 +31,7 @@ class SnapshotTest : public testing::Test {
 
     std::filesystem::path GetSnapshotTestTempDir() const { return snapshot_test_temp_dir_; }
 
-    RecorderConfig GetTestConfig();
+    RecorderConfig GetTestConfig() const;
 
     void TestMakeSnapshots();
 
@@ -40,15 +40,15 @@ class SnapshotTest : public testing::Test {
     void TestSnapshotContent();
 
    private:
+    const std::string     SnapshotSubdirName = std::string("SECONDLY");
     std::filesystem::path record_test_temp_dir_{
         std::filesystem::temp_directory_path() / (std::string("CRSnapshotTestTmpDir.") + std::to_string(getpid()))};
-    std::filesystem::path snapshot_test_temp_dir_{
-        record_test_temp_dir_ / std::string("Snapshot") / std::string("SECONDLY")};
+    std::filesystem::path snapshot_test_temp_dir_{record_test_temp_dir_ / std::string("Snapshot") / SnapshotSubdirName};
     std::map<std::string, std::size_t> snapshot_made_map_;
 
     static constexpr std::size_t     kThreadNum            = 4;
     static constexpr std::size_t     kMessageNum           = 4;
-    static constexpr double          kSpeedUpFactor        = 20.0f;
+    static constexpr double          kSpeedUpFactor        = 30.0f;
     static constexpr auto            kSleepBetweenMessages = std::chrono::seconds(1);
     static constexpr channel_subid_t kTestIntChannelSubId  = 11;
 };
@@ -77,7 +77,7 @@ std::string MessageToStr(const TestMessage<T>& msg) {
     return serialized_msg;
 }
 
-RecorderConfig SnapshotTest::GetTestConfig() {
+RecorderConfig SnapshotTest::GetTestConfig() const {
     RecorderConfig::IntervalConfig int_config{
         .name_         = SnapshotSubdirName,
         .interval_sec_ = kSleepBetweenMessages,

@@ -24,9 +24,9 @@ class RecorderTest : public testing::Test {
 
     void TearDown() override { std::filesystem::remove_all(GetTestTempDir()); }
 
-    std::filesystem::path GetTestTempDir() { return test_temp_dir_; }
+    std::filesystem::path GetTestTempDir() const { return test_temp_dir_; }
 
-    RecorderConfig GetTestConfig();
+    RecorderConfig GetTestConfig() const;
 
     void TestRecord();
 
@@ -82,7 +82,7 @@ std::string MessageToStr(const TestMessage<T>& msg) {
     return serialized_msg;
 }
 
-RecorderConfig RecorderTest::GetTestConfig() {
+RecorderConfig RecorderTest::GetTestConfig() const {
     return RecorderConfig{
         .snapshot_intervals_ = {},
         .record_dir_         = GetTestTempDir(),
