@@ -14,11 +14,11 @@
 
 namespace cris::core {
 
-class RecorderPauseTest : public testing::Test {
+class RecordFileDbReopenTest : public testing::Test {
    public:
-    RecorderPauseTest() : testing::Test() { std::filesystem::create_directories(test_temp_dir_); }
+    RecordFileDbReopenTest() : testing::Test() { std::filesystem::create_directories(test_temp_dir_); }
 
-    ~RecorderPauseTest() { std::filesystem::remove_all(test_temp_dir_); }
+    ~RecordFileDbReopenTest() { std::filesystem::remove_all(test_temp_dir_); }
 
     std::filesystem::path GetRecordFilePath() { return record_file_path; }
 
@@ -32,7 +32,7 @@ class RecorderPauseTest : public testing::Test {
     const std::filesystem::path record_file_path = test_temp_dir_ / filename;
 };
 
-TEST_F(RecorderPauseTest, RecorderPauseTest) {
+TEST_F(RecordFileDbReopenTest, RecordFileDbReopenTest) {
     std::filesystem::create_directories(GetRecordFilePath());
     auto record_file = std::make_unique<RecordFile>(GetRecordFilePath());
 
