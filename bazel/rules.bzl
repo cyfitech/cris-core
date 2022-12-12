@@ -3,6 +3,7 @@ CRIS_CXXOPTS = [
     "-Wconversion",
     "-Werror",
     "-Wextra",
+    "-Wshadow",
     "-g3",
     "-fno-sanitize-recover=all",
 ]
