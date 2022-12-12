@@ -32,8 +32,7 @@ void MessageRecorder::SetSnapshotInterval(const RecorderConfig& recorder_config)
 
 void MessageRecorder::SnapshotWorkerStart() {
     static constexpr auto kEpselonMs   = std::chrono::milliseconds(100);
-    auto                  origin_time  = std::chrono::system_clock::now();
-    auto                  wake_up_time = origin_time;
+    auto                  wake_up_time = std::chrono::system_clock::now();
     while (!snapshot_shutdown_flag_) {
         if (std::chrono::system_clock::now() <= (wake_up_time + kEpselonMs)) {
             MakeSnapshot();
@@ -114,6 +113,10 @@ std::string MessageRecorder::SnapshotDirNameGenerator() {
 
 std::filesystem::path MessageRecorder::GetRecordDir() const {
     return record_dir_;
+}
+
+std::deque<std::filesystem::path> MessageRecorder::GetSnapshotPathDeque() const {
+    return snapshots_paths_;
 }
 
 RecordFile* MessageRecorder::CreateFile(

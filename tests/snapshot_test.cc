@@ -31,26 +31,11 @@ class SnapshotTest : public testing::Test {
 
     std::filesystem::path GetSnapshotTestTempDir() const { return snapshot_test_temp_dir_; }
 
-    RecorderConfig GetTestConfig() const;
-
-    void TestMakeSnapshots();
-
-    void TestSnapshotNum();
-
-    void TestSnapshotContent();
-
    private:
-    const std::string     SnapshotSubdirName = std::string("SECONDLY");
     std::filesystem::path record_test_temp_dir_{
         std::filesystem::temp_directory_path() / (std::string("CRSnapshotTestTmpDir.") + std::to_string(getpid()))};
-    std::filesystem::path snapshot_test_temp_dir_{record_test_temp_dir_ / std::string("Snapshot") / SnapshotSubdirName};
-    std::map<std::string, std::size_t> snapshot_made_map_;
-
-    static constexpr std::size_t     kThreadNum            = 4;
-    static constexpr std::size_t     kMessageNum           = 4;
-    static constexpr double          kSpeedUpFactor        = 30.0f;
-    static constexpr auto            kSleepBetweenMessages = std::chrono::seconds(1);
-    static constexpr channel_subid_t kTestIntChannelSubId  = 11;
+    std::filesystem::path snapshot_test_temp_dir_{
+        record_test_temp_dir_ / std::string("Snapshot") / std::string("SECONDLY")};
 };
 
 template<class T>
@@ -77,66 +62,63 @@ std::string MessageToStr(const TestMessage<T>& msg) {
     return serialized_msg;
 }
 
-RecorderConfig SnapshotTest::GetTestConfig() const {
-    RecorderConfig::IntervalConfig int_config{
-        .name_         = SnapshotSubdirName,
-        .interval_sec_ = kSleepBetweenMessages,
-    };
+TEST_F(SnapshotTest, SnapshotTest) {
+    static constexpr std::size_t     kThreadNum             = 4;
+    static constexpr std::size_t     kMessageNum            = 4;
+    static constexpr std::size_t     kMessagePerIntervalNum = 10;
+    static constexpr double          kSpeedUpFactor         = 30.0f;
+    static constexpr channel_subid_t kTestIntChannelSubId   = 11;
+    std::vector<int>                 snapshot_point_list;
 
-    return RecorderConfig{
-        .snapshot_intervals_ = {int_config},
-        .record_dir_         = GetTestTempDir(),
-    };
-}
-
-void SnapshotTest::TestMakeSnapshots() {
     JobRunner::Config config = {
         .thread_num_ = kThreadNum,
     };
-    auto            runner = JobRunner::MakeJobRunner(config);
-    MessageRecorder recorder(GetTestConfig(), runner);
+    auto runner = JobRunner::MakeJobRunner(config);
 
+    RecorderConfig::IntervalConfig interval_config{
+        .name_         = std::string("SECONDLY"),
+        .interval_sec_ = std::chrono::seconds(1),
+    };
+
+    RecorderConfig recorder_config{
+        .snapshot_intervals_ = {interval_config},
+        .record_dir_         = GetTestTempDir(),
+    };
+
+    MessageRecorder recorder(recorder_config, runner);
     recorder.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
-
     core::CRNode publisher;
 
-    for (std::size_t i = 0; i <= kMessageNum; ++i) {
-        auto test_message = std::make_shared<TestMessage<int>>(static_cast<int>(i));
-        publisher.Publish(kTestIntChannelSubId, std::move(test_message));
-        snapshot_made_map_[fmt::format("{:%Y%m%d-%H%M%S.%Z}", std::chrono::system_clock::now())] = i;
-        std::this_thread::sleep_for(kSleepBetweenMessages);
+    // Make snapshots
+    auto wake_up_time = std::chrono::system_clock::now();
+    snapshot_point_list.push_back(0);
+
+    // Publish integer number 1-40 in 5 seconds
+    for (std::size_t i = 1; i <= kMessageNum; ++i) {
+        for (std::size_t j = 1; j <= kMessagePerIntervalNum; ++j) {
+            auto test_message = std::make_shared<TestMessage<int>>(static_cast<int>((i - 1) * 10 + j));
+            publisher.Publish(kTestIntChannelSubId, std::move(test_message));
+        }
+        snapshot_point_list.push_back(static_cast<int>(i * kMessagePerIntervalNum));
+
+        wake_up_time += std::chrono::seconds(1);
+        std::this_thread::sleep_until(wake_up_time);
     }
-    // Make sure messages arrive records
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-    runner->Stop();
-}
+    // Test content under each snapshot directory
+    std::size_t                                 dir_entry_counter   = 0;
+    std::deque<std::filesystem::path>           snapshot_path_deque = recorder.GetSnapshotPathDeque();
+    std::deque<std::filesystem::path>::iterator path_itr            = snapshot_path_deque.begin();
 
-void SnapshotTest::TestSnapshotNum() {
-    std::size_t counter = 0;
-    for (auto const& dir_entry : std::filesystem::directory_iterator{GetSnapshotTestTempDir()}) {
-        if (is_directory(dir_entry.path())) {
-            counter++;
-        }
-    }
-
-    // plus the origin copy
-    EXPECT_EQ(counter, snapshot_made_map_.size() + 1);
-}
-
-void SnapshotTest::TestSnapshotContent() {
-    for (auto const& dir_entry : std::filesystem::directory_iterator{GetSnapshotTestTempDir()}) {
-        JobRunner::Config config = {
-            .thread_num_ = kThreadNum,
-        };
-        auto            runner = JobRunner::MakeJobRunner(config);
-        MessageReplayer replayer(dir_entry.path());
+    while (path_itr != snapshot_path_deque.end()) {
+        MessageReplayer replayer(*path_itr);
         core::CRNode    subscriber(runner);
 
         replayer.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
         replayer.SetSpeedupRate(kSpeedUpFactor);
 
-        auto previous_int = std::make_shared<std::atomic<int>>(-1);
+        auto previous_int = std::make_shared<std::atomic<int>>(0);
 
         subscriber.Subscribe<TestMessage<int>>(
             kTestIntChannelSubId,
@@ -147,44 +129,20 @@ void SnapshotTest::TestSnapshotContent() {
             },
             /* allow_concurrency = */ false);
 
-        bool run_post_start  = false;
-        bool run_pre_finish  = false;
-        bool run_post_finish = false;
-        replayer.SetPostStartCallback([&run_post_start, &replayer] {
-            run_post_start = true;
-            EXPECT_FALSE(replayer.IsEnded());
-        });
-        replayer.SetPreFinishCallback([&run_pre_finish, &replayer] {
-            run_pre_finish = true;
-            EXPECT_FALSE(replayer.IsEnded());
-        });
-        replayer.SetPostFinishCallback([&run_post_finish, &replayer] {
-            run_post_finish = true;
-            EXPECT_TRUE(replayer.IsEnded());
-        });
         replayer.MainLoop();
-        EXPECT_TRUE(run_post_start);
-        EXPECT_TRUE(run_pre_finish);
-        EXPECT_TRUE(run_post_finish);
 
         // Make sure messages arrive the node
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
-        if (snapshot_made_map_.contains(dir_entry.path().filename())) {
-            std::size_t last_value = snapshot_made_map_[dir_entry.path().filename()];
+        // Make sure the data ends at our snapshot timepoint
+        // Example: if i = 4 when we made the snapshot, then we should have 01234
+        EXPECT_EQ(previous_int->load(), snapshot_point_list[dir_entry_counter]);
 
-            // last value during snapshot: if the last value is 4, then the snapshot content should be 0123
-            EXPECT_EQ(previous_int->load(), int(last_value) - 1);
-        }
-
-        runner->Stop();
+        dir_entry_counter++;
+        *path_itr++;
     }
-}
 
-TEST_F(SnapshotTest, SnapshotTest) {
-    TestMakeSnapshots();
-    TestSnapshotNum();
-    TestSnapshotContent();
+    EXPECT_EQ(dir_entry_counter, snapshot_point_list.size());
 }
 
 }  // namespace cris::core
