@@ -39,7 +39,8 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
 
     void MakeSnapshot();
 
-    std::filesystem::path GetRecordDir() const;
+    std::filesystem::path                    GetRecordDir() const;
+    const std::deque<std::filesystem::path>& GetSnapshotPaths();
 
    private:
     using msg_serializer = std::function<std::string(const CRMessageBasePtr&)>;

@@ -115,6 +115,11 @@ std::filesystem::path MessageRecorder::GetRecordDir() const {
     return record_dir_;
 }
 
+const std::deque<std::filesystem::path>& MessageRecorder::GetSnapshotPaths() {
+    std::unique_lock<std::mutex> lock(snapshot_mtx_);
+    return snapshots_paths_;
+}
+
 RecordFile* MessageRecorder::CreateFile(
     const std::string&                     message_type,
     const MessageRecorder::channel_subid_t subid,

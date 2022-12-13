@@ -38,18 +38,18 @@ cris_cc_test (
 )
 
 filegroup(
-    name = "snapshot_tsan_suppressions",
-    srcs = ["snapshot_tsan_suppressions.txt"],
+    name = "recorder_snapshot_tsan_suppressions",
+    srcs = ["recorder_snapshot_tsan_suppressions.txt"],
 )
 
 cris_cc_test (
-    name = "snapshot_test",
-    srcs = ["snapshot_test.cc"],
+    name = "recorder_snapshot_test",
+    srcs = ["recorder_snapshot_test.cc"],
     env = {
-        "TSAN_OPTIONS": "suppressions=$(execpath snapshot_tsan_suppressions)",
+        "TSAN_OPTIONS": "suppressions=$(execpath recorder_snapshot_tsan_suppressions)",
     },
     data = [
-        ":snapshot_tsan_suppressions",
+        ":recorder_snapshot_tsan_suppressions",
     ],
     deps = [
         "//:msg_recorder",
