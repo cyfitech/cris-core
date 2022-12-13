@@ -6,6 +6,8 @@
 #include "fmt/core.h"
 #include "impl/utils.h"
 
+#include <filesystem>
+
 namespace cris::core {
 
 MessageRecorder::MessageRecorder(const RecorderConfig& recorder_config, std::shared_ptr<JobRunner> runner)
