@@ -24,10 +24,10 @@ using channel_subid_t = cris::core::CRMessageBase::channel_subid_t;
 
 namespace cris::core {
 
-class SnapshotTest : public testing::Test {
+class RecorderSnapshotTest : public testing::Test {
    public:
-    SnapshotTest() : testing::Test() { std::filesystem::create_directories(GetTestTempDir()); }
-    ~SnapshotTest() { std::filesystem::remove_all(GetTestTempDir()); }
+    RecorderSnapshotTest() : testing::Test() { std::filesystem::create_directories(GetTestTempDir()); }
+    ~RecorderSnapshotTest() { std::filesystem::remove_all(GetTestTempDir()); }
 
     std::filesystem::path GetTestTempDir() const { return record_test_temp_dir_; }
 
@@ -64,7 +64,7 @@ std::string MessageToStr(const TestMessage<T>& msg) {
     return serialized_msg;
 }
 
-TEST_F(SnapshotTest, SnapshotSingleIntervalTest) {
+TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     static constexpr std::size_t     kThreadNum            = 4;
     static constexpr std::size_t     kMessageNum           = 40;
     static constexpr double          kSpeedUpFactor        = 1e9;
@@ -131,6 +131,9 @@ TEST_F(SnapshotTest, SnapshotSingleIntervalTest) {
         replayer.SetPostFinishCallback([&replayer, &previous_int, &dir_entry_counter] {
             EXPECT_TRUE(replayer.IsEnded());
 
+            // Make sure messages arrive the node
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
             // Make sure the data ends around our snapshot timepoint
             // Example: if i = 4 when we made the snapshot, then we should have 01234
             const std::size_t expect_value = kMessageNum / sleep_total_sec_count * dir_entry_counter;
@@ -138,9 +141,6 @@ TEST_F(SnapshotTest, SnapshotSingleIntervalTest) {
         });
 
         replayer.MainLoop();
-
-        // Make sure messages arrive the node
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         dir_entry_counter++;
     }
