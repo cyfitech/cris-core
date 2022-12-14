@@ -6,6 +6,7 @@
 #include "fmt/core.h"
 #include "impl/utils.h"
 
+#include <execution>
 #include <filesystem>
 
 namespace cris::core {
@@ -13,39 +14,41 @@ namespace cris::core {
 MessageRecorder::MessageRecorder(const RecorderConfig& recorder_config, std::shared_ptr<JobRunner> runner)
     : Base(std::move(runner))
     , record_dir_(recorder_config.record_dir_ / RecordDirNameGenerator())
-    , record_strand_(MakeStrand()) {
+    , record_strand_(MakeStrand())
+    , snapshot_config_intervals_(recorder_config.snapshot_intervals_)
+    , snapshot_thread_(std::thread([this] { MessageRecorder::SnapshotWorker(); })) {
     std::filesystem::create_directories(record_dir_);
-    SetSnapshotInterval(recorder_config);
 }
 
-void MessageRecorder::SetSnapshotInterval(const RecorderConfig& recorder_config) {
-    if (recorder_config.snapshot_intervals_.empty()) {
+void MessageRecorder::SnapshotWorker() {
+    if (snapshot_config_intervals_.empty()) {
         return;
     }
-    if (recorder_config.snapshot_intervals_.size() > 1) {
+
+    if (snapshot_config_intervals_.size() > 1) {
         // TODO (YuzhouGuo, https://github.com/cyfitech/cris-core/issues/97) support multi-interval
         LOG(WARNING) << __func__
-                     << "More than one single interval received, multi-interval snapshot feature has not been "
+                     << ": More than one single interval received, multi-interval snapshot feature has not been "
                         "supported, only using the last interval specified";
     }
-    snapshot_config_ = recorder_config.snapshot_intervals_.back();
-    snapshot_thread_ = std::thread([this] { SnapshotWorkerStart(); });
-}
 
-void MessageRecorder::SnapshotWorkerStart() {
-    static constexpr auto kEpselonMs   = std::chrono::milliseconds(100);
-    auto                  wake_up_time = std::chrono::system_clock::now();
-    while (!snapshot_shutdown_flag_) {
-        if (std::chrono::system_clock::now() <= (wake_up_time + kEpselonMs)) {
-            MakeSnapshot();
+    const auto sleep_interval = snapshot_config_intervals_.back().interval_sec_;
+    const auto kSkipTime      = sleep_interval * 0.5f;
+    auto       wake_up_time   = std::chrono::steady_clock::now();
+
+    while (!snapshot_shutdown_flag_.load()) {
+        wake_up_time += sleep_interval;
+        if ((wake_up_time - std::chrono::steady_clock::now()) > kSkipTime) {
+            AddSnapshotJobAsync();
+        } else {
+            LOG(WARNING) << __func__ << ": A snapshot job skipped due to job runner strand stuck.";
         }
-        wake_up_time += snapshot_config_.interval_sec_;
         std::unique_lock<std::mutex> lck(snapshot_mtx_);
-        snapshot_cv_.wait_until(lck, wake_up_time, [this] { return snapshot_shutdown_flag_; });
+        snapshot_cv_.wait_until(lck, wake_up_time, [this] { return snapshot_shutdown_flag_.load(); });
     }
 }
 
-void MessageRecorder::MakeSnapshot() {
+void MessageRecorder::AddSnapshotJobAsync() {
     AddJobToRunner([this]() { GenerateSnapshot(); }, record_strand_);
 }
 
@@ -53,15 +56,12 @@ void MessageRecorder::SnapshotWorkerEnd() {
     if (auto runner = runner_weak_.lock()) {
         runner->Stop();
     }
-    {
-        std::unique_lock<std::mutex> lock(snapshot_mtx_);
-        snapshot_shutdown_flag_ = true;
-    }
+    snapshot_shutdown_flag_.store(true);
     snapshot_cv_.notify_all();
     if (snapshot_thread_.joinable()) {
         snapshot_thread_.join();
     }
-    snapshots_paths_.clear();
+    snapshot_paths_.clear();
 }
 
 MessageRecorder::~MessageRecorder() {
@@ -80,29 +80,34 @@ void MessageRecorder::StopMainLoop() {
 void MessageRecorder::GenerateSnapshot() {
     std::unique_lock<std::mutex> lock(snapshot_mtx_);
 
-    std::for_each(files_.begin(), files_.end(), [](auto& file) { file->CloseDB(); });
+    std::for_each(std::execution::par_unseq, files_.begin(), files_.end(), [](auto& file) { file->CloseDB(); });
 
     // create dir for individual interval
-    std::filesystem::path interval_dir = record_dir_.parent_path() / std::string("Snapshot") / snapshot_config_.name_;
-    std::filesystem::create_directories(interval_dir);
-
+    std::filesystem::path interval_dir =
+        record_dir_.parent_path() / std::string("snapshots") / snapshot_config_intervals_.back().name_;
     const auto snapshot_dir = interval_dir / SnapshotDirNameGenerator();
-    const auto options      = std::filesystem::copy_options::recursive | std::filesystem::copy_options::skip_symlinks;
-    std::filesystem::create_directories(snapshot_dir);
+    const auto options      = std::filesystem::copy_options::recursive | std::filesystem::copy_options::copy_symlinks;
+
+    std::error_code ec;
+    std::filesystem::create_directories(snapshot_dir, ec);
+    if (ec.value() != 0) {
+        LOG(ERROR) << __func__ << ": Failed to create snapshot directory " << snapshot_dir << ". " << ec.message();
+    }
+
     std::filesystem::copy(record_dir_, snapshot_dir, options);
 
-    snapshots_paths_.push_back(snapshot_dir);
+    snapshot_paths_.push_back(snapshot_dir);
 
-    while (snapshots_paths_.size() > snapshot_max_num_) {
+    while (snapshot_paths_.size() > snapshot_max_num_) {
         std::error_code ec;
-        if (std::filesystem::remove_all(snapshots_paths_.front(), ec) == static_cast<std::uintmax_t>(-1)) {
+        if (std::filesystem::remove_all(snapshot_paths_.front(), ec) == static_cast<std::uintmax_t>(-1)) {
             LOG(ERROR) << __func__ << ": Locally saved more than " << snapshot_max_num_
                        << " snapshot copies but failed to remove the oldest one. " << ec.message();
         }
-        snapshots_paths_.pop_front();
+        snapshot_paths_.pop_front();
     }
 
-    std::for_each(files_.begin(), files_.end(), [](auto& file) { file->OpenDB(); });
+    std::for_each(std::execution::par_unseq, files_.begin(), files_.end(), [](auto& file) { file->OpenDB(); });
 }
 
 std::string MessageRecorder::RecordDirNameGenerator() {
@@ -117,9 +122,12 @@ std::filesystem::path MessageRecorder::GetRecordDir() const {
     return record_dir_;
 }
 
-const std::deque<std::filesystem::path>& MessageRecorder::GetSnapshotPaths() {
+std::vector<std::filesystem::path> MessageRecorder::GetSnapshotPaths() {
     std::unique_lock<std::mutex> lock(snapshot_mtx_);
-    return snapshots_paths_;
+
+    // Paths in order of ascending directory construction time
+    std::vector<std::filesystem::path> snapshot_reference_paths_(snapshot_paths_.begin(), snapshot_paths_.end());
+    return snapshot_reference_paths_;
 }
 
 RecordFile* MessageRecorder::CreateFile(

@@ -61,7 +61,6 @@ std::string MessageToStr(const TestMessage<T>& msg) {
 }
 
 TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
-    std::mutex                       mtx;
     static constexpr std::size_t     kThreadNum            = 4;
     static constexpr std::size_t     kMessageNum           = 40;
     static constexpr double          kSpeedUpFactor        = 1e9;
@@ -105,7 +104,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
         std::chrono::duration_cast<std::chrono::seconds>(kMessageNum * kSleepBetweenMessages).count();
 
     std::size_t                              dir_entry_counter  = 0;
-    const std::deque<std::filesystem::path>& snapshot_path_list = recorder.GetSnapshotPaths();
+    const std::vector<std::filesystem::path> snapshot_path_list = recorder.GetSnapshotPaths();
 
     for (const auto& path : snapshot_path_list) {
         MessageReplayer replayer(path);
@@ -114,31 +113,25 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
         replayer.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
         replayer.SetSpeedupRate(kSpeedUpFactor);
 
-        int previous_int = 0;
+        auto previous_int = std::make_shared<std::atomic<int>>(0);
 
         subscriber.Subscribe<TestMessage<int>>(
             kTestIntChannelSubId,
-            [&previous_int, &mtx](const std::shared_ptr<TestMessage<int>>& message) {
-                // consecutive data without loss in snapshot
-                std::unique_lock lock(mtx);
-                EXPECT_EQ(message->value_ - previous_int, 1);
-                previous_int = message->value_;
+            [&previous_int](const std::shared_ptr<TestMessage<int>>& message) {
+                EXPECT_EQ(message->value_ - previous_int->load(), 1);
+                previous_int->store(message->value_);
             },
             /* allow_concurrency = */ false);
 
         replayer.MainLoop();
 
         // Make sure messages arrive the node
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
         // Make sure the data ends around our snapshot timepoint
         // Example: if i = 4 when we made the snapshot, then we should have 01234
         const std::size_t expect_value = kMessageNum / sleep_total_sec_count * dir_entry_counter;
-
-        {
-            std::unique_lock lock(mtx);
-            EXPECT_TRUE((previous_int >= int(expect_value - 1)) && (previous_int <= int(expect_value + 1)));
-        }
+        EXPECT_TRUE((previous_int->load() >= int(expect_value - 1)) && (previous_int->load() <= int(expect_value + 1)));
 
         dir_entry_counter++;
     }

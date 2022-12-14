@@ -84,8 +84,7 @@ std::string MessageToStr(const TestMessage<T>& msg) {
 
 RecorderConfig RecorderTest::GetTestConfig() const {
     return RecorderConfig{
-        .snapshot_intervals_ = {},
-        .record_dir_         = GetTestTempDir(),
+        .record_dir_ = GetTestTempDir(),
     };
 }
 

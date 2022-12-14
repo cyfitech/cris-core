@@ -37,20 +37,19 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     template<CRMessageType message_t>
     void RegisterChannel(const channel_subid_t subid, const std::string& alias = "");
 
-    void MakeSnapshot();
+    void AddSnapshotJobAsync();
 
-    std::filesystem::path                    GetRecordDir() const;
-    const std::deque<std::filesystem::path>& GetSnapshotPaths();
+    std::filesystem::path              GetRecordDir() const;
+    std::vector<std::filesystem::path> GetSnapshotPaths();
 
    private:
     using msg_serializer = std::function<std::string(const CRMessageBasePtr&)>;
 
     RecordFile* CreateFile(const std::string& message_type, const channel_subid_t subid, const std::string& alias);
 
-    void SetSnapshotInterval(const RecorderConfig& recorder_config);
     void GenerateSnapshot();
 
-    void SnapshotWorkerStart();
+    void SnapshotWorker();
     void SnapshotWorkerEnd();
 
     static std::string RecordDirNameGenerator();
@@ -60,13 +59,13 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     std::vector<std::unique_ptr<RecordFile>>     files_;
     std::shared_ptr<cris::core::JobRunnerStrand> record_strand_;
 
-    const std::size_t                 snapshot_max_num_{48};
-    RecorderConfig::IntervalConfig    snapshot_config_;
-    std::thread                       snapshot_thread_;
-    bool                              snapshot_shutdown_flag_{false};
-    std::mutex                        snapshot_mtx_;
-    std::condition_variable           snapshot_cv_;
-    std::deque<std::filesystem::path> snapshots_paths_;
+    const std::size_t                                 snapshot_max_num_{48};
+    const std::vector<RecorderConfig::IntervalConfig> snapshot_config_intervals_;
+    std::atomic<bool>                                 snapshot_shutdown_flag_{false};
+    std::mutex                                        snapshot_mtx_;
+    std::condition_variable                           snapshot_cv_;
+    std::thread                                       snapshot_thread_;
+    std::deque<std::filesystem::path>                 snapshot_paths_;
 };
 
 template<CRMessageType message_t>
