@@ -40,3 +40,13 @@ ____________EOF
 fi
 
 popd >/dev/null
+
+CLANG_TIDY_DEFAULT_VERSION=13
+export CLANG_TIDY="${CLANG_TIDY:-$(which "clang-tidy-$CLANG_TIDY_DEFAULT_VERSION" || which clang-tidy)}"
+
+if [ ! "$CLANG_TIDY" ]; then
+    printf '\033[33m[WARNING] Clang Tidy (%d) has not been installed.\033[0m\n' "$CLANG_TIDY_DEFAULT_VERSION" >&2
+elif ! "$CLANG_TIDY" --dump-config | grep -i '^[[:space:]]*Checks[[:space:]]*:' > /dev/null; then
+    printf '\033[31m[ERROR] "%s" is not a valid clang-tidy.\033[0m\n' "$CLANG_TIDY" >&2
+    exit 1
+fi
