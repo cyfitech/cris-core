@@ -206,7 +206,7 @@ RUN set -e; \
                 jq \
                 lib{asan6,lsan0,tsan0,ubsan1} \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$' >/dev/null || echo lib{asan8,tsan2}) \
-                lib{boost-all,curl4-openssl,edit,eigen3,event,gflags,gmp,gtest,hiredis,hwloc,leveldb,lmdb,lzma,mpfr,mpc,ncurses5,rocksdb,snappy,ssl,tbb}-dev \
+                lib{benchmark,boost-all,curl4-openssl,edit,eigen3,event,gflags,gmp,gtest,hiredis,hwloc,leveldb,lmdb,lzma,mpfr,mpc,ncurses5,rocksdb,snappy,ssl,tbb}-dev \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^debian\-11$'     >/dev/null || echo libc++{,abi}-11-dev lldb-11) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-20\.04$' >/dev/null || echo libc++{,abi}-12-dev lldb-12) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$' >/dev/null || echo libc++{,abi}-14-dev lldb-14) \
