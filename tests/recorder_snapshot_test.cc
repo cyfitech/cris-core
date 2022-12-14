@@ -65,6 +65,7 @@ std::string MessageToStr(const TestMessage<T>& msg) {
 }
 
 TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
+    std::mutex                       mtx;
     static constexpr std::size_t     kThreadNum            = 4;
     static constexpr std::size_t     kMessageNum           = 40;
     static constexpr double          kSpeedUpFactor        = 1e9;
@@ -121,26 +122,27 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
 
         subscriber.Subscribe<TestMessage<int>>(
             kTestIntChannelSubId,
-            [&previous_int](const std::shared_ptr<TestMessage<int>>& message) {
+            [&previous_int, &mtx](const std::shared_ptr<TestMessage<int>>& message) {
                 // consecutive data without loss in snapshot
+                std::unique_lock lock(mtx);
                 EXPECT_EQ(message->value_ - previous_int, 1);
                 previous_int = message->value_;
             },
             /* allow_concurrency = */ false);
 
-        replayer.SetPostFinishCallback([&replayer, &previous_int, &dir_entry_counter] {
-            EXPECT_TRUE(replayer.IsEnded());
-
-            // Make sure messages arrive the node
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
-            // Make sure the data ends around our snapshot timepoint
-            // Example: if i = 4 when we made the snapshot, then we should have 01234
-            const std::size_t expect_value = kMessageNum / sleep_total_sec_count * dir_entry_counter;
-            EXPECT_TRUE((previous_int >= int(expect_value - 1)) && (previous_int <= int(expect_value + 1)));
-        });
-
         replayer.MainLoop();
+
+        // Make sure messages arrive the node
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        // Make sure the data ends around our snapshot timepoint
+        // Example: if i = 4 when we made the snapshot, then we should have 01234
+        const std::size_t expect_value = kMessageNum / sleep_total_sec_count * dir_entry_counter;
+
+        {
+            std::unique_lock lock(mtx);
+            EXPECT_TRUE((previous_int >= int(expect_value - 1)) && (previous_int <= int(expect_value + 1)));
+        }
 
         dir_entry_counter++;
     }
