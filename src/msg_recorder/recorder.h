@@ -64,8 +64,8 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     std::atomic<bool>                                 snapshot_shutdown_flag_{false};
     std::mutex                                        snapshot_mtx_;
     std::condition_variable                           snapshot_cv_;
-    std::thread                                       snapshot_thread_;
     std::deque<std::filesystem::path>                 snapshot_paths_;
+    std::thread                                       snapshot_thread_;
 };
 
 template<CRMessageType message_t>
