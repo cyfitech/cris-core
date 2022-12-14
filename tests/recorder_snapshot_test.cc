@@ -31,13 +31,9 @@ class RecorderSnapshotTest : public testing::Test {
 
     std::filesystem::path GetTestTempDir() const { return record_test_temp_dir_; }
 
-    std::filesystem::path GetSnapshotTestTempDir() const { return snapshot_test_temp_dir_; }
-
    private:
     std::filesystem::path record_test_temp_dir_{
         std::filesystem::temp_directory_path() / (std::string("CRSnapshotTestTmpDir.") + std::to_string(getpid()))};
-    std::filesystem::path snapshot_test_temp_dir_{
-        record_test_temp_dir_ / std::string("Snapshot") / std::string("SECONDLY")};
 };
 
 template<class T>
