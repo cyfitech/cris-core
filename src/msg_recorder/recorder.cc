@@ -33,13 +33,13 @@ void MessageRecorder::SnapshotWorker() {
     }
 
     const auto sleep_interval = snapshot_config_intervals_.back().interval_sec_;
-    const auto kSkipTime      = sleep_interval * 0.5f;
+    const auto kSkipThreshold = sleep_interval * 0.5;
     auto       wake_up_time   = std::chrono::steady_clock::now();
 
     while (!snapshot_shutdown_flag_.load()) {
         wake_up_time += sleep_interval;
-        if ((wake_up_time - std::chrono::steady_clock::now()) > kSkipTime) {
-            AddSnapshotJobAsync();
+        if ((wake_up_time - std::chrono::steady_clock::now()) > kSkipThreshold) {
+            AddSnapshotJob();
         } else {
             LOG(WARNING) << __func__ << ": A snapshot job skipped due to job runner strand stuck.";
         }
@@ -48,20 +48,32 @@ void MessageRecorder::SnapshotWorker() {
     }
 }
 
-void MessageRecorder::AddSnapshotJobAsync() {
-    AddJobToRunner([this]() { GenerateSnapshot(); }, record_strand_);
+void MessageRecorder::AddSnapshotJob() {
+    AddJobToRunner(
+        [this]() {
+            GenerateSnapshot();
+            std::unique_lock<std::mutex> lck(snapshot_mtx_);
+            snapshot_pause_flag_ = true;
+            snapshot_cv_.notify_all();
+        },
+        record_strand_);
+    std::unique_lock<std::mutex> lock(snapshot_mtx_);
+    snapshot_cv_.wait(lock, [this] { return snapshot_pause_flag_; });
 }
 
 void MessageRecorder::SnapshotWorkerEnd() {
     if (auto runner = runner_weak_.lock()) {
         runner->Stop();
     }
-    snapshot_shutdown_flag_.store(true);
+    {
+        std::unique_lock<std::mutex> lock(snapshot_mtx_);
+        snapshot_shutdown_flag_.store(true);
+    }
     snapshot_cv_.notify_all();
     if (snapshot_thread_.joinable()) {
         snapshot_thread_.join();
     }
-    snapshot_paths_.clear();
+    snapshot_path_map_.clear();
 }
 
 MessageRecorder::~MessageRecorder() {
@@ -78,15 +90,16 @@ void MessageRecorder::StopMainLoop() {
 }
 
 void MessageRecorder::GenerateSnapshot() {
-    std::unique_lock<std::mutex> lock(snapshot_mtx_);
-
-    std::for_each(std::execution::par_unseq, files_.begin(), files_.end(), [](auto& file) { file->CloseDB(); });
+    {
+        std::unique_lock<std::mutex> lock(snapshot_mtx_);
+        std::for_each(std::execution::par_unseq, files_.begin(), files_.end(), [](auto& file) { file->CloseDB(); });
+    }
 
     // create dir for individual interval
-    std::filesystem::path interval_dir =
-        record_dir_.parent_path() / std::string("snapshots") / snapshot_config_intervals_.back().name_;
-    const auto snapshot_dir = interval_dir / SnapshotDirNameGenerator();
-    const auto options      = std::filesystem::copy_options::recursive | std::filesystem::copy_options::copy_symlinks;
+    const std::string     current_subdir_name = snapshot_config_intervals_.back().name_;
+    std::filesystem::path interval_dir = record_dir_.parent_path() / std::string("snapshots") / current_subdir_name;
+    const auto            snapshot_dir = interval_dir / SnapshotDirNameGenerator();
+    const auto options = std::filesystem::copy_options::recursive | std::filesystem::copy_options::copy_symlinks;
 
     std::error_code ec;
     std::filesystem::create_directories(snapshot_dir, ec);
@@ -96,18 +109,25 @@ void MessageRecorder::GenerateSnapshot() {
 
     std::filesystem::copy(record_dir_, snapshot_dir, options);
 
-    snapshot_paths_.push_back(snapshot_dir);
+    if (!snapshot_path_map_.contains(current_subdir_name)) {
+        snapshot_path_map_[current_subdir_name] = std::deque<std::filesystem::path>();
+    }
+    snapshot_path_map_[current_subdir_name].push_back(snapshot_dir);
 
-    while (snapshot_paths_.size() > snapshot_max_num_) {
+    while (snapshot_path_map_[current_subdir_name].size() > snapshot_max_num_) {
         std::error_code ec;
-        if (std::filesystem::remove_all(snapshot_paths_.front(), ec) == static_cast<std::uintmax_t>(-1)) {
+        if (std::filesystem::remove_all(snapshot_path_map_[current_subdir_name].front(), ec) ==
+            static_cast<std::uintmax_t>(-1)) {
             LOG(ERROR) << __func__ << ": Locally saved more than " << snapshot_max_num_
                        << " snapshot copies but failed to remove the oldest one. " << ec.message();
         }
-        snapshot_paths_.pop_front();
+        snapshot_path_map_[current_subdir_name].pop_front();
     }
 
-    std::for_each(std::execution::par_unseq, files_.begin(), files_.end(), [](auto& file) { file->OpenDB(); });
+    {
+        std::unique_lock<std::mutex> lock(snapshot_mtx_);
+        std::for_each(std::execution::par_unseq, files_.begin(), files_.end(), [](auto& file) { file->OpenDB(); });
+    }
 }
 
 std::string MessageRecorder::RecordDirNameGenerator() {
@@ -122,12 +142,16 @@ std::filesystem::path MessageRecorder::GetRecordDir() const {
     return record_dir_;
 }
 
-std::vector<std::filesystem::path> MessageRecorder::GetSnapshotPaths() {
-    std::unique_lock<std::mutex> lock(snapshot_mtx_);
+const std::map<std::string, std::vector<std::filesystem::path>> MessageRecorder::GetSnapshotPaths() {
+    std::map<std::string, std::vector<std::filesystem::path>> result_map;
+    std::unique_lock<std::mutex>                              lock(snapshot_mtx_);
 
     // Paths in order of ascending directory construction time
-    std::vector<std::filesystem::path> snapshot_reference_paths_(snapshot_paths_.begin(), snapshot_paths_.end());
-    return snapshot_reference_paths_;
+    for (const auto& map_pair : snapshot_path_map_) {
+        std::vector<std::filesystem::path> snapshot_reference_paths_(map_pair.second.begin(), map_pair.second.end());
+        result_map[map_pair.first] = snapshot_reference_paths_;
+    }
+    return result_map;
 }
 
 RecordFile* MessageRecorder::CreateFile(
@@ -137,8 +161,11 @@ RecordFile* MessageRecorder::CreateFile(
     auto filename = impl::GetMessageRecordFileName(message_type, subid);
     auto path     = GetRecordDir() / filename;
 
-    std::unique_lock<std::mutex> lock(snapshot_mtx_);
-    auto*                        record_file = files_.emplace_back(std::make_unique<RecordFile>(path)).get();
+    RecordFile* record_file;
+    {
+        std::unique_lock<std::mutex> lock(snapshot_mtx_);
+        record_file = files_.emplace_back(std::make_unique<RecordFile>(path)).get();
+    }
 
     if (!alias.empty()) {
         std::filesystem::create_symlink(filename, GetRecordDir() / alias);
