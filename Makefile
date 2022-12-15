@@ -58,6 +58,10 @@ ci:
 lint: scripts/format_all.sh
 	$<
 
+.PHONY: tidy
+tidy: scripts/bazel_wrapper.sh | lint
+	$< build --config=prof --config=lint //...
+
 .PHONY: build
 build: scripts/bazel_wrapper.sh scripts/distro_cc.sh
 	$< build //...

@@ -15,6 +15,11 @@ jobs:
       image: ghcr.io/cyfitech/cris-build-ubuntu2004:20221204
     steps:
     - uses: actions/checkout@v3
+    - uses: ./.github/actions/ci-env-setup
+      with:
+        key: ${{ github.job }}
+        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
+        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Config
       run: export HOME=/root && git config --global --add safe.directory "$(pwd)"
     - name: Check gitignore
@@ -30,7 +35,7 @@ jobs:
         | tr '\v' '\t'                                          \
         | grep .
     - name: Run linter
-      run: export HOME=/root && CLANG_FORMAT=clang-format-12 scripts/format_all.sh
+      run: export HOME=/root && CLANG_FORMAT=clang-format-12 CLANG_TIDY=clang-tidy-13 make lint tidy
     - name: Check diff
       run: export HOME=/root && git --no-pager diff --exit-code
 
