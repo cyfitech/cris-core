@@ -101,10 +101,12 @@ void MessageRecorder::GenerateSnapshot() {
     const auto            snapshot_dir = interval_dir / SnapshotDirNameGenerator();
     const auto options = std::filesystem::copy_options::recursive | std::filesystem::copy_options::copy_symlinks;
 
-    std::error_code ec;
-    std::filesystem::create_directories(snapshot_dir, ec);
-    if (ec.value() != 0) {
-        LOG(ERROR) << __func__ << ": Failed to create snapshot directory " << snapshot_dir << ". " << ec.message();
+    {
+        std::error_code ec;
+        std::filesystem::create_directories(snapshot_dir, ec);
+        if (ec.value() != 0) {
+            LOG(ERROR) << __func__ << ": Failed to create snapshot directory " << snapshot_dir << ". " << ec.message();
+        }
     }
 
     std::filesystem::copy(record_dir_, snapshot_dir, options);
