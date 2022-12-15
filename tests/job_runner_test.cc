@@ -238,4 +238,120 @@ TEST(JobRunnerTest, JobAliveToken) {
     EVENTUALLY_EQ(finish.load(), true);
 }
 
+TEST(JobRunnerTest, TryRunImmediatelyStrand) {
+    static constexpr std::size_t kThreadNum = 4;
+    static constexpr std::size_t kJobNum    = 50000;
+
+    JobRunner::Config config = {
+        .thread_num_ = kThreadNum,
+    };
+    auto runner = JobRunner::MakeJobRunner(config);
+    auto strand = runner->MakeStrand();
+
+    // Strand guarantees order, so no need to use lock/atomic variables.
+    std::size_t counter = 0;
+    for (std::size_t i = 0; i < kJobNum; ++i) {
+        const auto result = runner->AddJob([&counter] { ++counter; }, strand, JobRunner::TryRunImmediately());
+        // The first one must run immediately because there are no dependencies.
+        if (i == 0) {
+            EXPECT_EQ(result, JobRunner::TryRunImmediately::State::FINISHED);
+        } else {
+            EXPECT_NE(result, JobRunner::TryRunImmediately::State::FAILED);
+        }
+    }
+
+    std::atomic<bool> finish{false};
+    runner->AddJob(
+        [&counter, &finish]() {
+            EXPECT_EQ(counter, kJobNum);
+            finish.store(true);
+        },
+        strand);
+    EVENTUALLY_EQ(finish.load(), true);
+}
+
+TEST(JobRunnerTest, TryRunImmediatelyNoStrand) {
+    static constexpr std::size_t kThreadNum = 4;
+    static constexpr std::size_t kJobNum    = 50000;
+
+    JobRunner::Config config = {
+        .thread_num_ = kThreadNum,
+    };
+    auto runner = JobRunner::MakeJobRunner(config);
+
+    std::atomic<std::size_t> counter = 0;
+    for (std::size_t i = 0; i < kJobNum; ++i) {
+        // No order restrictions, so all jobs must run immediately.
+        const auto add_result = runner->AddJob(
+            [&counter] { counter.fetch_add(1); },
+            /* strand = */ nullptr,
+            JobRunner::TryRunImmediately());
+        EXPECT_EQ(add_result, JobRunner::TryRunImmediately::State::FINISHED);
+    }
+    EXPECT_EQ(counter.load(), kJobNum);
+}
+
+TEST(JobRunnerTest, TryRunImmediatelyStrandRecurse) {
+    static constexpr std::size_t kThreadNum = 4;
+    static constexpr std::size_t kJobNum    = 50000;
+
+    JobRunner::Config config = {
+        .thread_num_ = kThreadNum,
+    };
+    auto              runner = JobRunner::MakeJobRunner(config);
+    auto              strand = runner->MakeStrand();
+    std::atomic<bool> finish{false};
+
+    // Strand guarantees order, so no need to use lock/atomic variables.
+    std::size_t counter       = 0;
+    auto        recursive_job = [runner, strand, &counter, &finish](std::size_t idx, auto self) {
+        if (idx >= kJobNum) {
+            EXPECT_EQ(counter, kJobNum);
+            finish.store(true);
+            return;
+        }
+        EXPECT_EQ(counter, idx);
+        ++counter;
+        // Called within strand jobs, so the next job cannot run immediately.
+        const auto add_result =
+            runner->AddJob([self, idx] { self(idx + 1, self); }, strand, JobRunner::TryRunImmediately());
+        EXPECT_EQ(add_result, JobRunner::TryRunImmediately::State::ENQUEUED);
+    };
+
+    // The first one must run immediately because there are no dependencies.
+    const auto add_result =
+        runner->AddJob([recursive_job] { recursive_job(0, recursive_job); }, strand, JobRunner::TryRunImmediately());
+    EXPECT_EQ(add_result, JobRunner::TryRunImmediately::State::FINISHED);
+
+    EVENTUALLY_EQ(finish.load(), true);
+}
+
+TEST(JobRunnerTest, TryRunImmediatelyDualStrand) {
+    static constexpr std::size_t kThreadNum = 4;
+    static constexpr std::size_t kJobNum    = 50000;
+
+    JobRunner::Config config = {
+        .thread_num_ = kThreadNum,
+    };
+    auto runner       = JobRunner::MakeJobRunner(config);
+    auto outer_strand = runner->MakeStrand();
+    auto inner_strand = runner->MakeStrand();
+
+    // The outer jobs are serialized, so the inner jobs has no concurrency
+    // and must be able to run immediately.
+    for (std::size_t i = 0; i < kJobNum; ++i) {
+        runner->AddJob(
+            [runner, inner_strand] {
+                const auto add_result = runner->AddJob([] {}, inner_strand, JobRunner::TryRunImmediately());
+                EXPECT_EQ(add_result, JobRunner::TryRunImmediately::State::FINISHED);
+            },
+            outer_strand,
+            JobRunner::TryRunImmediately());
+    }
+
+    std::atomic<bool> finish{false};
+    runner->AddJob([&finish]() { finish.store(true); }, outer_strand);
+    EVENTUALLY_EQ(finish.load(), true);
+}
+
 }  // namespace cris::core

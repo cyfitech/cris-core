@@ -90,14 +90,17 @@ class JobAliveToken {
 
 class JobRunnerStrand : public std::enable_shared_from_this<JobRunnerStrand> {
    public:
-    using job_t       = JobRunner::job_t;
-    using job_queue_t = boost::lockfree::queue<job_t*>;
+    using job_t             = JobRunner::job_t;
+    using job_queue_t       = boost::lockfree::queue<job_t*>;
+    using TryRunImmediately = JobRunner::TryRunImmediately;
 
     explicit JobRunnerStrand(std::weak_ptr<JobRunner> runner) : runner_weak_(runner) {}
 
     bool AddJob(job_t&& job);
 
     bool AddJob(std::function<void(JobAliveTokenPtr&&)>&& job);
+
+    TryRunImmediately::State AddJob(std::function<void(JobAliveTokenPtr&&)>&& job, TryRunImmediately);
 
     void PushToRunnerIfNeeded(const bool is_in_running_job);
 
@@ -201,6 +204,32 @@ void JobRunnerStrand::PushToRunnerIfNeeded(const bool is_in_running_job) {
     }
 }
 
+// Try running job immediately in the same thread.
+//
+// To ensure correctness without performance regression,
+// We only do a quick check to see if it can be run.
+// If not sure, fall back to the normal AddJob.
+JobRunner::TryRunImmediately::State JobRunnerStrand::AddJob(
+    std::function<void(JobAliveTokenPtr&&)>&& job,
+    JobRunner::TryRunImmediately) {
+    // Decision(D/d). It is protected by lock and it decides whether Push is needed.
+    //
+    // Proceeds only if D+ (changes the `has_ready_job_` value from false to true), and an empty pending queue.
+    // It will not break the order because the pending queue is empty at the point we check.
+    {
+        std::unique_lock lck(hybrid_spin_mtx_, std::try_to_lock);
+        if (!lck.owns_lock() || has_ready_job_ || !pending_jobs_.empty()) {
+            lck.unlock();
+            return AddJob(std::move(job)) ? TryRunImmediately::State::ENQUEUED : TryRunImmediately::State::FAILED;
+        }
+        has_ready_job_ = true;
+    }
+
+    // Push(P). It is not a real push but run the job immediately.
+    job(std::make_shared<JobAliveToken>(weak_from_this()));
+    return TryRunImmediately::State::FINISHED;
+}
+
 JobRunner::JobRunner(JobRunner::Config config) : config_(config) {
     LOG(INFO) << __func__ << ": JobRunner at 0x" << std::hex << reinterpret_cast<std::uintptr_t>(this) << std::dec
               << " initialized with " << config_.thread_num_ << " worker(s). " << config_.always_active_thread_num_
@@ -253,7 +282,22 @@ bool JobRunner::AddJob(job_t&& job, JobRunnerStrandPtr strand) {
 }
 
 bool JobRunner::AddJob(std::function<void(JobAliveTokenPtr&&)>&& job, JobRunnerStrandPtr strand) {
-    return strand ? strand->AddJob(std::move(job)) : AddJob(std::bind(std::move(job), nullptr));
+    return strand ? strand->AddJob(std::move(job)) : AddJob([job = std::move(job)] { job(nullptr); });
+}
+
+JobRunner::TryRunImmediately::State JobRunner::AddJob(job_t&& job, JobRunnerStrandPtr strand, TryRunImmediately) {
+    return AddJob([job = std::move(job)](JobAliveTokenPtr&&) { return job(); }, std::move(strand), TryRunImmediately());
+}
+
+JobRunner::TryRunImmediately::State JobRunner::AddJob(
+    std::function<void(JobAliveTokenPtr&&)>&& job,
+    JobRunnerStrandPtr                        strand,
+    TryRunImmediately) {
+    if (!strand) {
+        job(nullptr);
+        return TryRunImmediately::State::FINISHED;
+    }
+    return strand->AddJob(std::move(job), TryRunImmediately());
 }
 
 bool JobRunner::Steal() {
@@ -331,7 +375,7 @@ std::shared_ptr<JobRunner> JobRunner::MakeJobRunner(Config config) {
 JobRunnerWorker::JobRunnerWorker(JobRunner* runner, std::size_t idx)
     : runner_(runner)
     , index_(idx)
-    , thread_(std::bind(&JobRunnerWorker::WorkerLoop, this)) {
+    , thread_([this] { return WorkerLoop(); }) {
 }
 
 JobRunnerWorker::~JobRunnerWorker() {

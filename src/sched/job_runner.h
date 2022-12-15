@@ -30,6 +30,14 @@ class JobRunner : public std::enable_shared_from_this<JobRunner> {
         std::chrono::nanoseconds active_time_{0};
     };
 
+    struct TryRunImmediately {
+        enum class State {
+            FAILED,
+            ENQUEUED,
+            FINISHED,
+        };
+    };
+
     ~JobRunner();
 
     JobRunner(const Self&) = delete;
@@ -56,6 +64,20 @@ class JobRunner : public std::enable_shared_from_this<JobRunner> {
     bool AddJob(job_t&& job, JobRunnerStrandPtr strand);
 
     bool AddJob(std::function<void(JobAliveTokenPtr&&)>&& job, JobRunnerStrandPtr strand);
+
+    ///
+    /// If possible, run the job in the current thread immediately.
+    ///
+    /// WARNING: It may extend the lifetime of the alive token of the caller until
+    /// the completion of the callee, which may reduce concurrency and introduce
+    /// performance regression. Also the call stack may increase.
+    /// Make sure that you know what you are doing before using.
+    TryRunImmediately::State AddJob(job_t&& job, JobRunnerStrandPtr strand, TryRunImmediately);
+
+    TryRunImmediately::State AddJob(
+        std::function<void(JobAliveTokenPtr&&)>&& job,
+        JobRunnerStrandPtr                        strand,
+        TryRunImmediately);
 
     ///
     /// Randomly steal a job from the workers and run.
