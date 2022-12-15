@@ -86,7 +86,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     recorder.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
     core::CRNode publisher;
 
-    auto wake_up_time = std::chrono::system_clock::now();
+    auto wake_up_time = std::chrono::steady_clock::now();
 
     for (std::size_t i = 1; i <= kMessageNum; ++i) {
         auto test_message = std::make_shared<TestMessage<int>>(static_cast<int>(i));
