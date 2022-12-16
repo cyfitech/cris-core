@@ -101,7 +101,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
     // Test content under each snapshot directory
-    const std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
+    std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
 
     for (const auto& path_pair : snapshot_path_map) {
         for (std::size_t entry_index = 0; entry_index < path_pair.second.size(); ++entry_index) {

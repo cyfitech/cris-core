@@ -32,34 +32,35 @@ void MessageRecorder::SnapshotWorker() {
     }
 
     const auto sleep_interval = snapshot_config_intervals_.back().interval_sec_;
-    const auto kSkipThreshold = sleep_interval * 0.5;
+    const auto kSkipThreshold = std::chrono::duration_cast<std::chrono::milliseconds>(sleep_interval) * 0.5;
     auto       wake_up_time   = std::chrono::steady_clock::now();
 
     while (!snapshot_shutdown_flag_.load()) {
         wake_up_time += sleep_interval;
         if ((wake_up_time - std::chrono::steady_clock::now()) > kSkipThreshold) {
-            AddSnapshotJob();
+            AccomplishSnapshotJob();
         } else {
-            LOG(WARNING) << __func__ << ": A snapshot job skipped due to job runner strand stuck.";
+            LOG(WARNING) << __func__ << ": A snapshot job skipped: too close to the next snapshot timepoint.";
         }
         std::unique_lock lck(snapshot_mtx_);
         snapshot_cv_.wait_until(lck, wake_up_time, [this] { return snapshot_shutdown_flag_.load(); });
     }
 }
 
-void MessageRecorder::AddSnapshotJob() {
+void MessageRecorder::AccomplishSnapshotJob() {
+    bool snapshot_generated_flag = false;
     AddJobToRunner(
-        [this]() {
+        [this, &snapshot_generated_flag]() {
             GenerateSnapshot();
             {
-                std::unique_lock lck(snapshot_mtx_);
-                snapshot_pause_flag_ = true;
+                std::lock_guard lck(snapshot_mtx_);
+                snapshot_generated_flag = true;
             }
             snapshot_cv_.notify_all();
         },
         record_strand_);
     std::unique_lock lock(snapshot_mtx_);
-    snapshot_cv_.wait(lock, [this] { return snapshot_pause_flag_; });
+    snapshot_cv_.wait(lock, [&snapshot_generated_flag] { return snapshot_generated_flag; });
 }
 
 void MessageRecorder::SnapshotWorkerEnd() {
@@ -67,14 +68,13 @@ void MessageRecorder::SnapshotWorkerEnd() {
         runner->Stop();
     }
     {
-        std::unique_lock lock(snapshot_mtx_);
+        std::lock_guard lck(snapshot_mtx_);
         snapshot_shutdown_flag_.store(true);
     }
     snapshot_cv_.notify_all();
     if (snapshot_thread_.joinable()) {
         snapshot_thread_.join();
     }
-    snapshot_path_map_.clear();
 }
 
 MessageRecorder::~MessageRecorder() {
@@ -91,10 +91,9 @@ void MessageRecorder::StopMainLoop() {
 }
 
 void MessageRecorder::GenerateSnapshot() {
-    {
-        std::unique_lock lock(snapshot_mtx_);
-        std::for_each(files_.begin(), files_.end(), [](auto& file) { file->CloseDB(); });
-    }
+    std::lock_guard lock(snapshot_mtx_);
+
+    std::for_each(files_.begin(), files_.end(), [](auto& file) { file->CloseDB(); });
 
     // create dir for individual interval
     const std::string     current_subdir_name = snapshot_config_intervals_.back().name_;
@@ -127,10 +126,7 @@ void MessageRecorder::GenerateSnapshot() {
         snapshot_dirs.pop_front();
     }
 
-    {
-        std::unique_lock lock(snapshot_mtx_);
-        std::for_each(files_.begin(), files_.end(), [](auto& file) { file->OpenDB(); });
-    }
+    std::for_each(files_.begin(), files_.end(), [](auto& file) { file->OpenDB(); });
 }
 
 std::string MessageRecorder::RecordDirNameGenerator() {
@@ -145,14 +141,12 @@ std::filesystem::path MessageRecorder::GetRecordDir() const {
     return record_dir_;
 }
 
-const std::map<std::string, std::vector<std::filesystem::path>> MessageRecorder::GetSnapshotPaths() {
+std::map<std::string, std::vector<std::filesystem::path>> MessageRecorder::GetSnapshotPaths() {
     std::map<std::string, std::vector<std::filesystem::path>> result_map;
-    std::unique_lock                                          lock(snapshot_mtx_);
+    std::lock_guard                                           lock(snapshot_mtx_);
 
-    // Paths in order of ascending directory construction time
-    for (const auto& [k, v] : snapshot_path_map_) {
-        std::vector<std::filesystem::path> snapshot_reference_paths_(v.begin(), v.end());
-        result_map[k] = std::move(snapshot_reference_paths_);
+    for (const auto& [interval_name, snapshot_path_list] : snapshot_path_map_) {
+        result_map[interval_name] = std::vector(snapshot_path_list.begin(), snapshot_path_list.end());
     }
     return result_map;
 }
@@ -166,7 +160,7 @@ RecordFile* MessageRecorder::CreateFile(
 
     RecordFile* record_file = nullptr;
     {
-        std::unique_lock lock(snapshot_mtx_);
+        std::lock_guard lock(snapshot_mtx_);
         record_file = files_.emplace_back(std::make_unique<RecordFile>(path)).get();
     }
 
