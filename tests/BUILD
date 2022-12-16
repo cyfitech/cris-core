@@ -5,7 +5,7 @@ cris_cc_test (
     srcs = ["defs_test.cc"],
     deps = [
         "//:utils",
-        "@gtest//:gtest_main",
+        "//:custom_main",
     ],
 )
 
@@ -14,7 +14,7 @@ cris_cc_test (
     srcs = ["message_test.cc"],
     deps = [
         "//:msg",
-        "@gtest//:gtest_main",
+        "//:custom_main",
     ],
 )
 
@@ -23,7 +23,7 @@ cris_cc_test (
     srcs = ["msg_recorder_test.cc"],
     deps = [
         "//:msg_recorder",
-        "@gtest//:gtest_main",
+        "//:custom_main",
     ],
     flaky = True,
 )
@@ -39,7 +39,7 @@ cris_cc_test (
     ],
     deps = [
         "//:msg",
-        "@gtest//:gtest_main",
+        "//:custom_main",
     ],
 )
 
@@ -48,7 +48,7 @@ cris_cc_test (
     srcs = ["timer_test.cc"],
     deps = [
         "//:timer",
-        "@gtest//:gtest_main",
+        "//:custom_main",
     ],
 )
 
@@ -68,7 +68,7 @@ cris_cc_test (
     ],
     deps = [
         "//:sched",
-        "@gtest//:gtest_main",
+        "//:custom_main",
     ],
 )
 
@@ -78,7 +78,7 @@ cris_cc_test (
     deps = [
         "//:config",
         "@fmt//:libfmt",
-        "@gtest//:gtest_main",
+        "//:custom_main",
     ],
 )
 
@@ -87,6 +87,6 @@ cris_cc_test (
     srcs = ["record_key_test.cc"],
     deps = [
         "//:msg_recorder",
-        "@gtest//:gtest_main",
+        "//:custom_main",
     ],
 )
