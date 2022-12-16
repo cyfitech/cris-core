@@ -16,3 +16,6 @@
 [submodule "external/simdjson"]
 	path = external/simdjson
 	url = https://github.com/simdjson/simdjson.git
+[submodule "external/bazel_clang_tidy"]
+	path = external/bazel_clang_tidy
+	url = https://github.com/erenon/bazel_clang_tidy.git

@@ -6,7 +6,7 @@ export MKDIR = mkdir -p
 export RM = rm -rf
 
 export CMD ?= bash
-export DOCKER_IMAGE ?= cajunhotpot/cris-build-debian11:20220808
+export DOCKER_IMAGE ?= cajunhotpot/cris-build-debian11:20221204
 
 .PHONY: all
 all: ci
@@ -57,6 +57,10 @@ ci:
 .PHONY: lint
 lint: scripts/format_all.sh
 	$<
+
+.PHONY: tidy
+tidy: scripts/bazel_wrapper.sh | lint
+	$< build --config=prof --config=lint //...
 
 .PHONY: build
 build: scripts/bazel_wrapper.sh scripts/distro_cc.sh

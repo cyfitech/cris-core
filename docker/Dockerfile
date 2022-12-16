@@ -108,6 +108,27 @@ RUN set -e; \
         sudo rm -rf /var/lib/apt/lists/*; \
         ;; \
     esac; \
+    case "$DISTRO_ID-$DISTRO_VERSION_ID/$CRIS_IMG_ARCH" in \
+    'ubuntu-20.04/amd64') \
+        echo "deb http://archive.ubuntu.com/ubuntu/ $(lsb_release -cs)-proposed restricted main multiverse universe" \
+        | sudo tee /etc/apt/sources.list.d/ubuntu-$(lsb_release -cs)-proposed.list \
+        > /dev/null; \
+        ;; \
+    'ubuntu-20.04/'*) \
+        echo "deb http://ports.ubuntu.com/ubuntu-ports $(lsb_release -cs)-proposed restricted main multiverse universe" \
+        | sudo tee /etc/apt/sources.list.d/ubuntu-$(lsb_release -cs)-proposed.list \
+        > /dev/null; \
+        ;; \
+    esac; \
+    if [ _"$DISTRO_ID" == '_ubuntu' ]; then \
+        printf '%s\n' \
+            '# Configure apt to allow selective installs of packages from proposed' \
+            'Package: *' \
+            "Pin: release a=$(lsb_release -cs)-proposed" \
+            'Pin-Priority: 400' \
+        | sudo tee /etc/apt/preferences.d/proposed-updates \
+        > /dev/null; \
+    fi; \
     truncate -s0 ~/.bash_history;
 
 FROM bootstrap as dev
@@ -185,7 +206,7 @@ RUN set -e; \
                 jq \
                 lib{asan6,lsan0,tsan0,ubsan1} \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$' >/dev/null || echo lib{asan8,tsan2}) \
-                lib{boost-all,curl4-openssl,edit,eigen3,event,gflags,gmp,gtest,hiredis,hwloc,leveldb,lmdb,lzma,mpfr,mpc,ncurses5,rocksdb,snappy,ssl,tbb}-dev \
+                lib{benchmark,boost-all,curl4-openssl,edit,eigen3,event,gflags,gmp,gtest,hiredis,hwloc,leveldb,lmdb,lzma,mpfr,mpc,ncurses5,rocksdb,snappy,ssl,tbb}-dev \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^debian\-11$'     >/dev/null || echo libc++{,abi}-11-dev lldb-11) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-20\.04$' >/dev/null || echo libc++{,abi}-12-dev lldb-12) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$' >/dev/null || echo libc++{,abi}-14-dev lldb-14) \
@@ -195,6 +216,8 @@ RUN set -e; \
                 libtool \
                 llvm-11{,-tools} {clang{,-{format,tidy,tools}},lld}-11 \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[02]\.04$' >/dev/null || echo llvm-12{,-tools} {clang{,-{format,tidy,tools}},lld}-12) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[024]\.04$' >/dev/null || echo llvm-13{,-tools} {clang{,-{format,tidy,tools}},lld}-13) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^debian\-1[12]$' >/dev/null || echo llvm-13{,-tools} {clang{,-{format,tidy,tools}},lld}-13) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$' >/dev/null || echo llvm-14{,-tools} {clang{,-{format,tidy,tools}},lld}-14) \
                 locales \
                 locate \

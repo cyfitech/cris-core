@@ -1,5 +1,9 @@
 workspace(name = "cris-core")
 
+load("@cris-core//bazel:repo.bzl", "cris_toolchains")
+
+cris_toolchains()
+
 local_repository(
     name = "rules_foreign_cc",
     path = "external/rules_foreign_cc",

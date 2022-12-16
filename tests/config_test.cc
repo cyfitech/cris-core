@@ -1,5 +1,7 @@
 #include "cris/core/config/config.h"
 
+#include "cris/core/config/recorder_config.h"
+
 #include <gtest/gtest.h>
 
 #include <fmt/core.h>
@@ -167,6 +169,151 @@ TEST_F(ConfigTest, WrongFilePath) {
     int default_val = 100;
     EXPECT_EQ(empty_config.Get<int>("key", default_val)->GetValue(), default_val);
     EXPECT_EQ(invalid_file_config.Get<int>("key", default_val)->GetValue(), default_val);
+}
+
+class RecordConfigTest : public testing::Test {
+   public:
+    RecordConfigTest()
+        : testing::Test()
+        , test_config_path_(fs::temp_directory_path() / fmt::format("record_config_test.pid.{}.json", getpid())) {}
+
+    ~RecordConfigTest() { fs::remove(test_config_path_); }
+
+    ConfigFile MakeRecordConfigFile(std::string content) const {
+        std::ofstream config_file(test_config_path_);
+        config_file << std::move(content);
+        config_file.flush();
+        return ConfigFile(test_config_path_);
+    }
+
+    fs::path GetRecordConfigPath() const { return test_config_path_; };
+
+   private:
+    fs::path test_config_path_;
+};
+
+TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
+    {
+        auto recorder_config_file = MakeRecordConfigFile(
+            R"({
+                "recorder": {
+                    "record_dir": "record_test"
+                }
+            })");
+
+        RecorderConfig recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
+
+        EXPECT_EQ(recorder_config.snapshot_intervals_.size(), 0);
+        EXPECT_EQ(recorder_config.record_dir_, "record_test");
+    }
+
+    {
+        auto recorder_config_file = MakeRecordConfigFile(
+            R"({
+                "recorder": {
+                    "snapshot_intervals" : [],
+                    "record_dir": "record_test"
+                }
+            })");
+
+        RecorderConfig recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
+
+        EXPECT_EQ(recorder_config.snapshot_intervals_.size(), 0);
+        EXPECT_EQ(recorder_config.record_dir_, "record_test");
+    }
+
+    {
+        auto recorder_config_file = MakeRecordConfigFile(
+            R"({
+                "recorder": {
+                    "snapshot_intervals" : [
+                        {
+                            "interval_name": "SECONDLY",
+                            "interval_sec": 5
+                        },
+                        {
+                            "interval_name": "HOURLY",
+                            "interval_sec": 1
+                        }
+                    ],
+                    "record_dir": "record_test"
+                }
+            })");
+
+        RecorderConfig recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
+
+        EXPECT_EQ(recorder_config.snapshot_intervals_.size(), 2);
+        EXPECT_EQ(recorder_config.snapshot_intervals_.front().name_, "SECONDLY");
+        EXPECT_EQ(recorder_config.snapshot_intervals_.front().interval_sec_, std::chrono::seconds(5));
+        EXPECT_EQ(recorder_config.snapshot_intervals_.back().name_, "HOURLY");
+        EXPECT_EQ(recorder_config.snapshot_intervals_.back().interval_sec_, std::chrono::seconds(1));
+        EXPECT_EQ(recorder_config.record_dir_, "record_test");
+    }
+
+    {
+        auto recorder_config_file = MakeRecordConfigFile(
+            R"({
+                "recorder": {
+                    "snapshot_intervals" : [
+                        {
+                            "interval_name": "SECONDLY",
+                            "interval_sec": 5
+                        }
+                    ]
+                }
+            })");
+
+        RecorderConfig recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
+
+        EXPECT_EQ(recorder_config.snapshot_intervals_.size(), 1);
+        EXPECT_EQ(recorder_config.snapshot_intervals_.front().name_, "SECONDLY");
+        EXPECT_EQ(recorder_config.snapshot_intervals_.front().interval_sec_, std::chrono::seconds(5));
+        EXPECT_EQ(recorder_config.record_dir_, "");
+    }
+}
+
+TEST_F(RecordConfigTest, RecorderConfigTestInvalid) {
+    {
+        auto recorder_config_file = MakeRecordConfigFile(
+            R"({
+            "recorder": {
+                "snapshot_intervals" : [
+                    {
+                        "interval_name": "SECONDLY"
+                    }
+                ],
+                "record_dir": "record_test"
+            }
+        })");
+
+        EXPECT_DEATH(
+            recorder_config_file.Get<RecorderConfig>("recorder"),
+            "\"interval_sec\" is required. The JSON field referenced does not exist in this object.");
+    }
+
+    {
+        auto recorder_config_file = MakeRecordConfigFile(
+            R"({
+            "recorder": {
+                "snapshot_intervals" : [],
+                "record_dir": 5
+            }
+        })");
+
+        EXPECT_DEATH(
+            recorder_config_file.Get<RecorderConfig>("recorder"),
+            "Expect a string for \"record_dir\". The JSON element does not have the requested type.");
+    }
+}
+
+TEST_F(RecordConfigTest, RecorderConfigTestDefault) {
+    {
+        auto recorder_config_file = MakeRecordConfigFile("{}");
+
+        RecorderConfig recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
+        EXPECT_EQ(recorder_config.snapshot_intervals_.size(), 0);
+        EXPECT_EQ(recorder_config.record_dir_, "");
+    }
 }
 
 }  // namespace cris::core

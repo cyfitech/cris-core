@@ -1,0 +1,9 @@
+UseColor: true
+
+Checks: >
+    -clang-analyzer-cplusplus.NewDeleteLeaks,
+    -clang-diagnostic-defaulted-function-deleted,
+
+WarningsAsErrors: "*"
+
+HeaderFilterRegex: 'cris.*'

@@ -35,3 +35,8 @@ build:tsan --linkopt="-fsanitize-link-c++-runtime"
 build:ubsan --copt="-fsanitize=undefined"
 build:ubsan --linkopt="-fsanitize=undefined"
 build:ubsan --linkopt="-fsanitize-link-c++-runtime"
+
+build:lint --aspects=@bazel_clang_tidy//clang_tidy:clang_tidy.bzl%clang_tidy_aspect
+build:lint --@bazel_clang_tidy//:clang_tidy_executable=@cris_toolchains//:clang_tidy_wrapper
+build:lint --@bazel_clang_tidy//:clang_tidy_config=//:clang_tidy_config
+build:lint --output_groups=report

@@ -290,6 +290,9 @@ cr_duration_nsec_t TimerReport::GetAverageDurationNsec() const {
         total_hits += bucket.hits_;
         total_duration_ns += bucket.total_duration_ns_;
     }
+    if (total_duration_ns < 0 || !total_hits) {
+        return 0;
+    }
     return static_cast<cr_duration_nsec_t>(static_cast<unsigned long long>(total_duration_ns) / total_hits);
 }
 

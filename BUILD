@@ -62,6 +62,18 @@ cris_cc_library (
 )
 
 cris_cc_library (
+    name = "internal_msg_recorder_utils",
+    srcs = glob(["src/msg_recorder/impl/**/*.cc"]),
+    hdrs = glob(["src/msg_recorder/impl/**/*.h"]),
+    include_prefix = "cris/core",
+    strip_include_prefix = "src",
+    deps = [
+        ":msg",
+    ],
+    visibility = ["//visibility:private"],
+)
+
+cris_cc_library (
     name = "internal_msg_record_file",
     srcs = ["src/msg_recorder/record_file.cc"],
     hdrs = ["src/msg_recorder/record_file.h"],
@@ -85,8 +97,6 @@ cris_cc_library (
     srcs = [
         "src/msg_recorder/recorder.cc",
         "src/msg_recorder/replayer.cc",
-        "src/msg_recorder/impl/utils.h",
-        "src/msg_recorder/impl/utils.cc",
     ],
     hdrs = [
         "src/msg_recorder/recorder.h",
@@ -95,8 +105,10 @@ cris_cc_library (
     include_prefix = "cris/core",
     strip_include_prefix = "src",
     deps = [
+        ":config",
         ":msg",
         ":internal_msg_record_file",
+        ":internal_msg_recorder_utils",
         "@fmt//:libfmt",
     ],
 )
@@ -144,4 +156,9 @@ cris_cc_library (
         ":utils",
         "@simdjson//:libsimdjson",
     ],
+)
+
+filegroup(
+    name = "clang_tidy_config",
+    srcs = [".clang-tidy"],
 )
