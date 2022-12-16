@@ -92,9 +92,6 @@ cris_cc_library (
     ],
     include_prefix = "cris/core",
     strip_include_prefix = "src",
-    linkopts = [
-        "-ltbb",
-    ],
     deps = [
         ":config",
         ":msg",

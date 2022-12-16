@@ -6,7 +6,6 @@
 #include "fmt/core.h"
 #include "impl/utils.h"
 
-#include <execution>
 #include <filesystem>
 
 namespace cris::core {
@@ -94,7 +93,7 @@ void MessageRecorder::StopMainLoop() {
 void MessageRecorder::GenerateSnapshot() {
     {
         std::unique_lock lock(snapshot_mtx_);
-        std::for_each(std::execution::par_unseq, files_.begin(), files_.end(), [](auto& file) { file->CloseDB(); });
+        std::for_each(files_.begin(), files_.end(), [](auto& file) { file->CloseDB(); });
     }
 
     // create dir for individual interval
@@ -130,7 +129,7 @@ void MessageRecorder::GenerateSnapshot() {
 
     {
         std::unique_lock lock(snapshot_mtx_);
-        std::for_each(std::execution::par_unseq, files_.begin(), files_.end(), [](auto& file) { file->OpenDB(); });
+        std::for_each(files_.begin(), files_.end(), [](auto& file) { file->OpenDB(); });
     }
 }
 
