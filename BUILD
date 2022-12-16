@@ -4,8 +4,7 @@ load("//bazel:rules.bzl", "cris_cc_library")
 
 cris_cc_library(
     name = "custom_main",
-    srcs = glob(["src/custom_main/*.cc"]),
-    hdrs = glob(["src/custom_main/*.h"]),
+    srcs = ["src/custom_main/cris_gtest_main.cc"],
     include_prefix = "cris/core",
     strip_include_prefix = "src",
     deps = [
