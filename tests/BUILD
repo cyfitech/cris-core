@@ -10,6 +10,15 @@ cris_cc_test (
 )
 
 cris_cc_test (
+    name = "misc_test",
+    srcs = ["misc_test.cc"],
+    deps = [
+        "//:utils",
+        "@gtest//:gtest_main",
+    ],
+)
+
+cris_cc_test (
     name = "message_test",
     srcs = ["message_test.cc"],
     deps = [
