@@ -10,8 +10,8 @@ cris_cc_test (
 )
 
 cris_cc_test (
-    name = "misc_test",
-    srcs = ["misc_test.cc"],
+    name = "mapping_test",
+    srcs = ["mapping_test.cc"],
     deps = [
         "//:utils",
         "@gtest//:gtest_main",

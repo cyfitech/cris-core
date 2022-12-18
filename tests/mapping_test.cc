@@ -1,16 +1,16 @@
-#include "cris/core/utils/misc.h"
+#include "cris/core/utils/mapping.h"
 
 #include <gtest/gtest.h>
 
-#include <map>
 #include <string>
+#include <unordered_map>
 
 namespace cris::core {
-TEST(MiscTest, InverseMapping_NoDuplicate) {
-    std::map<int, std::string> original_map{{1, "a"}, {2, "b"}};
+TEST(MiscTest, InverseMapping_InjectiveMapping) {
+    std::unordered_map<int, std::string> original_map{{1, "a"}, {2, "b"}};
 
     auto inversed_map = InverseMapping(original_map);
-    EXPECT_EQ(inversed_map.size(), 2u);
+    EXPECT_EQ(inversed_map.size(), original_map.size());
 
     {
         const auto iter = inversed_map.find("a");
@@ -25,9 +25,9 @@ TEST(MiscTest, InverseMapping_NoDuplicate) {
     }
 }
 
-TEST(MiscTest, InverseMapping_HasDuplicate) {
-    std::map<int, std::string> original_map{{1, "a"}, {2, "b"}, {3, "a"}};
+TEST(MiscTest, InverseMapping_NonInjectiveMapping) {
+    std::unordered_map<int, std::string> original_map{{1, "a"}, {2, "b"}, {3, "a"}};
 
-    EXPECT_DEATH(InverseMapping(original_map), "duplicate value");
+    EXPECT_THROW(InverseMapping(original_map), std::logic_error);
 }
 }  // namespace cris::core
