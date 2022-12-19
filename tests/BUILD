@@ -12,6 +12,15 @@ cris_cc_test (
 )
 
 cris_cc_test (
+    name = "mapping_test",
+    srcs = ["mapping_test.cc"],
+    deps = [
+        "//:utils",
+        "@gtest//:gtest_main",
+    ],
+)
+
+cris_cc_test (
     name = "message_test",
     srcs = ["message_test.cc"],
     deps = [
