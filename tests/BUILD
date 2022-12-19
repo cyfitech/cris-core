@@ -1,11 +1,13 @@
 load("//bazel:rules.bzl", "cris_cc_test")
 
+exports_files(["utils/cris_gtest_main.cc"])
+
 cris_cc_test (
     name = "defs_test",
     srcs = ["defs_test.cc"],
     deps = [
         "//:utils",
-        "//:custom_main",
+        "@cris-core//:cris_gtest_main",
     ],
 )
 
@@ -14,7 +16,7 @@ cris_cc_test (
     srcs = ["message_test.cc"],
     deps = [
         "//:msg",
-        "//:custom_main",
+        "@cris-core//:cris_gtest_main",
     ],
 )
 
@@ -23,7 +25,7 @@ cris_cc_test (
     srcs = ["msg_recorder_test.cc"],
     deps = [
         "//:msg_recorder",
-        "//:custom_main",
+        "@cris-core//:cris_gtest_main",
     ],
     flaky = True,
 )
@@ -33,7 +35,7 @@ cris_cc_test (
     srcs = ["record_file_db_reopen_test.cc"],
     deps = [
         "//:msg_recorder",
-        "@gtest//:gtest_main",
+        "@cris-core//:cris_gtest_main",
     ],
 )
 
@@ -48,7 +50,7 @@ cris_cc_test (
     ],
     deps = [
         "//:msg",
-        "//:custom_main",
+        "@cris-core//:cris_gtest_main",
     ],
 )
 
@@ -57,7 +59,7 @@ cris_cc_test (
     srcs = ["timer_test.cc"],
     deps = [
         "//:timer",
-        "//:custom_main",
+        "@cris-core//:cris_gtest_main",
     ],
 )
 
@@ -77,7 +79,7 @@ cris_cc_test (
     ],
     deps = [
         "//:sched",
-        "//:custom_main",
+        "@cris-core//:cris_gtest_main",
     ],
 )
 
@@ -87,7 +89,7 @@ cris_cc_test (
     deps = [
         "//:config",
         "@fmt//:libfmt",
-        "//:custom_main",
+        "@cris-core//:cris_gtest_main",
     ],
 )
 
@@ -96,6 +98,6 @@ cris_cc_test (
     srcs = ["record_key_test.cc"],
     deps = [
         "//:msg_recorder",
-        "//:custom_main",
+        "@cris-core//:cris_gtest_main",
     ],
 )
