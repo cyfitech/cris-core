@@ -127,7 +127,8 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
                 EXPECT_EQ(previous_value, 0);
             } else {
                 const std::size_t expect_value =
-                    static_cast<std::size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(interval_config.interval_sec_).count()) /
+                    static_cast<std::size_t>(
+                        std::chrono::duration_cast<std::chrono::milliseconds>(interval_config.interval_sec_).count()) /
                     kSleepBetweenMessages.count() * entry_index;
                 EXPECT_TRUE(
                     (previous_value >= expect_value - kFlakyIgnoreNum) &&
@@ -141,7 +142,8 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
             std::chrono::duration_cast<std::chrono::seconds>(kMessageNum * kSleepBetweenMessages).count();
 
         // Plus the origin snapshot
-        const std::size_t kExpectedSnapshotNum = kTotalTimeSec / static_cast<std::size_t>(interval_config.interval_sec_.count()) + 1;
+        const std::size_t kExpectedSnapshotNum =
+            kTotalTimeSec / static_cast<std::size_t>(interval_config.interval_sec_.count()) + 1;
 
         EXPECT_EQ(path_pair.second.size(), kExpectedSnapshotNum);
     }
