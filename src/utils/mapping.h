@@ -10,7 +10,7 @@ Map<V, K> InverseMapping(const Map<K, V>& original_map) {
     Map<V, K> inversed_map;
     for (const auto& [k, v] : original_map) {
         const auto [iter, ok] = inversed_map.emplace(v, k);
-        if (not ok) {
+        if (!ok) {
             throw std::logic_error{"Duplicate value."};
         }
     }
