@@ -61,7 +61,6 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     static constexpr std::size_t     kMessageNum           = 40;
     static constexpr channel_subid_t kTestIntChannelSubId  = 11;
     static constexpr auto            kSleepBetweenMessages = std::chrono::milliseconds(100);
-    static constexpr auto            kSnapshotTimeInterval = std::chrono::seconds(1);
 
     JobRunner::Config config = {
         .thread_num_ = kThreadNum,
@@ -70,7 +69,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
 
     RecorderConfig::IntervalConfig interval_config{
         .name_         = std::string("SECONDLY"),
-        .interval_sec_ = kSnapshotTimeInterval,
+        .interval_sec_ = std::chrono::seconds(1),
     };
 
     RecorderConfig recorder_config{
@@ -128,7 +127,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
                 EXPECT_EQ(previous_value, 0);
             } else {
                 const std::size_t expect_value =
-                    std::chrono::duration_cast<std::chrono::milliseconds>(kSnapshotTimeInterval).count() /
+                    static_cast<std::size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(interval_config.interval_sec_).count()) /
                     kSleepBetweenMessages.count() * entry_index;
                 EXPECT_TRUE(
                     (previous_value >= expect_value - kFlakyIgnoreNum) &&
@@ -136,11 +135,13 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
             }
         }
 
+        EXPECT_EQ(path_pair.first, interval_config.name_);
+
         const std::size_t kTotalTimeSec =
             std::chrono::duration_cast<std::chrono::seconds>(kMessageNum * kSleepBetweenMessages).count();
 
         // Plus the origin snapshot
-        const std::size_t kExpectedSnapshotNum = kTotalTimeSec / kSnapshotTimeInterval.count() + 1;
+        const std::size_t kExpectedSnapshotNum = kTotalTimeSec / static_cast<std::size_t>(interval_config.interval_sec_.count()) + 1;
 
         EXPECT_EQ(path_pair.second.size(), kExpectedSnapshotNum);
     }
