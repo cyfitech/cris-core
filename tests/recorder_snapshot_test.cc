@@ -29,6 +29,8 @@ class RecorderSnapshotTest : public testing::Test {
     RecorderSnapshotTest() : testing::Test() { std::filesystem::create_directories(GetTestTempDir()); }
     ~RecorderSnapshotTest() { std::filesystem::remove_all(GetTestTempDir()); }
 
+    void TestSnapshot(RecorderConfig record_config);
+
     std::filesystem::path GetTestTempDir() const { return record_test_temp_dir_; }
 
    private:
@@ -56,7 +58,7 @@ std::string MessageToStr(const TestMessage& msg) {
     return serialized_msg;
 }
 
-TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
+void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
     static constexpr std::size_t     kThreadNum            = 4;
     static constexpr std::size_t     kMessageNum           = 40;
     static constexpr channel_subid_t kTestIntChannelSubId  = 11;
@@ -66,16 +68,6 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
         .thread_num_ = kThreadNum,
     };
     auto runner = JobRunner::MakeJobRunner(config);
-
-    RecorderConfig::IntervalConfig interval_config{
-        .name_         = std::string("SECONDLY"),
-        .interval_sec_ = std::chrono::seconds(1),
-    };
-
-    RecorderConfig recorder_config{
-        .snapshot_intervals_ = {interval_config},
-        .record_dir_         = GetTestTempDir(),
-    };
 
     MessageRecorder recorder(recorder_config, runner);
     recorder.RegisterChannel<TestMessage>(kTestIntChannelSubId);
@@ -98,6 +90,9 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     const std::size_t kFlakyIgnoreNum = 1;
 
     for (const auto& path_pair : snapshot_path_map) {
+        const std::size_t path_pair_index =
+            static_cast<std::size_t>(distance(snapshot_path_map.begin(), snapshot_path_map.find(path_pair.first)));
+
         for (std::size_t entry_index = 0; entry_index < path_pair.second.size(); ++entry_index) {
             MessageReplayer replayer(path_pair.second[entry_index]);
             core::CRNode    subscriber(runner);
@@ -127,23 +122,68 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
                 EXPECT_EQ(previous_value, 0);
             } else {
                 const std::size_t expect_value =
-                    static_cast<std::size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(interval_config.interval_sec_).count()) /
+                    static_cast<std::size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                                 recorder_config.snapshot_intervals_[path_pair_index].interval_sec_)
+                                                 .count()) /
                     kSleepBetweenMessages.count() * entry_index;
                 EXPECT_TRUE(
                     (previous_value >= expect_value - kFlakyIgnoreNum) &&
                     (previous_value <= expect_value + kFlakyIgnoreNum));
+                EXPECT_EQ(previous_value, expect_value);
             }
         }
 
-        EXPECT_EQ(path_pair.first, interval_config.name_);
+        EXPECT_EQ(path_pair.first, recorder_config.snapshot_intervals_[path_pair_index].name_);
 
         const std::size_t kTotalTimeSec =
             std::chrono::duration_cast<std::chrono::seconds>(kMessageNum * kSleepBetweenMessages).count();
 
+        const std::size_t kCurrentIntervalSec =
+            static_cast<std::size_t>(recorder_config.snapshot_intervals_[path_pair_index].interval_sec_.count());
+
         // Plus the origin snapshot
-        const std::size_t kExpectedSnapshotNum = kTotalTimeSec / static_cast<std::size_t>(interval_config.interval_sec_.count()) + 1;
+        const std::size_t kExpectedSnapshotNum = kTotalTimeSec / kCurrentIntervalSec + 1;
 
         EXPECT_EQ(path_pair.second.size(), kExpectedSnapshotNum);
     }
 }
+
+TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
+    RecorderConfig::IntervalConfig interval_config{
+        .name_         = std::string("SECONDLY"),
+        .interval_sec_ = std::chrono::seconds(1),
+    };
+
+    RecorderConfig single_interval_config{
+        .snapshot_intervals_ = {interval_config},
+        .record_dir_         = GetTestTempDir(),
+    };
+
+    TestSnapshot(single_interval_config);
+}
+
+TEST_F(RecorderSnapshotTest, RecorderSnapshotMultiIntervalTest) {
+    std::vector<RecorderConfig::IntervalConfig> interval_configs{
+        {
+            .name_         = std::string("SECONDLY_1"),
+            .interval_sec_ = std::chrono::seconds(1),
+        },
+        {
+            .name_         = std::string("SECONDLY_2"),
+            .interval_sec_ = std::chrono::seconds(2),
+        },
+        {
+            .name_         = std::string("SECONDLY_4"),
+            .interval_sec_ = std::chrono::seconds(4),
+        },
+    };
+
+    RecorderConfig multi_interval_config{
+        .snapshot_intervals_ = interval_configs,
+        .record_dir_         = GetTestTempDir(),
+    };
+
+    TestSnapshot(multi_interval_config);
+}
+
 }  // namespace cris::core
