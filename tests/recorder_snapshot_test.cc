@@ -36,26 +36,22 @@ class RecorderSnapshotTest : public testing::Test {
         std::filesystem::temp_directory_path() / (std::string("CRSnapshotTestTmpDir.") + std::to_string(getpid()))};
 };
 
-template<class T>
-    requires std::is_standard_layout_v<T>
-struct TestMessage : public CRMessage<TestMessage<T>> {
-    using data_type = T;
+struct TestMessage : public CRMessage<TestMessage> {
+    using data_type = std::size_t;
 
     TestMessage() = default;
 
-    explicit TestMessage(T val) : value_(std::move(val)) {}
+    explicit TestMessage(std::size_t val) : value_(std::move(val)) {}
 
-    T value_{};
+    std::size_t value_{};
 };
 
-template<class T>
-void MessageFromStr(TestMessage<T>& msg, const std::string& serialized_msg) {
-    std::memcpy(&msg.value_, serialized_msg.c_str(), std::min(sizeof(T), serialized_msg.size()));
+void MessageFromStr(TestMessage& msg, const std::string& serialized_msg) {
+    std::memcpy(&msg.value_, serialized_msg.c_str(), std::min(sizeof(std::size_t), serialized_msg.size()));
 }
 
-template<class T>
-std::string MessageToStr(const TestMessage<T>& msg) {
-    std::string serialized_msg(sizeof(T), 0);
+std::string MessageToStr(const TestMessage& msg) {
+    std::string serialized_msg(sizeof(std::size_t), 0);
     std::memcpy(&serialized_msg[0], &msg.value_, serialized_msg.size());
     return serialized_msg;
 }
@@ -63,10 +59,9 @@ std::string MessageToStr(const TestMessage<T>& msg) {
 TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     static constexpr std::size_t     kThreadNum            = 4;
     static constexpr std::size_t     kMessageNum           = 40;
-    static constexpr std::size_t     kFlakyIgnoreNum       = 1;
-    static constexpr double          kSpeedUpFactor        = 1e9;
     static constexpr channel_subid_t kTestIntChannelSubId  = 11;
     static constexpr auto            kSleepBetweenMessages = std::chrono::milliseconds(100);
+    static constexpr auto            kSnapshotTimeInterval = std::chrono::seconds(1);
 
     JobRunner::Config config = {
         .thread_num_ = kThreadNum,
@@ -75,7 +70,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
 
     RecorderConfig::IntervalConfig interval_config{
         .name_         = std::string("SECONDLY"),
-        .interval_sec_ = std::chrono::seconds(1),
+        .interval_sec_ = kSnapshotTimeInterval,
     };
 
     RecorderConfig recorder_config{
@@ -84,40 +79,40 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     };
 
     MessageRecorder recorder(recorder_config, runner);
-    recorder.RegisterChannel<TestMessage<std::size_t>>(kTestIntChannelSubId);
+    recorder.RegisterChannel<TestMessage>(kTestIntChannelSubId);
     core::CRNode publisher;
 
     auto wake_up_time = std::chrono::steady_clock::now();
 
     for (std::size_t i = 1; i <= kMessageNum; ++i) {
-        auto test_message = std::make_shared<TestMessage<std::size_t>>(i);
+        auto test_message = std::make_shared<TestMessage>(i);
         publisher.Publish(kTestIntChannelSubId, std::move(test_message));
 
         wake_up_time += kSleepBetweenMessages;
         std::this_thread::sleep_until(wake_up_time);
     }
 
-    // Make sure messages arrive records
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-
     // Test content under each snapshot directory
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
+
+    // Ignore one snapshot number at two ends for flexibility
+    const std::size_t kFlakyIgnoreNum = 1;
 
     for (const auto& path_pair : snapshot_path_map) {
         for (std::size_t entry_index = 0; entry_index < path_pair.second.size(); ++entry_index) {
             MessageReplayer replayer(path_pair.second[entry_index]);
             core::CRNode    subscriber(runner);
 
-            replayer.RegisterChannel<TestMessage<std::size_t>>(kTestIntChannelSubId);
-            replayer.SetSpeedupRate(kSpeedUpFactor);
+            replayer.RegisterChannel<TestMessage>(kTestIntChannelSubId);
+            replayer.SetSpeedupRate(1e9);
 
-            auto previous_value = std::make_shared<std::atomic<std::size_t>>(0);
+            auto previous_size_t = std::make_shared<std::atomic<std::size_t>>(0);
 
-            subscriber.Subscribe<TestMessage<std::size_t>>(
+            subscriber.Subscribe<TestMessage>(
                 kTestIntChannelSubId,
-                [&previous_value](const std::shared_ptr<TestMessage<std::size_t>>& message) {
-                    EXPECT_EQ(message->value_ - previous_value->load(), 1);
-                    previous_value->store(message->value_);
+                [&previous_size_t](const std::shared_ptr<TestMessage>& message) {
+                    EXPECT_EQ(message->value_ - previous_size_t->load(), 1);
+                    previous_size_t->store(message->value_);
                 },
                 /* allow_concurrency = */ false);
 
@@ -128,23 +123,26 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
 
             // Make sure the data ends around our snapshot timepoint
             // Example: if i = 4 when we made the snapshot, then we should have 01234
+            const std::size_t previous_value = previous_size_t->load();
             if (entry_index == 0) {
-                EXPECT_EQ(previous_value->load(), 0);
+                EXPECT_EQ(previous_value, 0);
             } else {
                 const std::size_t expect_value =
-                    std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::seconds(1)).count() /
+                    std::chrono::duration_cast<std::chrono::milliseconds>(kSnapshotTimeInterval).count() /
                     kSleepBetweenMessages.count() * entry_index;
                 EXPECT_TRUE(
-                    (previous_value->load() >= expect_value - kFlakyIgnoreNum) &&
-                    (previous_value->load() <= expect_value + kFlakyIgnoreNum));
+                    (previous_value >= expect_value - kFlakyIgnoreNum) &&
+                    (previous_value <= expect_value + kFlakyIgnoreNum));
             }
         }
 
-        const std::size_t sleep_total_sec_count =
+        const std::size_t kTotalTimeSec =
             std::chrono::duration_cast<std::chrono::seconds>(kMessageNum * kSleepBetweenMessages).count();
 
         // Plus the origin snapshot
-        EXPECT_EQ(path_pair.second.size(), sleep_total_sec_count + 1);
+        const std::size_t kExpectedSnapshotNum = kTotalTimeSec / kSnapshotTimeInterval.count() + 1;
+
+        EXPECT_EQ(path_pair.second.size(), kExpectedSnapshotNum);
     }
 }
 }  // namespace cris::core

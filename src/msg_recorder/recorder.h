@@ -38,12 +38,11 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     template<CRMessageType message_t>
     void RegisterChannel(const channel_subid_t subid, const std::string& alias = "");
 
-    void AccomplishSnapshotJob();
+    void GenerateSnapshot();
 
     std::filesystem::path GetRecordDir() const;
 
-    // A map with user specified interval name being the key,
-    // and snapshot paths within time interval being the value, in order of ascending directory construction time
+    // Mapping from interval names to snapshot lists. Snapshots are ordered from old to new in the lists.
     std::map<std::string, std::vector<std::filesystem::path>> GetSnapshotPaths();
 
    private:
@@ -51,10 +50,10 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
 
     RecordFile* CreateFile(const std::string& message_type, const channel_subid_t subid, const std::string& alias);
 
-    void GenerateSnapshot();
+    void GenerateSnapshotImpl();
 
     void SnapshotWorker();
-    void SnapshotWorkerEnd();
+    void StopSnapshotWorker();
 
     static std::string RecordDirNameGenerator();
     static std::string SnapshotDirNameGenerator();

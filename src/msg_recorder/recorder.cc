@@ -38,7 +38,7 @@ void MessageRecorder::SnapshotWorker() {
     while (!snapshot_shutdown_flag_.load()) {
         wake_up_time += sleep_interval;
         if ((wake_up_time - std::chrono::steady_clock::now()) > kSkipThreshold) {
-            AccomplishSnapshotJob();
+            GenerateSnapshot();
         } else {
             LOG(WARNING) << __func__ << ": A snapshot job skipped: too close to the next snapshot timepoint.";
         }
@@ -47,11 +47,11 @@ void MessageRecorder::SnapshotWorker() {
     }
 }
 
-void MessageRecorder::AccomplishSnapshotJob() {
+void MessageRecorder::GenerateSnapshot() {
     bool snapshot_generated_flag = false;
     AddJobToRunner(
         [this, &snapshot_generated_flag]() {
-            GenerateSnapshot();
+            GenerateSnapshotImpl();
             {
                 std::lock_guard lck(snapshot_mtx_);
                 snapshot_generated_flag = true;
@@ -63,7 +63,7 @@ void MessageRecorder::AccomplishSnapshotJob() {
     snapshot_cv_.wait(lock, [&snapshot_generated_flag] { return snapshot_generated_flag; });
 }
 
-void MessageRecorder::SnapshotWorkerEnd() {
+void MessageRecorder::StopSnapshotWorker() {
     if (auto runner = runner_weak_.lock()) {
         runner->Stop();
     }
@@ -78,7 +78,7 @@ void MessageRecorder::SnapshotWorkerEnd() {
 }
 
 MessageRecorder::~MessageRecorder() {
-    SnapshotWorkerEnd();
+    StopSnapshotWorker();
     files_.clear();
     if (std::filesystem::is_empty(GetRecordDir())) {
         LOG(INFO) << "Record dir " << GetRecordDir() << " is empty, removing...";
@@ -87,11 +87,11 @@ MessageRecorder::~MessageRecorder() {
 }
 
 void MessageRecorder::StopMainLoop() {
-    SnapshotWorkerEnd();
+    StopSnapshotWorker();
 }
 
-void MessageRecorder::GenerateSnapshot() {
-    std::lock_guard lock(snapshot_mtx_);
+void MessageRecorder::GenerateSnapshotImpl() {
+    std::lock_guard lck(snapshot_mtx_);
 
     std::for_each(files_.begin(), files_.end(), [](auto& file) { file->CloseDB(); });
 
@@ -143,7 +143,7 @@ std::filesystem::path MessageRecorder::GetRecordDir() const {
 
 std::map<std::string, std::vector<std::filesystem::path>> MessageRecorder::GetSnapshotPaths() {
     std::map<std::string, std::vector<std::filesystem::path>> result_map;
-    std::lock_guard                                           lock(snapshot_mtx_);
+    std::lock_guard                                           lck(snapshot_mtx_);
 
     for (const auto& [interval_name, snapshot_path_list] : snapshot_path_map_) {
         result_map[interval_name] = std::vector(snapshot_path_list.begin(), snapshot_path_list.end());
@@ -160,7 +160,7 @@ RecordFile* MessageRecorder::CreateFile(
 
     RecordFile* record_file = nullptr;
     {
-        std::lock_guard lock(snapshot_mtx_);
+        std::lock_guard lck(snapshot_mtx_);
         record_file = files_.emplace_back(std::make_unique<RecordFile>(path)).get();
     }
 
