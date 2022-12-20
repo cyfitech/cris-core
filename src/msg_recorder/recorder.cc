@@ -51,7 +51,7 @@ void MessageRecorder::SnapshotWorker() {
 
         // Record all the time intervals that satisfy the next snapshot condition
         while (this_turn_sec_count % time.interval_sec_.count() == 0) {
-            snapshot_destination_paths_.push_back(time);
+            snapshot_destination_intervals_.push_back(time);
             wake_up_queue.pop();
             if (wake_up_queue.empty()) {
                 break;
@@ -60,14 +60,14 @@ void MessageRecorder::SnapshotWorker() {
         }
 
         // Push the time intervals back for the next iteration
-        for (const auto& current_time : snapshot_destination_paths_) {
+        for (const auto& current_time : snapshot_destination_intervals_) {
             wake_up_queue.push(current_time);
         }
 
-        const auto kSkipThreshold =
-            std::chrono::duration_cast<std::chrono::milliseconds>(snapshot_destination_paths_.front().interval_sec_) *
+        const auto kSkipThreshold = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                        snapshot_destination_intervals_.front().interval_sec_) *
             0.5;
-        wake_up_time += snapshot_destination_paths_.front().interval_sec_;
+        wake_up_time += snapshot_destination_intervals_.front().interval_sec_;
 
         if ((wake_up_time - std::chrono::steady_clock::now()) > kSkipThreshold) {
             GenerateSnapshot();
@@ -127,7 +127,7 @@ void MessageRecorder::GenerateSnapshotImpl() {
 
     std::for_each(files_.begin(), files_.end(), [](auto& file) { file->CloseDB(); });
 
-    for (const auto& interval : snapshot_destination_paths_) {
+    for (const auto& interval : snapshot_destination_intervals_) {
         // create dir for individual interval
         std::filesystem::path interval_dir = record_dir_.parent_path() / std::string("snapshots") / interval.name_;
         const auto            snapshot_dir = interval_dir / SnapshotDirNameGenerator();
@@ -161,7 +161,7 @@ void MessageRecorder::GenerateSnapshotImpl() {
 
     std::for_each(files_.begin(), files_.end(), [](auto& file) { file->OpenDB(); });
 
-    snapshot_destination_paths_.clear();
+    snapshot_destination_intervals_.clear();
 }
 
 std::string MessageRecorder::RecordDirNameGenerator() {
