@@ -2,15 +2,6 @@ package(default_visibility = ["//visibility:public"])
 
 load("//bazel:rules.bzl", "cris_cc_library")
 
-cris_cc_library(
-    name = "cris_gtest_main",
-    srcs = ["//tests:utils/cris_gtest_main.cc"],
-    deps = [
-        ":signal",
-        "@gtest//:gtest",
-    ],
-)
-
 cris_cc_library (
     name = "utils",
     srcs = glob(["src/utils/**/*.cc"]),
