@@ -16,9 +16,9 @@ namespace cris::core {
 
 class RecordFileDbReopenTest : public testing::Test {
    public:
-    RecordFileDbReopenTest() : testing::Test() { std::filesystem::create_directories(test_temp_dir_); }
+    RecordFileDbReopenTest() { std::filesystem::create_directories(test_temp_dir_); }
 
-    ~RecordFileDbReopenTest() { std::filesystem::remove_all(test_temp_dir_); }
+    ~RecordFileDbReopenTest() override { std::filesystem::remove_all(test_temp_dir_); }
 
     std::filesystem::path GetRecordFilePath() const { return record_file_path; }
 

@@ -27,6 +27,10 @@ class MessageReplayer : public CRNamedNode<MessageReplayer> {
 
     MessageReplayer& operator=(const MessageReplayer&) = delete;
 
+    MessageReplayer& operator=(MessageReplayer&&) = delete;
+
+    ~MessageReplayer() override = default;
+
     template<CRMessageType message_t>
     bool RegisterChannel(const channel_subid_t subid);
 

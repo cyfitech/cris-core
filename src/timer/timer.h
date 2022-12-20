@@ -16,6 +16,7 @@ namespace cris::core {
 // Clang has the unused check for private field,
 // while GCC does not allow [[maybe_unused]] attribute on private fields
 #ifdef __clang__
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
 #define PRIVATE_MAYBE_UNUSED maybe_unused
 #else
 #define PRIVATE_MAYBE_UNUSED
@@ -100,6 +101,9 @@ class TimerSection {
     TimerSection(const TimerSection&) = delete;
     TimerSection(TimerSection&&)      = delete;
     TimerSection& operator=(const TimerSection&) = delete;
+    TimerSection& operator=(TimerSection&&) = delete;
+
+    ~TimerSection() = default;
 
     [[nodiscard]] TimerSession StartTimerSession();
 

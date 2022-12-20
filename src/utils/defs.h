@@ -16,6 +16,7 @@ std::string GetTypeNameFromPrettyFunction(const std::string& pretty_function);
 
 }  // namespace cris::core::impl
 
+// NOLINTNEXTLINE(google-build-namespaces,-warnings-as-errors)
 namespace {
 
 // This function cannot be in any named namespace, otherwise the namespace prefix of T may be dismissed.

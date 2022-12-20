@@ -8,7 +8,7 @@
 
 namespace cris::core {
 
-MessageReplayer::MessageReplayer(const std::filesystem::path& record_dir) : Base(), record_dir_(record_dir) {
+MessageReplayer::MessageReplayer(const std::filesystem::path& record_dir) : record_dir_(record_dir) {
 }
 
 std::filesystem::path MessageReplayer::GetRecordDir() const {
