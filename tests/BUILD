@@ -1,11 +1,20 @@
-load("//bazel:rules.bzl", "cris_cc_test")
+load("//bazel:rules.bzl", "cris_cc_library", "cris_cc_test")
+
+cris_cc_library(
+    name = "cris_gtest_main",
+    srcs = ["utils/cris_gtest_main.cc"],
+    deps = [
+        "//:signal",
+        "@gtest//:gtest",
+    ],
+)
 
 cris_cc_test (
     name = "defs_test",
     srcs = ["defs_test.cc"],
     deps = [
         "//:utils",
-        "@gtest//:gtest_main",
+        "@cris-core//tests:cris_gtest_main",
     ],
 )
 
@@ -14,7 +23,7 @@ cris_cc_test (
     srcs = ["mapping_test.cc"],
     deps = [
         "//:utils",
-        "@gtest//:gtest_main",
+        "@cris-core//tests:cris_gtest_main",
     ],
 )
 
@@ -23,7 +32,7 @@ cris_cc_test (
     srcs = ["message_test.cc"],
     deps = [
         "//:msg",
-        "@gtest//:gtest_main",
+        "@cris-core//tests:cris_gtest_main",
     ],
 )
 
@@ -32,7 +41,7 @@ cris_cc_test (
     srcs = ["msg_recorder_test.cc"],
     deps = [
         "//:msg_recorder",
-        "@gtest//:gtest_main",
+        "@cris-core//tests:cris_gtest_main",
     ],
     flaky = True,
 )
@@ -42,7 +51,7 @@ cris_cc_test (
     srcs = ["record_file_db_reopen_test.cc"],
     deps = [
         "//:msg_recorder",
-        "@gtest//:gtest_main",
+        "@cris-core//tests:cris_gtest_main",
     ],
 )
 
@@ -57,7 +66,7 @@ cris_cc_test (
     ],
     deps = [
         "//:msg",
-        "@gtest//:gtest_main",
+        "@cris-core//tests:cris_gtest_main",
     ],
 )
 
@@ -66,7 +75,7 @@ cris_cc_test (
     srcs = ["timer_test.cc"],
     deps = [
         "//:timer",
-        "@gtest//:gtest_main",
+        "@cris-core//tests:cris_gtest_main",
     ],
 )
 
@@ -86,7 +95,7 @@ cris_cc_test (
     ],
     deps = [
         "//:sched",
-        "@gtest//:gtest_main",
+        "@cris-core//tests:cris_gtest_main",
     ],
 )
 
@@ -96,7 +105,7 @@ cris_cc_test (
     deps = [
         "//:config",
         "@fmt//:libfmt",
-        "@gtest//:gtest_main",
+        "@cris-core//tests:cris_gtest_main",
     ],
 )
 
@@ -105,6 +114,6 @@ cris_cc_test (
     srcs = ["record_key_test.cc"],
     deps = [
         "//:msg_recorder",
-        "@gtest//:gtest_main",
+        "@cris-core//tests:cris_gtest_main",
     ],
 )
