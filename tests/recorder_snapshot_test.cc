@@ -94,8 +94,8 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     // Test content under each snapshot directory
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
 
-    // Ignore one snapshot number at two ends for flexibility
-    const std::size_t kFlakyIgnoreNum = 1;
+    // The message at the exact time point when the snapshot was token is allowed to be toleranted
+    const std::size_t kFlakyTolerance = 1;
 
     for (const auto& path_pair : snapshot_path_map) {
         for (std::size_t entry_index = 0; entry_index < path_pair.second.size(); ++entry_index) {
@@ -103,6 +103,8 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
             core::CRNode    subscriber(runner);
 
             replayer.RegisterChannel<TestMessage>(kTestIntChannelSubId);
+
+            // Raise the replayer speed to erase any waiting time
             replayer.SetSpeedupRate(1e9);
 
             auto previous_size_t = std::make_shared<std::atomic<std::size_t>>(0);
@@ -131,19 +133,16 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
                         std::chrono::duration_cast<std::chrono::milliseconds>(interval_config.interval_sec_).count()) /
                     kSleepBetweenMessages.count() * entry_index;
                 EXPECT_TRUE(
-                    (previous_value >= expect_value - kFlakyIgnoreNum) &&
-                    (previous_value <= expect_value + kFlakyIgnoreNum));
+                    (previous_value >= expect_value - kFlakyTolerance) &&
+                    (previous_value <= expect_value + kFlakyTolerance));
             }
         }
 
         EXPECT_EQ(path_pair.first, interval_config.name_);
 
-        const std::size_t kTotalTimeSec =
-            std::chrono::duration_cast<std::chrono::seconds>(kMessageNum * kSleepBetweenMessages).count();
-
         // Plus the origin snapshot
         const std::size_t kExpectedSnapshotNum =
-            kTotalTimeSec / static_cast<std::size_t>(interval_config.interval_sec_.count()) + 1;
+            static_cast<std::size_t>(kMessageNum * kSleepBetweenMessages / interval_config.interval_sec_) + 1;
 
         EXPECT_EQ(path_pair.second.size(), kExpectedSnapshotNum);
     }
