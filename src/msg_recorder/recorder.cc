@@ -25,13 +25,6 @@ void MessageRecorder::SnapshotWorker() {
         return;
     }
 
-    if (snapshot_config_intervals_.size() > 1) {
-        // TODO (YuzhouGuo, https://github.com/cyfitech/cris-core/issues/97) support multi-interval
-        LOG(WARNING) << __func__
-                     << ": More than one single interval received, multi-interval snapshot feature has not been "
-                        "supported, only using the last interval specified";
-    }
-
     // Use a priority queue to record wake up times
     struct {
         bool operator()(const RecorderConfig::IntervalConfig l, const RecorderConfig::IntervalConfig r) const {
