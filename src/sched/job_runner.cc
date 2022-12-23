@@ -122,20 +122,8 @@ JobAliveToken::~JobAliveToken() {
 
 JobRunnerStrand::~JobRunnerStrand() {
     finished_.store(true);
-    while (true) {
-        {
-            std::unique_lock lock(hybrid_spin_mtx_);
-            if (pending_jobs_.empty()) {
-                break;
-            }
-        }
-
-        std::unique_ptr<job_t> next;
-        pending_jobs_.consume_one([&next](job_t* const job_ptr) { next.reset(job_ptr); });
-        if (auto runner = runner_weak_.lock()) {
-            runner->AddJob(std::move(*next));
-        }
-    }
+    std::unique_ptr<job_t> next;
+    pending_jobs_.consume_all([&next](job_t* const job_ptr) { next.reset(job_ptr); });
 }
 
 bool JobRunnerStrand::AddJob(JobRunnerStrand::job_t&& job) {
@@ -199,6 +187,11 @@ bool JobRunnerStrand::AddJob(std::function<void(JobAliveTokenPtr&&)>&& job) {
 //  be visible to the next D/d. If we looks at the non-d- decision before it, it can only be D+/d-, and both
 //  of them comes with a next D/d. Liveness proved.
 void JobRunnerStrand::PushToRunnerIfNeeded(const bool is_in_running_job) {
+    if (finished_.load()) [[unlikely]] {
+        LOG(INFO) << __func__ << ": JobRunnerStrand have destoryed.";
+        return;
+    }
+
     std::unique_ptr<job_t> next;
 
     // Decision(D/d). It is protected by lock and it decides whether Push is needed.
