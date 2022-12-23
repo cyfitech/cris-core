@@ -103,12 +103,15 @@ class JobRunnerStrand : public std::enable_shared_from_this<JobRunnerStrand> {
 
     void PushToRunnerIfNeeded(const bool is_in_running_job);
 
+    void SetPendingPushing(const bool pending_pushing);
+
    private:
     std::weak_ptr<JobRunner> runner_weak_;
     HybridSpinMutex          hybrid_spin_mtx_;
     bool                     has_ready_job_{false};
     job_queue_t              pending_jobs_{kInitialQueueCapacity};
     std::atomic<bool>        finished_{false};
+    std::atomic<bool>        pending_pushing_{false};
 
     static constexpr std::size_t kInitialQueueCapacity = 8192;
 };
@@ -116,14 +119,27 @@ class JobRunnerStrand : public std::enable_shared_from_this<JobRunnerStrand> {
 JobAliveToken::~JobAliveToken() {
     // When the current job is finishing, try pushing the next one.
     if (auto strand = strand_weak_.lock()) {
+        strand->SetPendingPushing(true);
         strand->PushToRunnerIfNeeded(/* is_in_running_job = */ true);
+        strand->SetPendingPushing(false);
     }
 }
 
 JobRunnerStrand::~JobRunnerStrand() {
+    while (pending_pushing_.load()) {
+        std::mutex              mtx;
+        std::condition_variable cv;
+        std::unique_lock        lock(mtx);
+        cv.wait_for(lock, std::chrono::milliseconds(100));
+    }
+
     finished_.store(true);
     std::unique_ptr<job_t> next;
     pending_jobs_.consume_all([&next](job_t* const job_ptr) { next.reset(job_ptr); });
+}
+
+void JobRunnerStrand::SetPendingPushing(const bool pending_pushing) {
+    pending_pushing_.store(pending_pushing);
 }
 
 bool JobRunnerStrand::AddJob(JobRunnerStrand::job_t&& job) {
@@ -131,18 +147,15 @@ bool JobRunnerStrand::AddJob(JobRunnerStrand::job_t&& job) {
 }
 
 bool JobRunnerStrand::AddJob(std::function<void(JobAliveTokenPtr&&)>&& job) {
-    if (finished_.load()) [[unlikely]] {
-        LOG(INFO) << __func__ << ": JobRunnerStrand have destoryed.";
-        return false;
-    }
-
     auto serialized_job = [job         = std::move(job),
                            alive_token = std::make_shared<JobAliveToken>(weak_from_this())]() mutable {
         job(std::move(alive_token));
     };
 
+    SetPendingPushing(true);
     pending_jobs_.push(new job_t(std::move(serialized_job)));
     PushToRunnerIfNeeded(/* is_in_running_job = */ false);
+    SetPendingPushing(false);
     return true;
 }
 
