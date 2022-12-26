@@ -29,7 +29,7 @@ class RecorderSnapshotTest : public testing::Test {
     RecorderSnapshotTest() { std::filesystem::create_directories(GetTestTempDir()); }
     ~RecorderSnapshotTest() { std::filesystem::remove_all(GetTestTempDir()); }
 
-    void TestSnapshot(RecorderConfig record_config);
+    void TestSnapshot(RecorderConfig recorder_config);
 
     std::filesystem::path GetTestTempDir() const { return record_test_temp_dir_; }
 
