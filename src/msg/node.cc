@@ -39,7 +39,7 @@ bool CRNode::AddMessageToRunner(const CRMessageBasePtr& message) {
 
 void CRNode::Publish(const CRNode::channel_subid_t channel_subid, CRMessageBasePtr&& message) {
     message->SetChannelSubId(channel_subid);
-    CRMessageBase::Dispatch(std::move(message));
+    CRMessageBase::Dispatch(message);
 }
 
 JobRunnerStrandPtr CRNode::MakeStrand() {

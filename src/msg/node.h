@@ -47,6 +47,11 @@ class CRNode {
 
     explicit CRNode(std::string name, std::shared_ptr<JobRunner> runner);
 
+    CRNode(const CRNode&) = delete;
+    CRNode(CRNode&&)      = delete;
+    CRNode& operator=(const CRNode&) = delete;
+    CRNode& operator=(CRNode&&) = delete;
+
     virtual ~CRNode();
 
     // Some long lasting works that are not event-driven.
@@ -125,8 +130,8 @@ bool CRNode::AddJobToRunner(strand_job_t&& job, JobRunnerStrandPtr strand) {
 template<CRMessageType message_t, CRMessageWithAliveTokenCallbackType<message_t> callback_t>
 void CRNode::Subscribe(const channel_subid_t channel_subid, callback_t&& callback, JobRunnerStrandPtr strand) {
     return SubscribeImpl(
-        std::make_pair(std::type_index(typeid(message_t)), channel_subid),
-        [callback = std::move(callback)](const CRMessageBasePtr& message, JobAliveTokenPtr&& token) {
+        std::make_pair(static_cast<std::type_index>(typeid(message_t)), channel_subid),
+        [callback = std::forward<callback_t>(callback)](const CRMessageBasePtr& message, JobAliveTokenPtr&& token) {
             callback(reinterpret_cast<const std::shared_ptr<message_t>&>(message), std::move(token));
         },
         std::move(strand));
@@ -135,8 +140,8 @@ void CRNode::Subscribe(const channel_subid_t channel_subid, callback_t&& callbac
 template<CRMessageType message_t, CRSingleMessageCallbackType<message_t> callback_t>
 void CRNode::Subscribe(const channel_subid_t channel_subid, callback_t&& callback, JobRunnerStrandPtr strand) {
     return SubscribeImpl(
-        std::make_pair(std::type_index(typeid(message_t)), channel_subid),
-        [callback = std::move(callback)](const CRMessageBasePtr& message, JobAliveTokenPtr&&) {
+        std::make_pair(static_cast<std::type_index>(typeid(message_t)), channel_subid),
+        [callback = std::forward<callback_t>(callback)](const CRMessageBasePtr& message, JobAliveTokenPtr&&) {
             callback(reinterpret_cast<const std::shared_ptr<message_t>&>(message));
         },
         std::move(strand));
@@ -147,7 +152,7 @@ class CRNamedNode : public base_t {
    public:
     // Forward constructor parameters to base_t
     template<class... args_t>
-    CRNamedNode(args_t&&... args) : base_t(GetTypeName<node_t>(), std::forward<args_t>(args)...) {}
+    explicit CRNamedNode(args_t&&... args) : base_t(GetTypeName<node_t>(), std::forward<args_t>(args)...) {}
 };
 
 }  // namespace cris::core

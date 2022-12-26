@@ -4,6 +4,7 @@
 #include "cris/core/utils/defs.h"
 #include "cris/core/utils/logging.h"
 
+#include <algorithm>
 #include <array>
 #include <atomic>
 #include <chrono>
@@ -65,6 +66,11 @@ class TimerStatCollector {
 
     TimerStatCollector(const TimerStatCollector& another);
 
+    TimerStatCollector& operator=(const TimerStatCollector&) = delete;
+    TimerStatCollector& operator=(TimerStatCollector&&) = delete;
+
+    ~TimerStatCollector() = default;
+
     struct CollectorEntry {
         void Merge(const CollectorEntry& another);
 
@@ -75,7 +81,7 @@ class TimerStatCollector {
 
     void Report(std::size_t index, cr_duration_nsec_t duration);
 
-    void Merge(const TimerStatCollector& collector);
+    void Merge(const TimerStatCollector& another);
 
     void UnsafeClear();
 

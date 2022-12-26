@@ -16,10 +16,10 @@
 
 #include <atomic>
 #include <cinttypes>
+#include <csignal>
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
-#include <signal.h>
 #include <string>
 #include <thread>
 
@@ -42,7 +42,7 @@ static const int kFailureSignals[] = {
 
 // Invoke the default signal handler.
 static void InvokeDefaultSignalHandler(int signal_number) {
-    struct sigaction sig_action;
+    struct sigaction sig_action {};
     memset(&sig_action, 0, sizeof(sig_action));
     sigemptyset(&sig_action.sa_mask);
     sig_action.sa_handler = SIG_DFL;
@@ -90,20 +90,17 @@ static void SignalHandler(int signal_number, siginfo_t* signal_info, void* ucont
 
     DumpSignalInfo(signal_number, signal_info);
 
-    switch (signal_number) {
-        case SIGINT:
-            SigIntHandler(signal_number, signal_info, ucontext);
-            break;
-        default:
-            DumpStacktrace();
-            break;
+    if (signal_number == SIGINT) {
+        SigIntHandler(signal_number, signal_info, ucontext);
+    } else {
+        DumpStacktrace();
     }
 
     InvokeDefaultSignalHandler(signal_number);
 }
 
 static void InstallFailureSignalHandler() {
-    struct sigaction sig_action;
+    struct sigaction sig_action {};
     memset(&sig_action, 0, sizeof(sig_action));
     sigemptyset(&sig_action.sa_mask);
     sig_action.sa_flags |= SA_SIGINFO;

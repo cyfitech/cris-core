@@ -33,6 +33,8 @@ class CRMessageBase {
 
     CRMessageBase& operator=(const CRMessageBase&) = delete;
 
+    CRMessageBase& operator=(CRMessageBase&&) = default;
+
     virtual ~CRMessageBase() = default;
 
     virtual std::string GetMessageTypeName() const = 0;
@@ -69,14 +71,14 @@ using CRMessageBasePtr = std::shared_ptr<CRMessageBase>;
 template<class message_t>
 class CRMessage : public CRMessageBase {
    public:
-    std::type_index GetMessageTypeIndex() const override { return std::type_index(typeid(message_t)); }
+    std::type_index GetMessageTypeIndex() const override { return static_cast<std::type_index>(typeid(message_t)); }
 
     std::string GetMessageTypeName() const override { return GetTypeName<message_t>(); }
 };
 
 template<CRMessageType message_t>
 cr_timestamp_nsec_t CRMessageBase::GetLatestDeliveredTime(const CRMessageBase::channel_subid_t channel_subid) {
-    return GetLatestDeliveredTime(std::make_pair(std::type_index(typeid(message_t)), channel_subid));
+    return GetLatestDeliveredTime(std::make_pair(static_cast<std::type_index>(typeid(message_t)), channel_subid));
 }
 
 }  // namespace cris::core

@@ -4,6 +4,8 @@
 
 namespace cris::core {
 
+// Use macros to keep line information.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
 #define EXPECT_KEY_EQ(lhs, rhs)                              \
     do {                                                     \
         EXPECT_EQ((lhs).timestamp_ns_, (rhs).timestamp_ns_); \
@@ -18,7 +20,11 @@ TEST(RecordKeyTest, Convert) {
             .count_        = 0,
         };
 
-        EXPECT_KEY_EQ(key, *RecordFileKey::FromBytes(key.ToBytes()));
+        const auto key_from_bytes_opt = RecordFileKey::FromBytes(key.ToBytes());
+        if (!key_from_bytes_opt) {
+            FAIL();
+        }
+        EXPECT_KEY_EQ(key, *key_from_bytes_opt);
     }
 
     {
@@ -27,7 +33,11 @@ TEST(RecordKeyTest, Convert) {
             .count_        = 0xFFFFFFFFFFFFFFFF,
         };
 
-        EXPECT_KEY_EQ(key, *RecordFileKey::FromBytes(key.ToBytes()));
+        const auto key_from_bytes_opt = RecordFileKey::FromBytes(key.ToBytes());
+        if (!key_from_bytes_opt) {
+            FAIL();
+        }
+        EXPECT_KEY_EQ(key, *key_from_bytes_opt);
     }
 }
 
