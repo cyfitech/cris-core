@@ -83,7 +83,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
 
     auto wake_up_time = std::chrono::steady_clock::now();
 
-    for (std::size_t i = 1; i <= kMessageNum; ++i) {
+    for (std::size_t i = 0; i < kMessageNum; ++i) {
         auto test_message = std::make_shared<TestMessage>(i);
         publisher.Publish(kTestIntChannelSubId, std::move(test_message));
 
@@ -93,6 +93,19 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
 
     // Test content under each snapshot directory
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
+
+    // Plus the origin snapshot
+    const std::size_t kExpectedSnapshotNum = kMessageNum * kSleepBetweenMessages / std::chrono::seconds(1) + 1;
+
+    auto check_num_time  = std::chrono::steady_clock::now();
+    // We may wait half of the interval time at max
+    auto check_stop_time = check_num_time + std::chrono::milliseconds(500);
+
+    while (snapshot_path_map["SECONDLY"].size() < kExpectedSnapshotNum && check_num_time < check_stop_time) {
+        check_num_time += kSleepBetweenMessages;
+        std::this_thread::sleep_until(check_num_time);
+        snapshot_path_map = recorder.GetSnapshotPaths();
+    }
 
     // The message at the exact time point when the snapshot was token is allowed to be toleranted
     const std::size_t kFlakyTolerance = 1;
@@ -112,7 +125,9 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
             subscriber.Subscribe<TestMessage>(
                 kTestIntChannelSubId,
                 [&previous_size_t](const std::shared_ptr<TestMessage>& message) {
-                    EXPECT_EQ(message->value_ - previous_size_t->load(), 1);
+                    if (message->value_ != 0) {
+                        EXPECT_EQ(message->value_ - previous_size_t->load(), 1);
+                    }
                     previous_size_t->store(message->value_);
                 },
                 /* allow_concurrency = */ false);
@@ -139,11 +154,6 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
         }
 
         EXPECT_EQ(path_pair.first, interval_config.name_);
-
-        // Plus the origin snapshot
-        const std::size_t kExpectedSnapshotNum =
-            static_cast<std::size_t>(kMessageNum * kSleepBetweenMessages / interval_config.interval_sec_) + 1;
-
         EXPECT_EQ(path_pair.second.size(), kExpectedSnapshotNum);
     }
 }
