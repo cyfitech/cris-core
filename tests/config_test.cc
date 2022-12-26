@@ -234,11 +234,11 @@ TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
                     "snapshot_intervals" : [
                         {
                             "interval_name": "SECONDLY",
-                            "interval_sec": 5,
+                            "interval_sec": 5
                         },
                         {
                             "interval_name": "HOURLY",
-                            "interval_sec": 1,
+                            "interval_sec": 1
                         }
                     ],
                     "record_dir": "record_test"
@@ -262,7 +262,7 @@ TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
                     "snapshot_intervals" : [
                         {
                             "interval_name": "SECONDLY",
-                            "interval_sec": 5,
+                            "interval_sec": 5
                         }
                     ]
                 }
