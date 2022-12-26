@@ -54,15 +54,9 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
             Fail("\"interval_sec\" is required.", ec);
         }
 
-        std::size_t interval_max_copy = 0;
-        if (const auto ec = data["interval_max_copy"].get(interval_max_copy)) {
-            Fail("\"interval_max_copy\" is required.", ec);
-        }
-
         config.snapshot_intervals_.push_back(RecorderConfig::IntervalConfig{
             .name_         = string(interval_name.data(), interval_name.size()),
             .interval_sec_ = std::chrono::seconds(interval_sec),
-            .max_copy_     = interval_max_copy,
         });
     }
 }

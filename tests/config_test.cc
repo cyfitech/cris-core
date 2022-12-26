@@ -235,12 +235,10 @@ TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
                         {
                             "interval_name": "SECONDLY",
                             "interval_sec": 5,
-                            "interval_max_copy": 1
                         },
                         {
                             "interval_name": "HOURLY",
                             "interval_sec": 1,
-                            "interval_max_copy": 5
                         }
                     ],
                     "record_dir": "record_test"
@@ -252,10 +250,8 @@ TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
         EXPECT_EQ(recorder_config.snapshot_intervals_.size(), 2);
         EXPECT_EQ(recorder_config.snapshot_intervals_.front().name_, "SECONDLY");
         EXPECT_EQ(recorder_config.snapshot_intervals_.front().interval_sec_, std::chrono::seconds(5));
-        EXPECT_EQ(recorder_config.snapshot_intervals_.front().max_copy_, 1);
         EXPECT_EQ(recorder_config.snapshot_intervals_.back().name_, "HOURLY");
         EXPECT_EQ(recorder_config.snapshot_intervals_.back().interval_sec_, std::chrono::seconds(1));
-        EXPECT_EQ(recorder_config.snapshot_intervals_.back().max_copy_, 5);
         EXPECT_EQ(recorder_config.record_dir_, "record_test");
     }
 
@@ -267,7 +263,6 @@ TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
                         {
                             "interval_name": "SECONDLY",
                             "interval_sec": 5,
-                            "interval_max_copy": 1
                         }
                     ]
                 }
@@ -278,7 +273,6 @@ TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
         EXPECT_EQ(recorder_config.snapshot_intervals_.size(), 1);
         EXPECT_EQ(recorder_config.snapshot_intervals_.front().name_, "SECONDLY");
         EXPECT_EQ(recorder_config.snapshot_intervals_.front().interval_sec_, std::chrono::seconds(5));
-        EXPECT_EQ(recorder_config.snapshot_intervals_.front().max_copy_, 1);
         EXPECT_EQ(recorder_config.record_dir_, "");
     }
 }

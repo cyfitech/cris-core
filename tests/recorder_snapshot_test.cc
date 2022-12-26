@@ -70,7 +70,6 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     RecorderConfig::IntervalConfig interval_config{
         .name_         = std::string("SECONDLY"),
         .interval_sec_ = std::chrono::seconds(1),
-        .max_copy_     = 10,
     };
 
     RecorderConfig recorder_config{
