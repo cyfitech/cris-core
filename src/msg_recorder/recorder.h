@@ -62,7 +62,6 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     std::vector<std::unique_ptr<RecordFile>>     files_;
     std::shared_ptr<cris::core::JobRunnerStrand> record_strand_;
 
-    const std::size_t                                        snapshot_max_num_{48};
     const std::vector<RecorderConfig::IntervalConfig>        snapshot_config_intervals_;
     std::atomic<bool>                                        snapshot_shutdown_flag_{false};
     std::mutex                                               snapshot_mtx_;

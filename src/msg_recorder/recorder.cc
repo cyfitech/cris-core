@@ -25,13 +25,6 @@ void MessageRecorder::SnapshotWorker() {
         return;
     }
 
-    if (snapshot_config_intervals_.size() > 1) {
-        // TODO (YuzhouGuo, https://github.com/cyfitech/cris-core/issues/97) support multi-interval
-        LOG(WARNING) << __func__
-                     << ": More than one single interval received, multi-interval snapshot feature has not been "
-                        "supported, only using the last interval specified";
-    }
-
     // Use a priority queue to record wake up times
     struct {
         bool operator()(const RecorderConfig::IntervalConfig l, const RecorderConfig::IntervalConfig r) const {
@@ -149,10 +142,10 @@ void MessageRecorder::GenerateSnapshotImpl() {
         auto& snapshot_dirs = snapshot_path_map_[interval.name_];
         snapshot_dirs.push_back(snapshot_dir);
 
-        while (snapshot_dirs.size() > snapshot_max_num_) {
+        while (snapshot_dirs.size() > interval.max_copy_) {
             if (std::error_code ec;
                 std::filesystem::remove_all(snapshot_dirs.front(), ec) == static_cast<std::uintmax_t>(-1)) {
-                LOG(ERROR) << __func__ << ": Locally saved more than " << snapshot_max_num_
+                LOG(ERROR) << __func__ << ": Locally saved more than " << interval.max_copy_
                            << " snapshot copies but failed to remove the oldest one. " << ec.message();
             }
             snapshot_dirs.pop_front();
