@@ -20,15 +20,18 @@ namespace fs = std::filesystem;
 
 class ConfigTest : public testing::Test {
    public:
-    ConfigTest()
-        : testing::Test()
-        , test_config_path_(fs::temp_directory_path() / fmt::format("config_test.pid.{}.json", getpid())) {}
+    ConfigTest() : test_config_path_(fs::temp_directory_path() / fmt::format("config_test.pid.{}.json", getpid())) {}
 
-    ~ConfigTest() { fs::remove(test_config_path_); }
+    ~ConfigTest() override { fs::remove(test_config_path_); }
+
+    ConfigTest(const ConfigTest&) = delete;
+    ConfigTest(ConfigTest&&)      = delete;
+    ConfigTest& operator=(const ConfigTest&) = delete;
+    ConfigTest& operator=(ConfigTest&&) = delete;
 
     ConfigFile MakeConfigFile(std::string content) const {
         std::ofstream config_file(test_config_path_);
-        config_file << std::move(content);
+        config_file << content;
         config_file.flush();
         return ConfigFile(test_config_path_);
     }
@@ -79,6 +82,8 @@ TEST_F(ConfigTest, Configs) {
         EXPECT_EQ(config_file.Get<int>(missing_key, default_val2)->GetValue(), default_val2);
     }
 
+    // EXPECT_DEATH contains `goto`.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
     EXPECT_DEATH(config_file.Get<double>(int_key), "Type mismatched.");
 }
 
@@ -87,13 +92,14 @@ namespace inner {
 
 struct NonCopyableType {
     using Self = NonCopyableType;
-    NonCopyableType(std::int64_t value) : value_(value) {}
+    explicit NonCopyableType(std::int64_t value) : value_(value) {}
 
     NonCopyableType()            = default;
     NonCopyableType(const Self&) = delete;
     NonCopyableType(Self&&)      = default;
     Self& operator=(const Self&) = delete;
     Self& operator=(Self&&) = default;
+    ~NonCopyableType()      = default;
 
     std::string Str() const { return std::to_string(value_); }
 
@@ -174,14 +180,13 @@ TEST_F(ConfigTest, WrongFilePath) {
 class RecordConfigTest : public testing::Test {
    public:
     RecordConfigTest()
-        : testing::Test()
-        , test_config_path_(fs::temp_directory_path() / fmt::format("record_config_test.pid.{}.json", getpid())) {}
+        : test_config_path_(fs::temp_directory_path() / fmt::format("record_config_test.pid.{}.json", getpid())) {}
 
-    ~RecordConfigTest() { fs::remove(test_config_path_); }
+    ~RecordConfigTest() override { fs::remove(test_config_path_); }
 
     ConfigFile MakeRecordConfigFile(std::string content) const {
         std::ofstream config_file(test_config_path_);
-        config_file << std::move(content);
+        config_file << content;
         config_file.flush();
         return ConfigFile(test_config_path_);
     }
@@ -291,6 +296,8 @@ TEST_F(RecordConfigTest, RecorderConfigTestInvalid) {
             }
         })");
 
+        // EXPECT_DEATH contains `goto`.
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
         EXPECT_DEATH(
             recorder_config_file.Get<RecorderConfig>("recorder"),
             "\"interval_sec\" is required. The JSON field referenced does not exist in this object.");
@@ -305,6 +312,8 @@ TEST_F(RecordConfigTest, RecorderConfigTestInvalid) {
             }
         })");
 
+        // EXPECT_DEATH contains `goto`.
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
         EXPECT_DEATH(
             recorder_config_file.Get<RecorderConfig>("recorder"),
             "Expect a string for \"record_dir\". The JSON element does not have the requested type.");
