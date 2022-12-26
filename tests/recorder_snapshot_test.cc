@@ -26,7 +26,7 @@ namespace cris::core {
 
 class RecorderSnapshotTest : public testing::Test {
    public:
-    RecorderSnapshotTest() : testing::Test() { std::filesystem::create_directories(GetTestTempDir()); }
+    RecorderSnapshotTest() { std::filesystem::create_directories(GetTestTempDir()); }
     ~RecorderSnapshotTest() { std::filesystem::remove_all(GetTestTempDir()); }
 
     std::filesystem::path GetTestTempDir() const { return record_test_temp_dir_; }
@@ -41,7 +41,7 @@ struct TestMessage : public CRMessage<TestMessage> {
 
     TestMessage() = default;
 
-    explicit TestMessage(std::size_t val) : value_(std::move(val)) {}
+    explicit TestMessage(std::size_t val) : value_(val) {}
 
     std::size_t value_{};
 };
@@ -70,6 +70,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     RecorderConfig::IntervalConfig interval_config{
         .name_         = std::string("SECONDLY"),
         .interval_sec_ = std::chrono::seconds(1),
+        .max_copy_     = 10,
     };
 
     RecorderConfig recorder_config{
