@@ -111,6 +111,7 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
             core::CRNode    subscriber(runner);
 
             replayer.RegisterChannel<TestMessage>(kTestIntChannelSubId);
+            // Raise the replayer speed to erase any waiting time
             replayer.SetSpeedupRate(1e9);
 
             auto previous_size_t = std::make_shared<std::atomic<std::size_t>>(0);
@@ -295,5 +296,4 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMaxCopyNumTest) {
         }
     }
 }
-
 }  // namespace cris::core

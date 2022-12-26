@@ -5,10 +5,12 @@
 
 #include <filesystem>
 
+// NOLINTNEXTLINE: clang-tidy does not like gflags macros.
 DEFINE_string(record_path, "", "Path to the old LevelDB record.");
 
 int main(int argc, char* argv[]) {
     gflags::ParseCommandLineFlags(&argc, &argv, true);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic,-warnings-as-errors)
     google::InitGoogleLogging(argv[0]);
 
     auto old_file_path = std::filesystem::weakly_canonical(FLAGS_record_path);

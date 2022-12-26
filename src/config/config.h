@@ -42,6 +42,8 @@ class ConfigBase {
 
     ConfigBase& operator=(const ConfigBase&) = delete;
 
+    ConfigBase& operator=(ConfigBase&&) = delete;
+
     virtual ~ConfigBase() = default;
 
     virtual std::string GetName() const = 0;
@@ -198,16 +200,28 @@ std::shared_ptr<Config<data_t>> ConfigFile::Get(const std::string& config_name, 
     return config_ptr;
 }
 
+// Using macro for defining multiple functions.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
 #define __CRIS_CORE_EXTERN_CONFIG_TYPE(type)                                                         \
+    /* `type` is a typename so that it cannot be in parentheses.      */                             \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses,-warnings-as-errors) */                             \
     extern template class Config<type>;                                                              \
                                                                                                      \
+    /* `type` is a typename so that it cannot be in parentheses.      */                             \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses,-warnings-as-errors) */                             \
     extern template std::shared_ptr<Config<type>> ConfigFile::Get<type>(const std::string&);         \
                                                                                                      \
+    /* `type` is a typename so that it cannot be in parentheses.      */                             \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses,-warnings-as-errors) */                             \
     extern template std::shared_ptr<Config<type>> ConfigFile::Get<type>(const std::string&, type&);  \
                                                                                                      \
+    /* `type` is a typename so that it cannot be in parentheses.      */                             \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses,-warnings-as-errors) */                             \
     extern template std::shared_ptr<Config<type>> ConfigFile::Get<type>(const std::string&, type&&); \
                                                                                                      \
     namespace impl {                                                                                 \
+    /* `type` is a typename so that it cannot be in parentheses.      */                             \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses,-warnings-as-errors) */                             \
     extern template std::string ConfigDataGetStringRep(const type&);                                 \
     }
 
