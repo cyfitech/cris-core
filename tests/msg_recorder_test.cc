@@ -48,6 +48,8 @@ class RecorderTest : public testing::Test {
     static constexpr channel_subid_t kTestDoubleChannelSubId = 12;
 };
 
+// Use macros to keep line information.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
 #define CR_EXPECT_NEAR_DURATION(val1, val2, error)                                        \
     do {                                                                                  \
         using namespace std::chrono;                                                      \
@@ -78,7 +80,7 @@ void MessageFromStr(TestMessage<T>& msg, const std::string& serialized_msg) {
 template<class T>
 std::string MessageToStr(const TestMessage<T>& msg) {
     std::string serialized_msg(sizeof(T), 0);
-    std::memcpy(&serialized_msg[0], &msg.value_, serialized_msg.size());
+    std::memcpy(serialized_msg.data(), &msg.value_, serialized_msg.size());
     return serialized_msg;
 }
 

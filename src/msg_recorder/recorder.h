@@ -31,7 +31,7 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     MessageRecorder& operator=(const MessageRecorder&) = delete;
     MessageRecorder& operator=(MessageRecorder&&) = delete;
 
-    ~MessageRecorder();
+    ~MessageRecorder() override;
 
     void StopMainLoop() override;
 

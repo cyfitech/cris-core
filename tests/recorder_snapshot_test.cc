@@ -26,7 +26,7 @@ namespace cris::core {
 
 class RecorderSnapshotTest : public testing::Test {
    public:
-    RecorderSnapshotTest() : testing::Test() { std::filesystem::create_directories(GetTestTempDir()); }
+    RecorderSnapshotTest() { std::filesystem::create_directories(GetTestTempDir()); }
     ~RecorderSnapshotTest() { std::filesystem::remove_all(GetTestTempDir()); }
 
     void TestSnapshot(RecorderConfig record_config);
@@ -43,7 +43,7 @@ struct TestMessage : public CRMessage<TestMessage> {
 
     TestMessage() = default;
 
-    explicit TestMessage(std::size_t val) : value_(std::move(val)) {}
+    explicit TestMessage(std::size_t val) : value_(val) {}
 
     std::size_t value_{};
 };
@@ -75,7 +75,7 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
 
     auto wake_up_time = std::chrono::steady_clock::now();
 
-    for (std::size_t i = 1; i <= kMessageNum; ++i) {
+    for (std::size_t i = 0; i < kMessageNum; ++i) {
         auto test_message = std::make_shared<TestMessage>(i);
         publisher.Publish(kTestIntChannelSubId, std::move(test_message));
 
@@ -86,8 +86,21 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
     // Test content under each snapshot directory
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
 
-    // Ignore one snapshot number at two ends for flexibility
-    const std::size_t kFlakyIgnoreNum = 1;
+    // Plus the origin snapshot
+    const std::size_t kExpectedMinNum = kMessageNum * kSleepBetweenMessages / std::chrono::seconds(1) + 1;
+
+    auto check_num_time  = std::chrono::steady_clock::now();
+    // We may wait half of the interval time at max
+    auto check_stop_time = check_num_time + std::chrono::milliseconds(500);
+
+    while (snapshot_path_map["SECONDLY_1"].size() < kExpectedMinNum && check_num_time < check_stop_time) {
+        check_num_time += kSleepBetweenMessages;
+        std::this_thread::sleep_until(check_num_time);
+        snapshot_path_map = recorder.GetSnapshotPaths();
+    }
+
+    // The message at the exact time point when the snapshot was token is allowed to be toleranted
+    const std::size_t kFlakyTolerance = 1;
 
     for (const auto& path_pair : snapshot_path_map) {
         const std::size_t path_pair_index =
@@ -98,6 +111,7 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
             core::CRNode    subscriber(runner);
 
             replayer.RegisterChannel<TestMessage>(kTestIntChannelSubId);
+            // Raise the replayer speed to erase any waiting time
             replayer.SetSpeedupRate(1e9);
 
             auto previous_size_t = std::make_shared<std::atomic<std::size_t>>(0);
@@ -105,7 +119,9 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
             subscriber.Subscribe<TestMessage>(
                 kTestIntChannelSubId,
                 [&previous_size_t](const std::shared_ptr<TestMessage>& message) {
-                    EXPECT_EQ(message->value_ - previous_size_t->load(), 1);
+                    if (message->value_ != 0) {
+                        EXPECT_EQ(message->value_ - previous_size_t->load(), 1);
+                    }
                     previous_size_t->store(message->value_);
                 },
                 /* allow_concurrency = */ false);
@@ -127,9 +143,8 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
                                                  .count()) /
                     kSleepBetweenMessages.count() * entry_index;
                 EXPECT_TRUE(
-                    (previous_value >= expect_value - kFlakyIgnoreNum) &&
-                    (previous_value <= expect_value + kFlakyIgnoreNum));
-                EXPECT_EQ(previous_value, expect_value);
+                    (previous_value >= expect_value - kFlakyTolerance) &&
+                    (previous_value <= expect_value + kFlakyTolerance));
             }
         }
 
@@ -150,7 +165,7 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
 
 TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     RecorderConfig::IntervalConfig interval_config{
-        .name_         = std::string("SECONDLY"),
+        .name_         = std::string("SECONDLY_1"),
         .interval_sec_ = std::chrono::seconds(1),
     };
 

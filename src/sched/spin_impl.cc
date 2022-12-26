@@ -2,20 +2,22 @@
 
 #include <cstddef>
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
 #define _CR_ASM_NOP asm volatile("nop")
 
 // Cannot use `do { } while (0)` here because there would be huge differences between -O0 and -O1.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
 #define _CR_2X(statement) \
     {                     \
         statement;        \
         statement;        \
     }
 
-#define _CR_2X_NOP _CR_2X(_CR_ASM_NOP)
-#define _CR_4X_NOP _CR_2X(_CR_2X_NOP)
-#define _CR_8X_NOP _CR_2X(_CR_4X_NOP)
-#define _CR_16X_NOP _CR_2X(_CR_8X_NOP)
-#define _CR_32X_NOP _CR_2X(_CR_16X_NOP)
+#define _CR_2X_NOP _CR_2X(_CR_ASM_NOP)   // NOLINT(cppcoreguidelines-macro-usage,-warnings-as-errors)
+#define _CR_4X_NOP _CR_2X(_CR_2X_NOP)    // NOLINT(cppcoreguidelines-macro-usage,-warnings-as-errors)
+#define _CR_8X_NOP _CR_2X(_CR_4X_NOP)    // NOLINT(cppcoreguidelines-macro-usage,-warnings-as-errors)
+#define _CR_16X_NOP _CR_2X(_CR_8X_NOP)   // NOLINT(cppcoreguidelines-macro-usage,-warnings-as-errors)
+#define _CR_32X_NOP _CR_2X(_CR_16X_NOP)  // NOLINT(cppcoreguidelines-macro-usage,-warnings-as-errors)
 
 namespace cris::core::impl {
 

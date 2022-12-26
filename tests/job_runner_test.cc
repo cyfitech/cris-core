@@ -11,6 +11,8 @@
 #include <thread>
 #include <vector>
 
+// Use macros to keep line information.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
 #define EVENTUALLY_EQ(lfs, rhs)                                   \
     do {                                                          \
         using namespace std::literals::chrono_literals;           \

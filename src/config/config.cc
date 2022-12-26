@@ -11,16 +11,29 @@
 
 namespace cris::core {
 
+// Using macro for defining multiple functions.
+// `type` is a typename so that it cannot be in parentheses.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-error)
 #define __CRIS_CORE_DEFINE_CONFIG_TYPE(type)                                                  \
+    /* `type` is a typename so that it cannot be in parentheses.      */                      \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses,-warnings-as-errors) */                      \
     template class Config<type>;                                                              \
                                                                                               \
+    /* `type` is a typename so that it cannot be in parentheses.      */                      \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses,-warnings-as-errors) */                      \
     template std::shared_ptr<Config<type>> ConfigFile::Get<type>(const std::string&);         \
                                                                                               \
+    /* `type` is a typename so that it cannot be in parentheses.      */                      \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses,-warnings-as-errors) */                      \
     template std::shared_ptr<Config<type>> ConfigFile::Get<type>(const std::string&, type&);  \
                                                                                               \
+    /* `type` is a typename so that it cannot be in parentheses.      */                      \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses,-warnings-as-errors) */                      \
     template std::shared_ptr<Config<type>> ConfigFile::Get<type>(const std::string&, type&&); \
                                                                                               \
     namespace impl {                                                                          \
+    /* `type` is a typename so that it cannot be in parentheses.      */                      \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses,-warnings-as-errors) */                      \
     template std::string ConfigDataGetStringRep(const type&);                                 \
     }
 
