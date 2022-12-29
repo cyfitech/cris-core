@@ -44,30 +44,30 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
     }
 
     for (auto&& data : array_intervals) {
-        string_view interval_name;
-        if (const auto ec = data["interval_name"].get(interval_name)) {
-            Fail("\"interval_name\" is required.", ec);
+        string_view name;
+        if (const auto ec = data["name"].get(name)) {
+            Fail("\"name\" is required.", ec);
         }
 
-        int64_t interval_sec = 0;
-        if (const auto ec = data["interval_sec"].get(interval_sec)) {
-            Fail("\"interval_sec\" is required.", ec);
+        int64_t period_sec = 0;
+        if (const auto ec = data["period_sec"].get(period_sec)) {
+            Fail("\"period_sec\" is required.", ec);
         }
 
-        std::size_t interval_max_copy = 0;
-        if (const auto ec = data["interval_max_copy"].get(interval_max_copy)) {
+        std::size_t max_num_of_copies = 0;
+        if (const auto ec = data["max_num_of_copies"].get(max_num_of_copies)) {
             if (simdjson::simdjson_error(ec).error() != simdjson::NO_SUCH_FIELD) {
-                Fail("Expect a number for \"interval_max_copy\".", ec);
+                Fail("Expect a number for \"max_num_of_copies\".", ec);
             }
         }
 
         config.snapshot_intervals_.push_back(RecorderConfig::IntervalConfig{
-            .name_         = string(interval_name.data(), interval_name.size()),
-            .interval_sec_ = std::chrono::seconds(interval_sec),
+            .name_         = string(name.data(), name.size()),
+            .interval_sec_ = std::chrono::seconds(period_sec),
         });
 
-        if (interval_max_copy != 0) {
-            config.snapshot_intervals_.back().max_copy_ = interval_max_copy;
+        if (max_num_of_copies != 0) {
+            config.snapshot_intervals_.back().max_copy_ = max_num_of_copies;
         }
     }
 }

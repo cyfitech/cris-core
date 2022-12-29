@@ -233,14 +233,14 @@ TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
                 "recorder": {
                     "snapshot_intervals" : [
                         {
-                            "interval_name": "SECONDLY_EX_1",
-                            "interval_sec": 5,
-                            "interval_max_copy": 1
+                            "name": "SECONDLY_EX_1",
+                            "period_sec": 5,
+                            "max_num_of_copies": 1
                         },
                         {
-                            "interval_name": "SECONDLY_EX_2",
-                            "interval_sec": 1,
-                            "interval_max_copy": 5
+                            "name": "SECONDLY_EX_2",
+                            "period_sec": 1,
+                            "max_num_of_copies": 5
                         }
                     ],
                     "record_dir": "record_test"
@@ -265,8 +265,8 @@ TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
                 "recorder": {
                     "snapshot_intervals" : [
                         {
-                            "interval_name": "SECONDLY",
-                            "interval_sec": 5
+                            "name": "SECONDLY",
+                            "period_sec": 5
                         }
                     ]
                 }
@@ -289,7 +289,7 @@ TEST_F(RecordConfigTest, RecorderConfigTestInvalid) {
             "recorder": {
                 "snapshot_intervals" : [
                     {
-                        "interval_name": "SECONDLY"
+                        "name": "SECONDLY"
                     }
                 ],
                 "record_dir": "record_test"
@@ -300,7 +300,7 @@ TEST_F(RecordConfigTest, RecorderConfigTestInvalid) {
         // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
         EXPECT_DEATH(
             recorder_config_file.Get<RecorderConfig>("recorder"),
-            "\"interval_sec\" is required. The JSON field referenced does not exist in this object.");
+            "\"period_sec\" is required. The JSON field referenced does not exist in this object.");
     }
 
     {
