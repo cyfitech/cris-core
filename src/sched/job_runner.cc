@@ -90,9 +90,9 @@ class JobAliveToken {
 
 class JobRunnerStrand : public std::enable_shared_from_this<JobRunnerStrand> {
    public:
-    using job_t             = JobRunner::job_t;
-    using job_queue_t       = boost::lockfree::queue<job_t*>;
-    using TryRunImmediately = JobRunner::TryRunImmediately;
+    using job_t               = JobRunner::job_t;
+    using job_queue_t         = boost::lockfree::queue<job_t*>;
+    using ForceRunImmediately = JobRunner::ForceRunImmediately;
 
     explicit JobRunnerStrand(std::weak_ptr<JobRunner> runner) : runner_weak_(runner) {}
 
@@ -100,7 +100,7 @@ class JobRunnerStrand : public std::enable_shared_from_this<JobRunnerStrand> {
 
     bool AddJob(std::function<void(JobAliveTokenPtr&&)>&& job);
 
-    TryRunImmediately::State AddJob(std::function<void(JobAliveTokenPtr&&)>&& job, TryRunImmediately);
+    bool AddJob(std::function<void(JobAliveTokenPtr&&)> job, ForceRunImmediately);
 
     void PushToRunnerIfNeeded(const bool is_in_running_job);
 
@@ -204,14 +204,11 @@ void JobRunnerStrand::PushToRunnerIfNeeded(const bool is_in_running_job) {
     }
 }
 
-// Try running job immediately in the same thread.
+// Running job immediately in the same thread.
 //
 // To ensure correctness without performance regression,
 // We only do a quick check to see if it can be run.
-// If not sure, fall back to the normal AddJob.
-JobRunner::TryRunImmediately::State JobRunnerStrand::AddJob(
-    std::function<void(JobAliveTokenPtr&&)>&& job,
-    JobRunner::TryRunImmediately) {
+bool JobRunnerStrand::AddJob(std::function<void(JobAliveTokenPtr&&)> job, JobRunner::ForceRunImmediately) {
     // Decision(D/d). It is protected by lock and it decides whether Push is needed.
     //
     // Proceeds only if D+ (changes the `has_ready_job_` value from false to true), and an empty pending queue.
@@ -219,15 +216,14 @@ JobRunner::TryRunImmediately::State JobRunnerStrand::AddJob(
     {
         std::unique_lock lck(hybrid_spin_mtx_, std::try_to_lock);
         if (!lck.owns_lock() || has_ready_job_ || !pending_jobs_.empty()) {
-            lck.unlock();
-            return AddJob(std::move(job)) ? TryRunImmediately::State::ENQUEUED : TryRunImmediately::State::FAILED;
+            return false;
         }
         has_ready_job_ = true;
     }
 
     // Push(P). It is not a real push but run the job immediately.
     job(std::make_shared<JobAliveToken>(weak_from_this()));
-    return TryRunImmediately::State::FINISHED;
+    return true;
 }
 
 JobRunner::JobRunner(JobRunner::Config config) : config_(config) {
@@ -293,11 +289,25 @@ JobRunner::TryRunImmediately::State JobRunner::AddJob(
     std::function<void(JobAliveTokenPtr&&)>&& job,
     JobRunnerStrandPtr                        strand,
     TryRunImmediately) {
-    if (!strand) {
-        job(nullptr);
+    if (AddJob(job, strand, ForceRunImmediately())) {
         return TryRunImmediately::State::FINISHED;
     }
-    return strand->AddJob(std::move(job), TryRunImmediately());
+    return strand->AddJob(std::move(job)) ? TryRunImmediately::State::ENQUEUED : TryRunImmediately::State::FAILED;
+}
+
+bool JobRunner::AddJob(job_t job, JobRunnerStrandPtr strand, ForceRunImmediately) {
+    return AddJob(
+        [job = std::move(job)](JobAliveTokenPtr&&) { return job(); },
+        std::move(strand),
+        ForceRunImmediately());
+}
+
+bool JobRunner::AddJob(std::function<void(JobAliveTokenPtr&&)> job, JobRunnerStrandPtr strand, ForceRunImmediately) {
+    if (!strand) {
+        job(nullptr);
+        return true;
+    }
+    return strand->AddJob(std::move(job), ForceRunImmediately());
 }
 
 bool JobRunner::Steal() {

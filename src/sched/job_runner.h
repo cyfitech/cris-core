@@ -32,11 +32,13 @@ class JobRunner : public std::enable_shared_from_this<JobRunner> {
 
     struct TryRunImmediately {
         enum class State {
-            FAILED,
+            FAILED = 0,
             ENQUEUED,
             FINISHED,
         };
     };
+
+    struct ForceRunImmediately {};
 
     ~JobRunner();
 
@@ -78,6 +80,10 @@ class JobRunner : public std::enable_shared_from_this<JobRunner> {
         std::function<void(JobAliveTokenPtr&&)>&& job,
         JobRunnerStrandPtr                        strand,
         TryRunImmediately);
+
+    bool AddJob(job_t job, JobRunnerStrandPtr strand, ForceRunImmediately);
+
+    bool AddJob(std::function<void(JobAliveTokenPtr&&)> job, JobRunnerStrandPtr strand, ForceRunImmediately);
 
     ///
     /// Randomly steal a job from the workers and run.
