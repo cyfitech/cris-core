@@ -55,6 +55,26 @@ cris_cc_test (
     ],
 )
 
+filegroup(
+    name = "recorder_snapshot_tsan_suppressions",
+    srcs = ["recorder_snapshot_tsan_suppressions.txt"],
+)
+
+cris_cc_test (
+    name = "recorder_snapshot_test",
+    srcs = ["recorder_snapshot_test.cc"],
+    env = {
+        "TSAN_OPTIONS": "suppressions=$(execpath recorder_snapshot_tsan_suppressions)",
+    },
+    data = [
+        ":recorder_snapshot_tsan_suppressions",
+    ],
+    deps = [
+        "//:msg_recorder",
+        "@gtest//:gtest_main",
+    ],
+)
+
 cris_cc_test (
     name = "node_test",
     srcs = ["node_test.cc"],
