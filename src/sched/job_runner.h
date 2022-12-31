@@ -30,6 +30,16 @@ class JobRunner : public std::enable_shared_from_this<JobRunner> {
         std::chrono::nanoseconds active_time_{0};
     };
 
+    struct TryRunImmediately {
+        enum class State {
+            FAILED = 0,
+            ENQUEUED,
+            FINISHED,
+        };
+    };
+
+    struct ForceRunImmediately {};
+
     ~JobRunner();
 
     JobRunner(const Self&) = delete;
@@ -56,6 +66,29 @@ class JobRunner : public std::enable_shared_from_this<JobRunner> {
     bool AddJob(job_t&& job, JobRunnerStrandPtr strand);
 
     bool AddJob(std::function<void(JobAliveTokenPtr&&)>&& job, JobRunnerStrandPtr strand);
+
+    ///
+    /// Add a job to run, run the job in the current thread immediately if possible.
+    ///
+    /// @param job            a function to run.
+    /// @param strand         strand for serializing jobs.
+    ///
+    /// @return               the state to indicate if the job is finished or queued.
+    ///
+    /// WARNING: It may extend the lifetime of the alive token of the caller until
+    /// the completion of the callee, which may reduce concurrency and introduce
+    /// performance regression. Also the call stack may increase.
+    /// Make sure that you know what you are doing before using.
+    TryRunImmediately::State AddJob(job_t&& job, JobRunnerStrandPtr strand, TryRunImmediately);
+
+    TryRunImmediately::State AddJob(
+        std::function<void(JobAliveTokenPtr&&)>&& job,
+        JobRunnerStrandPtr                        strand,
+        TryRunImmediately);
+
+    bool AddJob(job_t job, JobRunnerStrandPtr strand, ForceRunImmediately);
+
+    bool AddJob(std::function<void(JobAliveTokenPtr&&)> job, JobRunnerStrandPtr strand, ForceRunImmediately);
 
     ///
     /// Randomly steal a job from the workers and run.
