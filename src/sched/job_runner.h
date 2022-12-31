@@ -68,7 +68,12 @@ class JobRunner : public std::enable_shared_from_this<JobRunner> {
     bool AddJob(std::function<void(JobAliveTokenPtr&&)>&& job, JobRunnerStrandPtr strand);
 
     ///
-    /// If possible, run the job in the current thread immediately.
+    /// Add a job to run, run the job in the current thread immediately if possible.
+    ///
+    /// @param job            a function to run.
+    /// @param strand         strand for serializing jobs.
+    ///
+    /// @return               the state to indicate if the job is finished or queued.
     ///
     /// WARNING: It may extend the lifetime of the alive token of the caller until
     /// the completion of the callee, which may reduce concurrency and introduce
