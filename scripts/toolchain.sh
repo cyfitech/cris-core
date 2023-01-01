@@ -42,7 +42,11 @@ fi
 popd >/dev/null
 
 CLANG_TIDY_DEFAULT_VERSION=13
-export CLANG_TIDY="${CLANG_TIDY:-$(which "clang-tidy-$CLANG_TIDY_DEFAULT_VERSION" || which clang-tidy)}"
+export CLANG_TIDY="${CLANG_TIDY:-$(set -e;                  \
+        which "clang-tidy-$CLANG_TIDY_DEFAULT_VERSION"      \
+        || which "clang-$CLANG_TIDY_DEFAULT_VERSION-tidy"   \
+        || which clang-tidy
+    )}"
 
 if [ ! "$CLANG_TIDY" ]; then
     printf '\033[33m[WARNING] Clang Tidy (%d) has not been installed.\033[0m\n' "$CLANG_TIDY_DEFAULT_VERSION" >&2
