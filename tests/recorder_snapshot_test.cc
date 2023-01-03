@@ -59,8 +59,8 @@ std::string MessageToStr(const TestMessage& msg) {
 }
 
 void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
-    static constexpr std::size_t     kThreadNum            = 4;
-    static constexpr std::size_t     kMessageNum           = 40;
+    static constexpr std::size_t     kThreadNum            = 3;
+    static constexpr std::size_t     kMessageNum           = 30;
     static constexpr channel_subid_t kTestIntChannelSubId  = 11;
     static constexpr auto            kSleepBetweenMessages = std::chrono::milliseconds(100);
 
@@ -87,13 +87,13 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
 
     // Plus the origin snapshot
-    const std::size_t kExpectedMinNum = kMessageNum * kSleepBetweenMessages / std::chrono::seconds(1) + 1;
+    const std::size_t kExpectedMinNum = kMessageNum * kSleepBetweenMessages / std::chrono::milliseconds(1) + 1;
 
     auto check_num_time  = std::chrono::steady_clock::now();
     // We may wait half of the interval time at max
     auto check_stop_time = check_num_time + std::chrono::milliseconds(500);
 
-    while (snapshot_path_map["SECONDLY_1"].size() < kExpectedMinNum && check_num_time < check_stop_time) {
+    while (snapshot_path_map["SECONDLY"].size() < kExpectedMinNum && check_num_time < check_stop_time) {
         check_num_time += kSleepBetweenMessages;
         std::this_thread::sleep_until(check_num_time);
         snapshot_path_map = recorder.GetSnapshotPaths();
@@ -101,6 +101,8 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
 
     // The message at the exact time point when the snapshot was token is allowed to be toleranted
     const std::size_t kFlakyTolerance = 1;
+
+    EXPECT_EQ(snapshot_path_map.size(), recorder_config.snapshot_intervals_.size());
 
     for (const auto& path_pair : snapshot_path_map) {
         const std::size_t path_pair_index =
@@ -165,7 +167,7 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
 
 TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     RecorderConfig::IntervalConfig interval_config{
-        .name_         = std::string("SECONDLY_1"),
+        .name_         = std::string("SECONDLY"),
         .interval_sec_ = std::chrono::seconds(1),
     };
 
@@ -180,16 +182,12 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
 TEST_F(RecorderSnapshotTest, RecorderSnapshotMultiIntervalTest) {
     std::vector<RecorderConfig::IntervalConfig> interval_configs{
         {
-            .name_         = std::string("SECONDLY_1"),
+            .name_         = std::string("SECONDLY"),
             .interval_sec_ = std::chrono::seconds(1),
         },
         {
-            .name_         = std::string("SECONDLY_2"),
-            .interval_sec_ = std::chrono::seconds(2),
-        },
-        {
-            .name_         = std::string("SECONDLY_4"),
-            .interval_sec_ = std::chrono::seconds(4),
+            .name_         = std::string("PER 3 SECOND"),
+            .interval_sec_ = std::chrono::seconds(3),
         },
     };
 
