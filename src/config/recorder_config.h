@@ -12,7 +12,7 @@ namespace cris::core {
 struct RecorderConfig {
     struct IntervalConfig {
         std::string          name_;
-        std::chrono::seconds interval_sec_;
+        std::chrono::seconds interval_sec_{0};
     };
 
     std::vector<IntervalConfig> snapshot_intervals_;
