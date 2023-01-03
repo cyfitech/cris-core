@@ -257,7 +257,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMaxCopyNumTest) {
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
 
     // Plus the origin snapshot
-    const std::size_t kExpectedMinNum = kMessageNum * kSleepBetweenMessages / std::chrono::seconds(1) + 1;
+    const std::size_t kExpectedMinNum = kMessageNum * kSleepBetweenMessages / std::chrono::milliseconds(1) + 1;
     auto              check_num_time  = std::chrono::steady_clock::now();
     auto              check_stop_time = check_num_time + std::chrono::milliseconds(500);
 
