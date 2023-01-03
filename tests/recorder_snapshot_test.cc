@@ -59,6 +59,7 @@ std::string MessageToStr(const TestMessage& msg) {
 }
 
 void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
+    std::mutex                       mtx;
     static constexpr std::size_t     kThreadNum            = 3;
     static constexpr std::size_t     kMessageNum           = 30;
     static constexpr channel_subid_t kTestIntChannelSubId  = 11;
@@ -135,7 +136,12 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
 
             // Make sure the data ends around our snapshot timepoint
             // Example: if i = 4 when we made the snapshot, then we should have 01234
-            const std::size_t previous_value = previous_size_t->load();
+            std::size_t previous_value = 0;
+            {
+                std::lock_guard lck(mtx);
+                previous_value = previous_size_t->load();
+            }
+
             if (entry_index == 0) {
                 EXPECT_EQ(previous_value, 0);
             } else {
