@@ -34,8 +34,9 @@ void MessageRecorder::SnapshotWorker() {
 
     std::priority_queue wake_up_queue(snapshot_config_intervals_.begin(), snapshot_config_intervals_.end(), compare);
 
-    auto origin_time  = std::chrono::steady_clock::now();
-    auto wake_up_time = origin_time;
+    const auto sleep_interval = snapshot_config_intervals_.back().period_;
+    const auto kSkipThreshold = std::chrono::duration_cast<std::chrono::milliseconds>(sleep_interval) * 0.5;
+    auto       wake_up_time   = std::chrono::steady_clock::now();
 
     while (!snapshot_shutdown_flag_.load()) {
         auto time = wake_up_queue.top();

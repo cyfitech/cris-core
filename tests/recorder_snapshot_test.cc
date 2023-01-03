@@ -69,6 +69,16 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
     };
     auto runner = JobRunner::MakeJobRunner(config);
 
+    RecorderConfig::IntervalConfig interval_config{
+        .name_   = std::string("SECONDLY"),
+        .period_ = std::chrono::seconds(1),
+    };
+
+    RecorderConfig recorder_config{
+        .snapshot_intervals_ = {interval_config},
+        .record_dir_         = GetTestTempDir(),
+    };
+
     MessageRecorder recorder(recorder_config, runner);
     recorder.RegisterChannel<TestMessage>(kTestIntChannelSubId);
     core::CRNode publisher;
@@ -138,9 +148,8 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
                 EXPECT_EQ(previous_value, 0);
             } else {
                 const std::size_t expect_value =
-                    static_cast<std::size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
-                                                 recorder_config.snapshot_intervals_[path_pair_index].interval_sec_)
-                                                 .count()) /
+                    static_cast<std::size_t>(
+                        std::chrono::duration_cast<std::chrono::milliseconds>(interval_config.period_).count()) /
                     kSleepBetweenMessages.count() * entry_index;
                 EXPECT_TRUE(
                     (previous_value >= expect_value - kFlakyTolerance) &&

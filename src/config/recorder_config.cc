@@ -62,12 +62,12 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
         }
 
         config.snapshot_intervals_.push_back(RecorderConfig::IntervalConfig{
-            .name_         = string(name.data(), name.size()),
-            .interval_sec_ = std::chrono::seconds(period_sec),
+            .name_   = string(name.data(), name.size()),
+            .period_ = std::chrono::seconds(period_sec),
         });
 
         if (max_num_of_copies != 0) {
-            config.snapshot_intervals_.back().max_copy_ = max_num_of_copies;
+            config.snapshot_intervals_.back().max_num_of_copies_ = max_num_of_copies;
         }
     }
 }
