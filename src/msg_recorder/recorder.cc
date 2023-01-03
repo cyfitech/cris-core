@@ -47,8 +47,7 @@ void MessageRecorder::SnapshotWorker() {
 
     while (!snapshot_shutdown_flag_.load()) {
         const auto kSkipThreshold =
-            std::chrono::duration_cast<std::chrono::milliseconds>(next_snapshot_wakeup.interval_config.interval_sec_) *
-            0.5;
+            std::chrono::duration_cast<std::chrono::milliseconds>(next_snapshot_wakeup.interval_config.period_) * 0.5;
 
         if ((next_snapshot_wakeup.wake_time - std::chrono::steady_clock::now()) > kSkipThreshold) {
             GenerateSnapshot();
@@ -64,7 +63,7 @@ void MessageRecorder::SnapshotWorker() {
 
         std::unique_lock lck(snapshot_mtx_);
         snapshot_cv_.wait_until(lck, next_snapshot_wakeup.wake_time, [this] { return snapshot_shutdown_flag_.load(); });
-        next_snapshot_wakeup.wake_time += next_snapshot_wakeup.interval_config.interval_sec_;
+        next_snapshot_wakeup.wake_time += next_snapshot_wakeup.interval_config.period_;
     }
 }
 
@@ -137,10 +136,10 @@ void MessageRecorder::GenerateSnapshotImpl() {
     auto& snapshot_dirs = snapshot_path_map_[next_snapshot_.name_];
     snapshot_dirs.push_back(snapshot_dir);
 
-    while (snapshot_dirs.size() > snapshot_max_num_) {
+    while (snapshot_dirs.size() > next_snapshot_.max_num_of_copies_) {
         if (std::error_code ec;
             std::filesystem::remove_all(snapshot_dirs.front(), ec) == static_cast<std::uintmax_t>(-1)) {
-            LOG(ERROR) << __func__ << ": Locally saved more than " << snapshot_max_num_
+            LOG(ERROR) << __func__ << ": Locally saved more than " << next_snapshot_.max_num_of_copies_
                        << " snapshot copies but failed to remove the oldest one. " << ec.message();
         }
         snapshot_dirs.pop_front();
