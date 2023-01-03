@@ -4,7 +4,7 @@ set -e
 
 # HACK(chenhao94): Skip all the "textual" sources.
 if printf "%s\n" "$@" | grep "\.txt\.h\(pp\)\?$" > /dev/null; then
-    exit 0;
+    exit 0
 fi
 
 # HACK(chenhao94): Bazel will redefine built-in macros (e.g., "__DATE__") for
