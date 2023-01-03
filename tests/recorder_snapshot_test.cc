@@ -121,7 +121,8 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
 
             subscriber.Subscribe<TestMessage>(
                 kTestIntChannelSubId,
-                [&previous_size_t](const std::shared_ptr<TestMessage>& message) {
+                [&mtx, &previous_size_t](const std::shared_ptr<TestMessage>& message) {
+                    std::lock_guard   lck(mtx);
                     if (message->value_ != 0) {
                         EXPECT_EQ(message->value_ - previous_size_t->load(), 1);
                     }
