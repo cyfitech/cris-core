@@ -13,8 +13,11 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <filesystem>
 #include <memory>
+#include <mutex>
+#include <ratio>
 #include <string>
 #include <thread>
 #include <utility>
@@ -29,7 +32,7 @@ class RecorderSnapshotTest : public testing::Test {
     RecorderSnapshotTest() { std::filesystem::create_directories(GetTestTempDir()); }
     ~RecorderSnapshotTest() { std::filesystem::remove_all(GetTestTempDir()); }
 
-    void TestSnapshot(RecorderConfig recorder_config);
+    void TestSnapshot(const RecorderConfig& recorder_config);
 
     std::filesystem::path GetTestTempDir() const { return record_test_temp_dir_; }
 
@@ -58,7 +61,7 @@ std::string MessageToStr(const TestMessage& msg) {
     return serialized_msg;
 }
 
-void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
+void RecorderSnapshotTest::TestSnapshot(const RecorderConfig& recorder_config) {
     std::mutex                       mtx;
     static constexpr std::size_t     kThreadNum            = 3;
     static constexpr std::size_t     kMessageNum           = 30;
@@ -122,7 +125,7 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
             subscriber.Subscribe<TestMessage>(
                 kTestIntChannelSubId,
                 [&mtx, &previous_size_t](const std::shared_ptr<TestMessage>& message) {
-                    std::lock_guard   lck(mtx);
+                    std::lock_guard lck(mtx);
                     if (message->value_ != 0) {
                         EXPECT_EQ(message->value_ - previous_size_t->load(), 1);
                     }

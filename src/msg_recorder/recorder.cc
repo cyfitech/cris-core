@@ -8,6 +8,8 @@
 
 #include <filesystem>
 #include <queue>
+#include <ratio>
+#include <vector>
 
 namespace cris::core {
 
@@ -39,7 +41,7 @@ void MessageRecorder::SnapshotWorker() {
     std::priority_queue wake_up_queue(
         snapshot_wakeup_intervals.begin(),
         snapshot_wakeup_intervals.end(),
-        [](const WakeUpConfig l, const WakeUpConfig r) { return l.wake_time > r.wake_time; });
+        [](const WakeUpConfig& l, const WakeUpConfig& r) { return l.wake_time > r.wake_time; });
 
     auto next_snapshot_wakeup = wake_up_queue.top();
     wake_up_queue.pop();
