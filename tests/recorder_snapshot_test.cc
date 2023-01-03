@@ -186,7 +186,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMultiIntervalTest) {
             .interval_sec_ = std::chrono::seconds(1),
         },
         {
-            .name_         = std::string("PER 3 SECOND"),
+            .name_         = std::string("SECONDS_3"),
             .interval_sec_ = std::chrono::seconds(3),
         },
     };
