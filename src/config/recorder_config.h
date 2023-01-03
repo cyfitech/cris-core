@@ -12,9 +12,9 @@ namespace cris::core {
 struct RecorderConfig {
     struct IntervalConfig {
         static constexpr std::size_t kDefaultMaxNumOfCopies = 48;
-        std::string          name_;
-        std::chrono::seconds period_;
-        std::size_t          max_num_of_copies_{kDefaultMaxNumOfCopies};
+        std::string                  name_;
+        std::chrono::seconds         period_;
+        std::size_t                  max_num_of_copies_{kDefaultMaxNumOfCopies};
     };
 
     std::vector<IntervalConfig> snapshot_intervals_;

@@ -68,7 +68,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     auto runner = JobRunner::MakeJobRunner(config);
 
     RecorderConfig::IntervalConfig interval_config{
-        .name_         = std::string("SECONDLY"),
+        .name_   = std::string("SECONDLY"),
         .period_ = std::chrono::seconds(1),
     };
 

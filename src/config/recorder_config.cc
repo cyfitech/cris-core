@@ -62,7 +62,7 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
         }
 
         config.snapshot_intervals_.push_back(RecorderConfig::IntervalConfig{
-            .name_         = string(name.data(), name.size()),
+            .name_   = string(name.data(), name.size()),
             .period_ = std::chrono::seconds(period_sec),
         });
 
