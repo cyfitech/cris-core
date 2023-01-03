@@ -35,7 +35,7 @@ jobs:
         | tr '\v' '\t'                                          \
         | grep .
     - name: Run linter
-      run: export HOME=/root && CLANG_FORMAT=clang-format-12 CLANG_TIDY=clang-tidy-13 make lint tidy
+      run: export HOME=/root && make -j lint tidy
     - name: Check diff
       run: export HOME=/root && git --no-pager diff --exit-code
 
@@ -206,7 +206,7 @@ jobs:
   tsan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20221216
+      image: ghcr.io/cyfitech/cris-build-debian11:20221216
     env:
       CC: clang-13
       CXX: clang++-13

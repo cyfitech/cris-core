@@ -21,11 +21,24 @@ PATH="$([ ! "$CC"  ] || dirname  "$CC" ):$([ ! "$CXX" ] || dirname "$CXX"):$PATH
 CC="$(  [ ! "$CC"  ] || basename "$CC" )"                                           \
 CXX="$( [ ! "$CXX" ] || basename "$CXX")"                                           \
 bazel "$BAZEL_CMD"                                                                  \
-      "$(! which ccache >/dev/null 2>&1 || ccache -sv 2>/dev/null                   \
-         | sed -n 's/^[[:space:]]*cache directory[[:space:]:][[:space:]]*//pi'      \
-         | grep .                                                                   \
-         | head -n1                                                                 \
-         | xargs -I{} printf '%s=%s' '--sandbox_writable_path' "{}" )"              \
-      "$@"
+    --sandbox_writable_path="$(set -e;                                              \
+        which ccache >/dev/null 2>&1                                                \
+        && ccache --show-config 2>/dev/null                                         \
+        | sed -n 's/^[[:space:]]*([^)]*)[[:space:]]*//p'                            \
+        | sed 's/[[:space:]]*$//'                                                   \
+        | sed -n 's/^cache_dir[[:space:]]*=[[:space:]]*//pi'                        \
+        | head -n1                                                                  \
+        | grep .                                                                    \
+        || printf '/dev/null')"                                                     \
+    --sandbox_writable_path="$(set -e;                                              \
+        which ccache >/dev/null 2>&1                                                \
+        && ccache --show-config 2>/dev/null                                         \
+        | sed -n 's/^[[:space:]]*([^)]*)[[:space:]]*//p'                            \
+        | sed 's/[[:space:]]*$//'                                                   \
+        | sed -n 's/^temporary_dir[[:space:]]*=[[:space:]]*//pi'                    \
+        | head -n1                                                                  \
+        | grep .                                                                    \
+        || printf '/dev/null')"                                                     \
+    "$@"
 
 ! which ccache >/dev/null 2>&1 || ccache -s
