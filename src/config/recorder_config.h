@@ -9,14 +9,12 @@
 
 namespace cris::core {
 
-// Save 48 snapshots locally for each time interval as default
-constexpr std::size_t kDefaultMaxCopyNum = 48;
-
 struct RecorderConfig {
     struct IntervalConfig {
+        static constexpr std::size_t kDefaultMaxNumOfCopies = 48;
         std::string          name_;
-        std::chrono::seconds interval_sec_;
-        std::size_t          max_copy_{kDefaultMaxCopyNum};
+        std::chrono::seconds period_;
+        std::size_t          max_num_of_copies_{kDefaultMaxNumOfCopies};
     };
 
     std::vector<IntervalConfig> snapshot_intervals_;
