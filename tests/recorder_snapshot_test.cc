@@ -142,8 +142,8 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
             } else {
                 const std::size_t expect_value =
                     static_cast<std::size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
-                                                    recorder_config.snapshot_intervals_[path_pair_index].interval_sec_)
-                                                    .count()) /
+                                                 recorder_config.snapshot_intervals_[path_pair_index].interval_sec_)
+                                                 .count()) /
                     kSleepBetweenMessages.count() * entry_index;
                 EXPECT_TRUE(
                     (previous_value >= expect_value - kFlakyTolerance) &&

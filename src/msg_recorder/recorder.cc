@@ -145,7 +145,7 @@ void MessageRecorder::GenerateSnapshotImpl() {
         }
         snapshot_dirs.pop_front();
     }
-    
+
     std::for_each(files_.begin(), files_.end(), [](auto& file) { file->OpenDB(); });
 }
 
