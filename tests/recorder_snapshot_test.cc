@@ -15,11 +15,11 @@
 #include <chrono>
 #include <filesystem>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <utility>
 #include <vector>
-#include <mutex>
 
 using channel_subid_t = cris::core::CRMessageBase::channel_subid_t;
 
