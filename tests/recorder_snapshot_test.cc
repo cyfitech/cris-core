@@ -19,6 +19,7 @@
 #include <thread>
 #include <utility>
 #include <vector>
+#include <mutex>
 
 using channel_subid_t = cris::core::CRMessageBase::channel_subid_t;
 
@@ -121,7 +122,8 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
 
             subscriber.Subscribe<TestMessage>(
                 kTestIntChannelSubId,
-                [&previous_size_t](const std::shared_ptr<TestMessage>& message) {
+                [&previous_size_t, &mtx](const std::shared_ptr<TestMessage>& message) {
+                    std::lock_guard lck(mtx);
                     if (message->value_ != 0) {
                         EXPECT_EQ(message->value_ - previous_size_t->load(), 1);
                     }
@@ -136,22 +138,20 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
 
             // Make sure the data ends around our snapshot timepoint
             // Example: if i = 4 when we made the snapshot, then we should have 01234
-            {
-                std::lock_guard   lck(mtx);
-                const std::size_t previous_value = previous_size_t->load();
+            std::lock_guard   lck(mtx);
+            const std::size_t previous_value = previous_size_t->load();
 
-                if (entry_index == 0) {
-                    EXPECT_EQ(previous_value, 0);
-                } else {
-                    const std::size_t expect_value =
-                        static_cast<std::size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
-                                                     recorder_config.snapshot_intervals_[path_pair_index].interval_sec_)
-                                                     .count()) /
-                        kSleepBetweenMessages.count() * entry_index;
-                    EXPECT_TRUE(
-                        (previous_value >= expect_value - kFlakyTolerance) &&
-                        (previous_value <= expect_value + kFlakyTolerance));
-                }
+            if (entry_index == 0) {
+                EXPECT_EQ(previous_value, 0);
+            } else {
+                const std::size_t expect_value =
+                    static_cast<std::size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                                 recorder_config.snapshot_intervals_[path_pair_index].interval_sec_)
+                                                 .count()) /
+                    kSleepBetweenMessages.count() * entry_index;
+                EXPECT_TRUE(
+                    (previous_value >= expect_value - kFlakyTolerance) &&
+                    (previous_value <= expect_value + kFlakyTolerance));
             }
         }
 
@@ -168,6 +168,8 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
 
         EXPECT_EQ(path_pair.second.size(), kExpectedSnapshotNum);
     }
+
+    runner->Stop();
 }
 
 TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
