@@ -142,7 +142,6 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
                 // Make sure messages arrive the node
                 std::unique_lock lock(test_mtx);
                 test_cv.wait_for(lock, std::chrono::milliseconds(200));
-                lock.unlock();
             }
 
             // Make sure the data ends around our snapshot timepoint
@@ -164,5 +163,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
         EXPECT_EQ(path_pair.first, interval_config.name_);
         EXPECT_EQ(path_pair.second.size(), kExpectedSnapshotNum);
     }
+
+    runner->Stop();
 }
 }  // namespace cris::core
