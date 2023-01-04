@@ -304,6 +304,8 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMaxCopyNumTest) {
             saved_data_list.pop_front();
         }
     }
+
+    runner->Stop();
 }
 
 }  // namespace cris::core
