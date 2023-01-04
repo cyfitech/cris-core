@@ -49,15 +49,15 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
             Fail("\"name\" is required.", ec);
         }
 
-        int64_t period_sec = 0;
+        uint64_t period_sec = 0;
         if (const auto ec = data["period_sec"].get(period_sec)) {
             Fail("\"period_sec\" is required.", ec);
         }
 
-        std::size_t max_num_of_copies = 0;
+        uint64_t max_num_of_copies = 0;
         if (const auto ec = data["max_num_of_copies"].get(max_num_of_copies)) {
             if (simdjson::simdjson_error(ec).error() != simdjson::NO_SUCH_FIELD) {
-                Fail("Expect a number for \"max_num_of_copies\".", ec);
+                Fail("\"max_num_of_copies\" must be an unsigned integer.", ec);
             }
         }
 
@@ -67,7 +67,7 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
         });
 
         if (max_num_of_copies != 0) {
-            config.snapshot_intervals_.back().max_num_of_copies_ = max_num_of_copies;
+            config.snapshot_intervals_.back().max_num_of_copies_ = static_cast<std::size_t>(max_num_of_copies);
         }
     }
 }
