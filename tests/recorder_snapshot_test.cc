@@ -16,6 +16,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
 #include <utility>
@@ -58,6 +59,7 @@ std::string MessageToStr(const TestMessage& msg) {
 }
 
 TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
+    std::mutex                       mtx;
     static constexpr std::size_t     kThreadNum            = 4;
     static constexpr std::size_t     kMessageNum           = 40;
     static constexpr channel_subid_t kTestIntChannelSubId  = 11;
@@ -125,7 +127,8 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
 
             subscriber.Subscribe<TestMessage>(
                 kTestIntChannelSubId,
-                [&previous_size_t](const std::shared_ptr<TestMessage>& message) {
+                [&previous_size_t, &mtx](const std::shared_ptr<TestMessage>& message) {
+                    std::lock_guard lck(mtx);
                     if (message->value_ != 0) {
                         EXPECT_EQ(message->value_ - previous_size_t->load(), 1);
                     }
@@ -139,6 +142,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
 
             // Make sure the data ends around our snapshot timepoint
             // Example: if i = 4 when we made the snapshot, then we should have 01234
+            std::lock_guard   lck(mtx);
             const std::size_t previous_value = previous_size_t->load();
             if (entry_index == 0) {
                 EXPECT_EQ(previous_value, 0);
