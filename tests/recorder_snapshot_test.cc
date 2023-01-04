@@ -57,6 +57,8 @@ std::string MessageToStr(const TestMessage& msg) {
 }
 
 TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
+    std::mutex                       test_mtx;
+    std::condition_variable          test_cv;
     static constexpr std::size_t     kThreadNum            = 4;
     static constexpr std::size_t     kMessageNum           = 40;
     static constexpr channel_subid_t kTestIntChannelSubId  = 11;
@@ -134,8 +136,12 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
 
             replayer.MainLoop();
 
-            // Make sure messages arrive the node
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            {
+                // Make sure messages arrive the node
+                std::unique_lock lock(test_mtx);
+                test_cv.wait_for(lock, std::chrono::milliseconds(200));
+                lock.unlock();
+            }
 
             // Make sure the data ends around our snapshot timepoint
             // Example: if i = 4 when we made the snapshot, then we should have 01234
