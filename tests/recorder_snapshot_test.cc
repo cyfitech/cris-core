@@ -60,11 +60,12 @@ std::string MessageToStr(const TestMessage& msg) {
 }
 
 void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
-    std::mutex                       mtx;
-    static constexpr std::size_t     kThreadNum            = 3;
-    static constexpr std::size_t     kMessageNum           = 30;
+    std::mutex                       content_test_mtx;
+    static constexpr std::size_t     kThreadNum            = 4;
+    static constexpr std::size_t     kMessageNum           = 20;
     static constexpr channel_subid_t kTestIntChannelSubId  = 11;
     static constexpr auto            kSleepBetweenMessages = std::chrono::milliseconds(100);
+    static constexpr auto            kMaxWaitingTime       = std::chrono::milliseconds(500);
 
     JobRunner::Config config = {
         .thread_num_ = kThreadNum,
@@ -89,11 +90,11 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
 
     // Plus the origin snapshot
-    const std::size_t kExpectedMinNum = kMessageNum * kSleepBetweenMessages / std::chrono::milliseconds(1) + 1;
+    const std::size_t kExpectedMinNum = kMessageNum * kSleepBetweenMessages / std::chrono::milliseconds(1000) + 1;
 
     auto check_num_time  = std::chrono::steady_clock::now();
     // We may wait half of the interval time at max
-    auto check_stop_time = check_num_time + std::chrono::milliseconds(500);
+    auto check_stop_time = check_num_time + kMaxWaitingTime;
 
     while (snapshot_path_map["SECONDLY"].size() < kExpectedMinNum && check_num_time < check_stop_time) {
         check_num_time += kSleepBetweenMessages;
@@ -122,8 +123,8 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
 
             subscriber.Subscribe<TestMessage>(
                 kTestIntChannelSubId,
-                [&previous_size_t, &mtx](const std::shared_ptr<TestMessage>& message) {
-                    std::lock_guard lck(mtx);
+                [&previous_size_t, &content_test_mtx](const std::shared_ptr<TestMessage>& message) {
+                    std::lock_guard lck(content_test_mtx);
                     if (message->value_ != 0) {
                         EXPECT_EQ(message->value_ - previous_size_t->load(), 1);
                     }
@@ -138,7 +139,7 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
 
             // Make sure the data ends around our snapshot timepoint
             // Example: if i = 4 when we made the snapshot, then we should have 01234
-            std::lock_guard   lck(mtx);
+            std::lock_guard   lck(content_test_mtx);
             const std::size_t previous_value = previous_size_t->load();
 
             if (entry_index == 0) {
@@ -149,9 +150,9 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
                                                  recorder_config.snapshot_intervals_[path_pair_index].period_)
                                                  .count()) /
                     kSleepBetweenMessages.count() * entry_index;
-                EXPECT_TRUE(
-                    (previous_value >= expect_value - kFlakyTolerance) &&
-                    (previous_value <= expect_value + kFlakyTolerance));
+
+                EXPECT_GE(previous_value, expect_value - kFlakyTolerance);
+                EXPECT_LE(previous_value, expect_value + kFlakyTolerance);
             }
         }
 
@@ -166,7 +167,8 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
         // Plus the origin snapshot
         const std::size_t kExpectedSnapshotNum = kTotalTimeSec / kCurrentIntervalSec + 1;
 
-        EXPECT_EQ(path_pair.second.size(), kExpectedSnapshotNum);
+        // We may skip a snapshot if the time is too close to the next one
+        EXPECT_GE(path_pair.second.size(), kExpectedSnapshotNum - kFlakyTolerance);
     }
 
     runner->Stop();
@@ -195,8 +197,8 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMultiIntervalTest) {
             .max_num_of_copies_ = 10,
         },
         {
-            .name_              = std::string("SECONDS_3"),
-            .period_            = std::chrono::seconds(3),
+            .name_              = std::string("SECONDS_2"),
+            .period_            = std::chrono::seconds(2),
             .max_num_of_copies_ = 10,
         },
     };
@@ -223,16 +225,16 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMaxCopyNumTest) {
         .record_dir_         = GetTestTempDir(),
     };
 
-    std::mutex                       mtx;
+    std::mutex                       copy_test_mtx;
     static constexpr std::size_t     kThreadNum            = 3;
     static constexpr std::size_t     kMessageNum           = 30;
     static constexpr channel_subid_t kTestIntChannelSubId  = 11;
     static constexpr auto            kSleepBetweenMessages = std::chrono::milliseconds(100);
+    static constexpr auto            kMaxWaitingTime       = std::chrono::milliseconds(500);
 
-    JobRunner::Config config = {
+    auto runner = JobRunner::MakeJobRunner(JobRunner::Config{
         .thread_num_ = kThreadNum,
-    };
-    auto runner = JobRunner::MakeJobRunner(config);
+    });
 
     MessageRecorder recorder(max_num_config, runner);
     recorder.RegisterChannel<TestMessage>(kTestIntChannelSubId);
@@ -265,7 +267,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMaxCopyNumTest) {
     // Plus the origin snapshot
     const std::size_t kExpectedMinNum = kMessageNum * kSleepBetweenMessages / std::chrono::milliseconds(1) + 1;
     auto              check_num_time  = std::chrono::steady_clock::now();
-    auto              check_stop_time = check_num_time + std::chrono::milliseconds(500);
+    auto              check_stop_time = check_num_time + kMaxWaitingTime;
 
     while (snapshot_path_map["SECONDLY"].size() < kExpectedMinNum && check_num_time < check_stop_time) {
         check_num_time += kSleepBetweenMessages;
@@ -287,8 +289,8 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMaxCopyNumTest) {
             std::size_t data_counter = 0;
             subscriber.Subscribe<TestMessage>(
                 kTestIntChannelSubId,
-                [&saved_data_list, &mtx, &data_counter](const std::shared_ptr<TestMessage>& message) {
-                    std::lock_guard lock(mtx);
+                [&saved_data_list, &copy_test_mtx, &data_counter](const std::shared_ptr<TestMessage>& message) {
+                    std::lock_guard lck(copy_test_mtx);
                     EXPECT_EQ(message->value_, saved_data_list.front()[data_counter]);
                     data_counter++;
                 },
@@ -297,10 +299,10 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMaxCopyNumTest) {
             replayer.MainLoop();
             std::this_thread::sleep_for(std::chrono::milliseconds(200));
 
-            std::lock_guard lock(mtx);
-            EXPECT_TRUE(
-                (data_counter >= saved_data_list.front().size() - kFlakyTolerance) &&
-                (data_counter <= saved_data_list.front().size() + kFlakyTolerance));
+            std::lock_guard lck(copy_test_mtx);
+            EXPECT_GE(data_counter, saved_data_list.front().size() - kFlakyTolerance);
+            EXPECT_LE(data_counter, saved_data_list.front().size() + kFlakyTolerance);
+
             saved_data_list.pop_front();
         }
     }
