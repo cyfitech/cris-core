@@ -1,3 +1,5 @@
+package(default_visibility = ["//visibility:public"])
+
 load("//bazel:rules.bzl", "cris_cc_library", "cris_cc_test")
 
 cris_cc_library(
