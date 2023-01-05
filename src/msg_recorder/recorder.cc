@@ -134,9 +134,7 @@ std::string MessageRecorder::RecordDirNameGenerator() {
 }
 
 std::string MessageRecorder::SnapshotDirNameGenerator() {
-    auto now = std::chrono::system_clock::now();
-    auto sse = now.time_since_epoch();
-    return fmt::format("{:%Y%m%d-%H%M}{:%S}\n", now, sse);
+    return fmt::format("{:%Y%m%d-%H%M%S.%Z}", std::chrono::system_clock::now());
 }
 
 std::filesystem::path MessageRecorder::GetRecordDir() const {
