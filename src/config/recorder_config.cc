@@ -54,7 +54,7 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
             Fail("\"period_sec\" is required.", ec);
         }
 
-        uint64_t max_num_of_copies = 0;
+        uint64_t max_num_of_copies = RecorderConfig::IntervalConfig::kDefaultMaxNumOfCopies;
         if (const auto ec = data["max_num_of_copies"].get(max_num_of_copies)) {
             if (simdjson::simdjson_error(ec).error() != simdjson::NO_SUCH_FIELD) {
                 Fail("\"max_num_of_copies\" must be an unsigned integer.", ec);
@@ -62,13 +62,10 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
         }
 
         config.snapshot_intervals_.push_back(RecorderConfig::IntervalConfig{
-            .name_   = string(name.data(), name.size()),
-            .period_ = std::chrono::seconds(period_sec),
+            .name_              = string(name.data(), name.size()),
+            .period_            = std::chrono::seconds(period_sec),
+            .max_num_of_copies_ = static_cast<std::size_t>(max_num_of_copies),
         });
-
-        if (max_num_of_copies != 0) {
-            config.snapshot_intervals_.back().max_num_of_copies_ = static_cast<std::size_t>(max_num_of_copies);
-        }
     }
 }
 
