@@ -112,6 +112,14 @@ cris_cc_library (
     ],
 )
 
+cris_cc_library(
+    name = "libbacktrace",
+    srcs = glob(["external:libbacktrace/*.cc"]),
+    hdrs = glob(["external:libbacktrace/*.h"]),    
+    include_prefix = "cris/core",
+    strip_include_prefix = "external",
+)
+
 cris_cc_library (
     name = "signal",
     srcs = glob(["src/signal/**/*.cc"]),
@@ -119,7 +127,8 @@ cris_cc_library (
     include_prefix = "cris/core",
     strip_include_prefix = "src",
     copts = [
-        "-DBOOST_STACKTRACE_USE_ADDR2LINE",
+        "-DBOOST_STACKTRACE_USE_BACKTRACE",
+        "-DBOOST_STACKTRACE_BACKTRACE_INCLUDE_FILE=</usr/lib/gcc/x86_64-linux-gnu/10/include/backtrace.h>"
     ] + select({
         "@platforms//os:osx" : ["-DBOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED"],
         "//conditions:default": [],
@@ -130,6 +139,7 @@ cris_cc_library (
     deps = [
         ":utils",
         ":timer",
+        ":libbacktrace",
         "@com_github_google_glog//:glog",
     ],
 )
