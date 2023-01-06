@@ -71,6 +71,16 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
     };
     auto runner = JobRunner::MakeJobRunner(config);
 
+    RecorderConfig::IntervalConfig interval_config{
+        .name_   = std::string("SECONDLY"),
+        .period_ = std::chrono::seconds(1),
+    };
+
+    RecorderConfig recorder_config{
+        .snapshot_intervals_ = {interval_config},
+        .record_dir_         = GetTestTempDir(),
+    };
+
     MessageRecorder recorder(recorder_config, runner);
     recorder.RegisterChannel<TestMessage>(kTestIntChannelSubId);
     core::CRNode publisher;
@@ -146,7 +156,7 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
             } else {
                 const std::size_t expect_value =
                     static_cast<std::size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
-                                                 recorder_config.snapshot_intervals_[path_pair_index].interval_sec_)
+                                                 recorder_config.snapshot_intervals_[path_pair_index].period_)
                                                  .count()) /
                     kSleepBetweenMessages.count() * entry_index;
                 EXPECT_TRUE(
@@ -161,7 +171,7 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
             std::chrono::duration_cast<std::chrono::seconds>(kMessageNum * kSleepBetweenMessages).count();
 
         const std::size_t kCurrentIntervalSec =
-            static_cast<std::size_t>(recorder_config.snapshot_intervals_[path_pair_index].interval_sec_.count());
+            static_cast<std::size_t>(recorder_config.snapshot_intervals_[path_pair_index].period_.count());
 
         // Plus the origin snapshot
         const std::size_t kExpectedSnapshotNum = kTotalTimeSec / kCurrentIntervalSec + 1;
@@ -175,7 +185,7 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
 TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     RecorderConfig::IntervalConfig interval_config{
         .name_         = std::string("SECONDLY"),
-        .interval_sec_ = std::chrono::seconds(1),
+        .period_ = std::chrono::seconds(1),
     };
 
     RecorderConfig single_interval_config{
@@ -190,11 +200,11 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMultiIntervalTest) {
     std::vector<RecorderConfig::IntervalConfig> interval_configs{
         {
             .name_         = std::string("SECONDLY"),
-            .interval_sec_ = std::chrono::seconds(1),
+            .period_ = std::chrono::seconds(1),
         },
         {
             .name_         = std::string("SECONDS_3"),
-            .interval_sec_ = std::chrono::seconds(3),
+            .period_ = std::chrono::seconds(3),
         },
     };
 

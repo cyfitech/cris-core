@@ -50,7 +50,7 @@ void MessageRecorder::SnapshotWorker() {
 
     while (!snapshot_shutdown_flag_.load()) {
         const auto kSkipThreshold = std::chrono::duration_cast<std::chrono::milliseconds>(
-                                        current_snapshot_wakeup.interval_config.interval_sec_) *
+                                        current_snapshot_wakeup.interval_config.period_) *
             0.5;
 
         if ((current_snapshot_wakeup.wake_time - std::chrono::steady_clock::now()) > kSkipThreshold) {
@@ -68,7 +68,7 @@ void MessageRecorder::SnapshotWorker() {
         snapshot_cv_.wait_until(lck, current_snapshot_wakeup.wake_time, [this] {
             return snapshot_shutdown_flag_.load();
         });
-        current_snapshot_wakeup.wake_time += current_snapshot_wakeup.interval_config.interval_sec_;
+        current_snapshot_wakeup.wake_time += current_snapshot_wakeup.interval_config.period_;
     }
 }
 
