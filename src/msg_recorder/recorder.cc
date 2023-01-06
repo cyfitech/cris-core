@@ -6,9 +6,16 @@
 #include "fmt/core.h"
 #include "impl/utils.h"
 
+#include <algorithm>
 #include <chrono>
 #include <filesystem>
+#include <memory>
+#include <mutex>
 #include <queue>
+#include <string>
+#include <system_error>
+#include <thread>
+#include <utility>
 #include <vector>
 
 namespace cris::core {
@@ -49,8 +56,8 @@ void MessageRecorder::SnapshotWorker() {
     wake_up_queue.pop();
 
     while (!snapshot_shutdown_flag_.load()) {
-        const auto kSkipThreshold = std::chrono::duration_cast<std::chrono::milliseconds>(
-                                        current_snapshot_wakeup.interval_config.period_) *
+        const auto kSkipThreshold =
+            std::chrono::duration_cast<std::chrono::milliseconds>(current_snapshot_wakeup.interval_config.period_) *
             0.5;
 
         if ((current_snapshot_wakeup.wake_time - std::chrono::steady_clock::now()) > kSkipThreshold) {

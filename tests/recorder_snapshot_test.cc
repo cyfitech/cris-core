@@ -67,7 +67,7 @@ void RecorderSnapshotTest::TestSnapshot(const RecorderConfig& recorder_config) {
     static constexpr channel_subid_t kTestIntChannelSubId  = 11;
     static constexpr auto            kSleepBetweenMessages = std::chrono::milliseconds(100);
 
-    auto runner = JobRunner::MakeJobRunner(    JobRunner::Config {
+    auto runner = JobRunner::MakeJobRunner(JobRunner::Config{
         .thread_num_ = kThreadNum,
     });
 
@@ -171,7 +171,7 @@ void RecorderSnapshotTest::TestSnapshot(const RecorderConfig& recorder_config) {
 
 TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     RecorderConfig::IntervalConfig interval_config{
-        .name_         = std::string("SECONDLY"),
+        .name_   = std::string("SECONDLY"),
         .period_ = std::chrono::seconds(1),
     };
 
@@ -186,11 +186,11 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
 TEST_F(RecorderSnapshotTest, RecorderSnapshotMultiIntervalTest) {
     std::vector<RecorderConfig::IntervalConfig> interval_configs{
         {
-            .name_         = std::string("SECONDLY"),
+            .name_   = std::string("SECONDLY"),
             .period_ = std::chrono::seconds(1),
         },
         {
-            .name_         = std::string("SECONDS_3"),
+            .name_   = std::string("SECONDS_3"),
             .period_ = std::chrono::seconds(3),
         },
     };
