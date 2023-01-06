@@ -7,6 +7,7 @@ cris_cc_library(
         "//:signal",
         "@gtest//:gtest",
     ],
+    visibility = ["//visibility:public"],
 )
 
 cris_cc_test (
