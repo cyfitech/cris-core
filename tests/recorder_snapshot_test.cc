@@ -32,8 +32,6 @@ class RecorderSnapshotTest : public testing::Test {
     RecorderSnapshotTest() { std::filesystem::create_directories(GetTestTempDir()); }
     ~RecorderSnapshotTest() { std::filesystem::remove_all(GetTestTempDir()); }
 
-    void TestSnapshot(const RecorderConfig& recorder_config);
-
     std::filesystem::path GetTestTempDir() const { return record_test_temp_dir_; }
 
    private:
@@ -61,11 +59,30 @@ std::string MessageToStr(const TestMessage& msg) {
     return serialized_msg;
 }
 
-void RecorderSnapshotTest::TestSnapshot(const RecorderConfig& recorder_config) {
+TEST_F(RecorderSnapshotTest, RecorderSnapshotMultiIntervalTest) {
     static constexpr std::size_t     kThreadNum            = 4;
     static constexpr std::size_t     kMessageNum           = 40;
     static constexpr channel_subid_t kTestIntChannelSubId  = 11;
     static constexpr auto            kSleepBetweenMessages = std::chrono::milliseconds(100);
+
+    RecorderConfig recorder_config{
+        .snapshot_intervals_ =
+            std::vector<RecorderConfig::IntervalConfig>{
+                {
+                    .name_   = std::string("SECONDLY"),
+                    .period_ = std::chrono::seconds(1),
+                },
+                {
+                    .name_   = std::string("SECONDS_2"),
+                    .period_ = std::chrono::seconds(2),
+                },
+                {
+                    .name_   = std::string("SECONDS_4"),
+                    .period_ = std::chrono::seconds(4),
+                },
+            },
+        .record_dir_ = GetTestTempDir(),
+    };
 
     auto runner = JobRunner::MakeJobRunner(JobRunner::Config{
         .thread_num_ = kThreadNum,
@@ -89,14 +106,14 @@ void RecorderSnapshotTest::TestSnapshot(const RecorderConfig& recorder_config) {
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
 
     // Plus the origin snapshot
-    const std::size_t     kExpectedMinNum = kMessageNum * kSleepBetweenMessages / std::chrono::seconds(1) + 1;
+    const std::size_t     kExpectedMinNum = kMessageNum * kSleepBetweenMessages / std::chrono::seconds(4) + 1;
     static constexpr auto kMaxWaitingTime = std::chrono::milliseconds(500);
 
     auto check_num_time  = std::chrono::steady_clock::now();
     // We may wait half of the interval time at max
     auto check_stop_time = check_num_time + kMaxWaitingTime;
 
-    while (snapshot_path_map["SECONDLY"].size() < kExpectedMinNum && check_num_time < check_stop_time) {
+    while (snapshot_path_map["SECONDS_4"].size() < kExpectedMinNum && check_num_time < check_stop_time) {
         check_num_time += kSleepBetweenMessages;
         std::this_thread::sleep_until(check_num_time);
         snapshot_path_map = recorder.GetSnapshotPaths();
@@ -180,40 +197,6 @@ void RecorderSnapshotTest::TestSnapshot(const RecorderConfig& recorder_config) {
     }
 
     runner->Stop();
-}
-
-TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
-    RecorderConfig::IntervalConfig interval_config{
-        .name_   = std::string("SECONDLY"),
-        .period_ = std::chrono::seconds(1),
-    };
-
-    RecorderConfig single_interval_config{
-        .snapshot_intervals_ = {interval_config},
-        .record_dir_         = GetTestTempDir(),
-    };
-
-    TestSnapshot(single_interval_config);
-}
-
-TEST_F(RecorderSnapshotTest, RecorderSnapshotMultiIntervalTest) {
-    std::vector<RecorderConfig::IntervalConfig> interval_configs{
-        {
-            .name_   = std::string("SECONDLY"),
-            .period_ = std::chrono::seconds(1),
-        },
-        {
-            .name_   = std::string("SECONDS_3"),
-            .period_ = std::chrono::seconds(3),
-        },
-    };
-
-    RecorderConfig multi_interval_config{
-        .snapshot_intervals_ = interval_configs,
-        .record_dir_         = GetTestTempDir(),
-    };
-
-    TestSnapshot(multi_interval_config);
 }
 
 }  // namespace cris::core

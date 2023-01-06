@@ -39,18 +39,20 @@ void MessageRecorder::SnapshotWorker() {
         std::chrono::time_point<std::chrono::steady_clock> wake_time;
     };
 
-    std::vector<WakeUpConfig> snapshot_wakeup_intervals;
+    auto compare = [](const WakeUpConfig& lhs, const WakeUpConfig& rhs) {
+        if (lhs.wake_time == rhs.wake_time) {
+            return lhs.interval_config.period_.count() > rhs.interval_config.period_.count();
+        }
+        return lhs.wake_time > rhs.wake_time;
+    };
+
+    std::priority_queue<WakeUpConfig, std::vector<WakeUpConfig>, decltype(compare)> wake_up_queue;
     for (const auto& interval : snapshot_config_intervals_) {
-        snapshot_wakeup_intervals.push_back(WakeUpConfig{
+        wake_up_queue.push(WakeUpConfig{
             .interval_config = interval,
             .wake_time       = std::chrono::steady_clock::now(),
         });
     }
-
-    std::priority_queue wake_up_queue(
-        snapshot_wakeup_intervals.begin(),
-        snapshot_wakeup_intervals.end(),
-        [](const WakeUpConfig& lhs, const WakeUpConfig& rhs) { return lhs.wake_time >= rhs.wake_time; });
 
     auto current_snapshot_wakeup = wake_up_queue.top();
     wake_up_queue.pop();
@@ -60,8 +62,11 @@ void MessageRecorder::SnapshotWorker() {
             std::chrono::duration_cast<std::chrono::milliseconds>(current_snapshot_wakeup.interval_config.period_) *
             0.5;
 
+        current_snapshot_wakeup.wake_time += current_snapshot_wakeup.interval_config.period_;
+
         if ((current_snapshot_wakeup.wake_time - std::chrono::steady_clock::now()) > kSkipThreshold) {
-            GenerateSnapshot(current_snapshot_wakeup.interval_config);
+            GenerateSnapshot(current_snapshot_wakeup.interval_config.name_);
+            MaintainMaxNumOfSnapshots(current_snapshot_wakeup.interval_config);
         } else {
             LOG(WARNING) << __func__ << ": A snapshot job skipped: too close to the next snapshot timepoint.";
         }
@@ -71,19 +76,18 @@ void MessageRecorder::SnapshotWorker() {
         current_snapshot_wakeup = wake_up_queue.top();
         wake_up_queue.pop();
 
-        std::unique_lock lck(snapshot_mtx_);
-        snapshot_cv_.wait_until(lck, current_snapshot_wakeup.wake_time, [this] {
+        std::unique_lock lock(snapshot_mtx_);
+        snapshot_cv_.wait_until(lock, current_snapshot_wakeup.wake_time, [this] {
             return snapshot_shutdown_flag_.load();
         });
-        current_snapshot_wakeup.wake_time += current_snapshot_wakeup.interval_config.period_;
     }
 }
 
-void MessageRecorder::GenerateSnapshot(const RecorderConfig::IntervalConfig& interval_config) {
+void MessageRecorder::GenerateSnapshot(const std::string& name) {
     bool snapshot_generated_flag = false;
     AddJobToRunner(
-        [this, &snapshot_generated_flag, &interval_config]() {
-            GenerateSnapshotImpl(interval_config);
+        [this, &snapshot_generated_flag, &name]() {
+            GenerateSnapshotImpl(name);
             {
                 std::lock_guard lck(snapshot_mtx_);
                 snapshot_generated_flag = true;
@@ -122,13 +126,13 @@ void MessageRecorder::StopMainLoop() {
     StopSnapshotWorker();
 }
 
-void MessageRecorder::GenerateSnapshotImpl(const RecorderConfig::IntervalConfig& interval_config) {
+void MessageRecorder::GenerateSnapshotImpl(const std::string& name) {
     std::lock_guard lck(snapshot_mtx_);
 
     std::for_each(files_.begin(), files_.end(), [](auto& file) { file->CloseDB(); });
 
     // create dir for individual interval
-    std::filesystem::path interval_dir = record_dir_.parent_path() / std::string("snapshots") / interval_config.name_;
+    std::filesystem::path interval_dir = record_dir_.parent_path() / std::string("snapshots") / name;
     const auto            snapshot_dir = interval_dir / SnapshotDirNameGenerator();
     const auto options = std::filesystem::copy_options::recursive | std::filesystem::copy_options::copy_symlinks;
 
@@ -145,9 +149,14 @@ void MessageRecorder::GenerateSnapshotImpl(const RecorderConfig::IntervalConfig&
         }
     }
 
-    auto& snapshot_dirs = snapshot_path_map_[interval_config.name_];
+    auto& snapshot_dirs = snapshot_path_map_[name];
     snapshot_dirs.push_back(snapshot_dir);
 
+    std::for_each(files_.begin(), files_.end(), [](auto& file) { file->OpenDB(); });
+}
+
+void MessageRecorder::MaintainMaxNumOfSnapshots(const RecorderConfig::IntervalConfig& interval_config) {
+    auto& snapshot_dirs = snapshot_path_map_[interval_config.name_];
     while (snapshot_dirs.size() > snapshot_max_num_) {
         if (std::error_code ec;
             std::filesystem::remove_all(snapshot_dirs.front(), ec) == static_cast<std::uintmax_t>(-1)) {
@@ -156,8 +165,6 @@ void MessageRecorder::GenerateSnapshotImpl(const RecorderConfig::IntervalConfig&
         }
         snapshot_dirs.pop_front();
     }
-
-    std::for_each(files_.begin(), files_.end(), [](auto& file) { file->OpenDB(); });
 }
 
 std::string MessageRecorder::RecordDirNameGenerator() {
