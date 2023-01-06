@@ -61,12 +61,12 @@ std::string MessageToStr(const TestMessage& msg) {
 }
 
 TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
-    std::mutex                       content_test_mtx;
-    std::condition_variable          content_test_cv;
     static constexpr std::size_t     kThreadNum            = 4;
     static constexpr std::size_t     kMessageNum           = 40;
     static constexpr channel_subid_t kTestIntChannelSubId  = 11;
     static constexpr auto            kSleepBetweenMessages = std::chrono::milliseconds(100);
+    std::mutex                       content_test_mtx;
+    std::condition_variable          content_test_cv;
 
     JobRunner::Config config = {
         .thread_num_ = kThreadNum,
