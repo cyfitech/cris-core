@@ -15,6 +15,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstddef>
+#include <cstdlib>
 #include <filesystem>
 #include <memory>
 #include <mutex>
@@ -62,11 +63,10 @@ std::string MessageToStr(const TestMessage& msg) {
 TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     std::mutex                       content_test_mtx;
     std::condition_variable          content_test_cv;
-    static constexpr std::size_t     kThreadNum            = 3;
-    static constexpr std::size_t     kMessageNum           = 30;
+    static constexpr std::size_t     kThreadNum            = 4;
+    static constexpr std::size_t     kMessageNum           = 40;
     static constexpr channel_subid_t kTestIntChannelSubId  = 11;
     static constexpr auto            kSleepBetweenMessages = std::chrono::milliseconds(100);
-    static constexpr auto            kMaxWaitingTime       = std::chrono::milliseconds(500);
 
     JobRunner::Config config = {
         .thread_num_ = kThreadNum,
@@ -101,7 +101,8 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
 
     // Plus the origin snapshot
-    const std::size_t kExpectedSnapshotNum = kMessageNum * kSleepBetweenMessages / std::chrono::seconds(1) + 1;
+    const std::size_t     kExpectedSnapshotNum = kMessageNum * kSleepBetweenMessages / std::chrono::seconds(1) + 1;
+    static constexpr auto kMaxWaitingTime      = std::chrono::milliseconds(500);
 
     auto check_num_time  = std::chrono::steady_clock::now();
     // We may wait half of the interval time at max
@@ -114,8 +115,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     }
 
     // The message at the exact time point when the snapshot was token is allowed to be toleranted
-    static constexpr std::size_t kFlakyTolerance     = 2;
-    static constexpr std::size_t kLastMessageFlagNum = 1e9;
+    static constexpr std::size_t kFlakyTolerance = 2;
 
     for (const auto& path_pair : snapshot_path_map) {
         for (std::size_t entry_index = 0; entry_index < path_pair.second.size(); ++entry_index) {
@@ -127,16 +127,17 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
             // Raise the replayer speed to erase any waiting time
             replayer.SetSpeedupRate(1e9);
 
-            auto previous_value_sp = std::make_shared<std::size_t>(0);
-            bool last_message_flag = false;
+            auto              previous_value_sp   = std::make_shared<std::size_t>(0);
+            bool              replay_is_complete  = false;
+            const std::size_t kLastMessageFlagNum = static_cast<std::size_t>(std::rand() + 99);
 
             subscriber.Subscribe<TestMessage>(
                 kTestIntChannelSubId,
-                [previous_value_sp, &last_message_flag, &content_test_cv, &content_test_mtx](
+                [previous_value_sp, &replay_is_complete, &content_test_cv, &content_test_mtx, &kLastMessageFlagNum](
                     const std::shared_ptr<TestMessage>& message) {
                     if (message->value_ == kLastMessageFlagNum) {
                         std::lock_guard lock(content_test_mtx);
-                        last_message_flag = true;
+                        replay_is_complete = true;
                         content_test_cv.notify_all();
                         return;
                     }
@@ -151,7 +152,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
             publisher.Publish(kTestIntChannelSubId, std::make_shared<TestMessage>(kLastMessageFlagNum));
 
             std::unique_lock lock(content_test_mtx);
-            content_test_cv.wait(lock, [&last_message_flag] { return last_message_flag; });
+            content_test_cv.wait(lock, [&replay_is_complete] { return replay_is_complete; });
 
             // Make sure the data ends around our snapshot timepoint
             // Example: if i = 4 when we made the snapshot, then we should have 01234
