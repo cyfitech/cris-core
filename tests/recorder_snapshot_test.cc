@@ -89,8 +89,8 @@ void RecorderSnapshotTest::TestSnapshot(const RecorderConfig& recorder_config) {
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
 
     // Plus the origin snapshot
-    const std::size_t     kExpectedSnapshotNum = kMessageNum * kSleepBetweenMessages / std::chrono::seconds(1) + 1;
-    static constexpr auto kMaxWaitingTime      = std::chrono::milliseconds(500);
+    const std::size_t     kExpectedMinNum = kMessageNum * kSleepBetweenMessages / std::chrono::seconds(1) + 1;
+    static constexpr auto kMaxWaitingTime = std::chrono::milliseconds(500);
 
     auto check_num_time  = std::chrono::steady_clock::now();
     // We may wait half of the interval time at max
@@ -108,6 +108,9 @@ void RecorderSnapshotTest::TestSnapshot(const RecorderConfig& recorder_config) {
     EXPECT_EQ(snapshot_path_map.size(), recorder_config.snapshot_intervals_.size());
 
     for (const auto& path_pair : snapshot_path_map) {
+        const std::size_t path_pair_index =
+            static_cast<std::size_t>(distance(snapshot_path_map.begin(), snapshot_path_map.find(path_pair.first)));
+
         for (std::size_t entry_index = 0; entry_index < path_pair.second.size(); ++entry_index) {
             MessageReplayer replayer(path_pair.second[entry_index]);
             core::CRNode    subscriber(runner);
@@ -129,7 +132,7 @@ void RecorderSnapshotTest::TestSnapshot(const RecorderConfig& recorder_config) {
                 [previous_value_sp, &replay_is_complete, &replay_complete_cv, &replay_complete_mtx](
                     const std::shared_ptr<TestMessage>& message) {
                     if (message->value_ == kLastMessageFlagNum) {
-                        std::lock_guard lock(replay_complete_mtx);
+                        std::lock_guard lck(replay_complete_mtx);
                         replay_is_complete = true;
                         replay_complete_cv.notify_all();
                         return;
@@ -154,15 +157,25 @@ void RecorderSnapshotTest::TestSnapshot(const RecorderConfig& recorder_config) {
                 EXPECT_EQ(previous_value, 0);
             } else {
                 const std::size_t expect_value =
-                    static_cast<std::size_t>(
-                        std::chrono::duration_cast<std::chrono::milliseconds>(interval_config.period_).count()) /
+                    static_cast<std::size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
+                                                 recorder_config.snapshot_intervals_[path_pair_index].period_)
+                                                 .count()) /
                     kSleepBetweenMessages.count() * entry_index;
 
                 EXPECT_GE(previous_value, expect_value - kFlakyTolerance);
                 EXPECT_LE(previous_value, expect_value + kFlakyTolerance);
             }
         }
-        EXPECT_EQ(path_pair.first, interval_config.name_);
+        EXPECT_EQ(path_pair.first, recorder_config.snapshot_intervals_[path_pair_index].name_);
+
+        const std::size_t kTotalTimeSec =
+            std::chrono::duration_cast<std::chrono::seconds>(kMessageNum * kSleepBetweenMessages).count();
+
+        const std::size_t kCurrentIntervalSec =
+            static_cast<std::size_t>(recorder_config.snapshot_intervals_[path_pair_index].period_.count());
+
+        // Plus the origin snapshot
+        const std::size_t kExpectedSnapshotNum = kTotalTimeSec / kCurrentIntervalSec + 1;
         EXPECT_EQ(path_pair.second.size(), kExpectedSnapshotNum);
     }
 
