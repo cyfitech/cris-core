@@ -31,7 +31,7 @@ void MessageRecorder::SnapshotWorker() {
                         "supported, only using the last interval specified";
     }
 
-    const auto sleep_interval = snapshot_config_intervals_.back().interval_sec_;
+    const auto sleep_interval = snapshot_config_intervals_.back().period_;
     const auto kSkipThreshold = std::chrono::duration_cast<std::chrono::milliseconds>(sleep_interval) * 0.5;
     auto       wake_up_time   = std::chrono::steady_clock::now();
 
