@@ -75,8 +75,8 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
     auto runner = JobRunner::MakeJobRunner(config);
 
     RecorderConfig::IntervalConfig interval_config{
-        .name_         = std::string("SECONDLY"),
-        .interval_sec_ = std::chrono::seconds(1),
+        .name_   = std::string("SECONDLY"),
+        .period_ = std::chrono::seconds(1),
     };
 
     RecorderConfig recorder_config{
@@ -161,7 +161,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotSingleIntervalTest) {
             } else {
                 const std::size_t expect_value =
                     static_cast<std::size_t>(
-                        std::chrono::duration_cast<std::chrono::milliseconds>(interval_config.interval_sec_).count()) /
+                        std::chrono::duration_cast<std::chrono::milliseconds>(interval_config.period_).count()) /
                     kSleepBetweenMessages.count() * entry_index;
 
                 EXPECT_GE(previous_value, expect_value - kFlakyTolerance);

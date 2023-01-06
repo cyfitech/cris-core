@@ -233,12 +233,14 @@ TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
                 "recorder": {
                     "snapshot_intervals" : [
                         {
-                            "interval_name": "SECONDLY",
-                            "interval_sec": 5
+                            "name": "5 SECONDS",
+                            "period_sec": 5,
+                            "max_num_of_copies": 1
                         },
                         {
-                            "interval_name": "HOURLY",
-                            "interval_sec": 1
+                            "name": "1 SECOND",
+                            "period_sec": 1,
+                            "max_num_of_copies": 5
                         }
                     ],
                     "record_dir": "record_test"
@@ -248,10 +250,12 @@ TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
         RecorderConfig recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
 
         EXPECT_EQ(recorder_config.snapshot_intervals_.size(), 2);
-        EXPECT_EQ(recorder_config.snapshot_intervals_.front().name_, "SECONDLY");
-        EXPECT_EQ(recorder_config.snapshot_intervals_.front().interval_sec_, std::chrono::seconds(5));
-        EXPECT_EQ(recorder_config.snapshot_intervals_.back().name_, "HOURLY");
-        EXPECT_EQ(recorder_config.snapshot_intervals_.back().interval_sec_, std::chrono::seconds(1));
+        EXPECT_EQ(recorder_config.snapshot_intervals_.front().name_, "5 SECONDS");
+        EXPECT_EQ(recorder_config.snapshot_intervals_.front().period_, std::chrono::seconds(5));
+        EXPECT_EQ(recorder_config.snapshot_intervals_.front().max_num_of_copies_, 1);
+        EXPECT_EQ(recorder_config.snapshot_intervals_.back().name_, "1 SECOND");
+        EXPECT_EQ(recorder_config.snapshot_intervals_.back().period_, std::chrono::seconds(1));
+        EXPECT_EQ(recorder_config.snapshot_intervals_.back().max_num_of_copies_, 5);
         EXPECT_EQ(recorder_config.record_dir_, "record_test");
     }
 
@@ -261,8 +265,8 @@ TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
                 "recorder": {
                     "snapshot_intervals" : [
                         {
-                            "interval_name": "SECONDLY",
-                            "interval_sec": 5
+                            "name": "5 SECONDS",
+                            "period_sec": 5
                         }
                     ]
                 }
@@ -271,8 +275,9 @@ TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
         RecorderConfig recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
 
         EXPECT_EQ(recorder_config.snapshot_intervals_.size(), 1);
-        EXPECT_EQ(recorder_config.snapshot_intervals_.front().name_, "SECONDLY");
-        EXPECT_EQ(recorder_config.snapshot_intervals_.front().interval_sec_, std::chrono::seconds(5));
+        EXPECT_EQ(recorder_config.snapshot_intervals_.front().name_, "5 SECONDS");
+        EXPECT_EQ(recorder_config.snapshot_intervals_.front().period_, std::chrono::seconds(5));
+        EXPECT_EQ(recorder_config.snapshot_intervals_.front().max_num_of_copies_, 48);
         EXPECT_EQ(recorder_config.record_dir_, "");
     }
 }
@@ -284,7 +289,7 @@ TEST_F(RecordConfigTest, RecorderConfigTestInvalid) {
             "recorder": {
                 "snapshot_intervals" : [
                     {
-                        "interval_name": "SECONDLY"
+                        "name": "1 SECOND"
                     }
                 ],
                 "record_dir": "record_test"
@@ -295,7 +300,7 @@ TEST_F(RecordConfigTest, RecorderConfigTestInvalid) {
         // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
         EXPECT_DEATH(
             recorder_config_file.Get<RecorderConfig>("recorder"),
-            "\"interval_sec\" is required. The JSON field referenced does not exist in this object.");
+            "\"period_sec\" is required. The JSON field referenced does not exist in this object.");
     }
 
     {
