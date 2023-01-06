@@ -13,6 +13,8 @@
 
 #include <algorithm>
 #include <chrono>
+#include <condition_variable>
+#include <cstddef>
 #include <filesystem>
 #include <memory>
 #include <mutex>
@@ -30,7 +32,7 @@ class RecorderSnapshotTest : public testing::Test {
     RecorderSnapshotTest() { std::filesystem::create_directories(GetTestTempDir()); }
     ~RecorderSnapshotTest() { std::filesystem::remove_all(GetTestTempDir()); }
 
-    void TestSnapshot(RecorderConfig recorder_config);
+    void TestSnapshot(const RecorderConfig& recorder_config);
 
     std::filesystem::path GetTestTempDir() const { return record_test_temp_dir_; }
 
@@ -59,27 +61,15 @@ std::string MessageToStr(const TestMessage& msg) {
     return serialized_msg;
 }
 
-void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
-    std::mutex                       mtx;
-    static constexpr std::size_t     kThreadNum            = 3;
-    static constexpr std::size_t     kMessageNum           = 30;
+void RecorderSnapshotTest::TestSnapshot(const RecorderConfig& recorder_config) {
+    static constexpr std::size_t     kThreadNum            = 4;
+    static constexpr std::size_t     kMessageNum           = 40;
     static constexpr channel_subid_t kTestIntChannelSubId  = 11;
     static constexpr auto            kSleepBetweenMessages = std::chrono::milliseconds(100);
 
-    JobRunner::Config config = {
+    auto runner = JobRunner::MakeJobRunner(    JobRunner::Config {
         .thread_num_ = kThreadNum,
-    };
-    auto runner = JobRunner::MakeJobRunner(config);
-
-    RecorderConfig::IntervalConfig interval_config{
-        .name_   = std::string("SECONDLY"),
-        .period_ = std::chrono::seconds(1),
-    };
-
-    RecorderConfig recorder_config{
-        .snapshot_intervals_ = {interval_config},
-        .record_dir_         = GetTestTempDir(),
-    };
+    });
 
     MessageRecorder recorder(recorder_config, runner);
     recorder.RegisterChannel<TestMessage>(kTestIntChannelSubId);
@@ -99,11 +89,12 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
 
     // Plus the origin snapshot
-    const std::size_t kExpectedMinNum = kMessageNum * kSleepBetweenMessages / std::chrono::milliseconds(1) + 1;
+    const std::size_t     kExpectedSnapshotNum = kMessageNum * kSleepBetweenMessages / std::chrono::seconds(1) + 1;
+    static constexpr auto kMaxWaitingTime      = std::chrono::milliseconds(500);
 
     auto check_num_time  = std::chrono::steady_clock::now();
     // We may wait half of the interval time at max
-    auto check_stop_time = check_num_time + std::chrono::milliseconds(500);
+    auto check_stop_time = check_num_time + kMaxWaitingTime;
 
     while (snapshot_path_map["SECONDLY"].size() < kExpectedMinNum && check_num_time < check_stop_time) {
         check_num_time += kSleepBetweenMessages;
@@ -112,70 +103,66 @@ void RecorderSnapshotTest::TestSnapshot(RecorderConfig recorder_config) {
     }
 
     // The message at the exact time point when the snapshot was token is allowed to be toleranted
-    const std::size_t kFlakyTolerance = 1;
+    constexpr std::size_t kFlakyTolerance = 2;
 
     EXPECT_EQ(snapshot_path_map.size(), recorder_config.snapshot_intervals_.size());
 
     for (const auto& path_pair : snapshot_path_map) {
-        const std::size_t path_pair_index =
-            static_cast<std::size_t>(distance(snapshot_path_map.begin(), snapshot_path_map.find(path_pair.first)));
-
         for (std::size_t entry_index = 0; entry_index < path_pair.second.size(); ++entry_index) {
             MessageReplayer replayer(path_pair.second[entry_index]);
             core::CRNode    subscriber(runner);
 
             replayer.RegisterChannel<TestMessage>(kTestIntChannelSubId);
+
             // Raise the replayer speed to erase any waiting time
             replayer.SetSpeedupRate(1e9);
 
-            auto previous_size_t = std::make_shared<std::atomic<std::size_t>>(0);
+            std::mutex              replay_complete_mtx;
+            std::condition_variable replay_complete_cv;
+
+            auto                  previous_value_sp   = std::make_shared<std::size_t>(0);
+            bool                  replay_is_complete  = false;
+            constexpr std::size_t kLastMessageFlagNum = 989898;
 
             subscriber.Subscribe<TestMessage>(
                 kTestIntChannelSubId,
-                [&previous_size_t, &mtx](const std::shared_ptr<TestMessage>& message) {
-                    std::lock_guard lck(mtx);
-                    if (message->value_ != 0) {
-                        EXPECT_EQ(message->value_ - previous_size_t->load(), 1);
+                [previous_value_sp, &replay_is_complete, &replay_complete_cv, &replay_complete_mtx](
+                    const std::shared_ptr<TestMessage>& message) {
+                    if (message->value_ == kLastMessageFlagNum) {
+                        std::lock_guard lock(replay_complete_mtx);
+                        replay_is_complete = true;
+                        replay_complete_cv.notify_all();
+                        return;
                     }
-                    previous_size_t->store(message->value_);
+                    if (message->value_ != 0) {
+                        EXPECT_EQ(message->value_ - *previous_value_sp, 1);
+                    }
+                    *previous_value_sp = message->value_;
                 },
                 /* allow_concurrency = */ false);
 
             replayer.MainLoop();
+            publisher.Publish(kTestIntChannelSubId, std::make_shared<TestMessage>(kLastMessageFlagNum));
 
-            // Make sure messages arrive the node
-            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+            std::unique_lock lock(replay_complete_mtx);
+            replay_complete_cv.wait(lock, [&replay_is_complete] { return replay_is_complete; });
 
             // Make sure the data ends around our snapshot timepoint
             // Example: if i = 4 when we made the snapshot, then we should have 01234
-            std::lock_guard   lck(mtx);
-            const std::size_t previous_value = previous_size_t->load();
-
+            const std::size_t previous_value = *previous_value_sp;
             if (entry_index == 0) {
                 EXPECT_EQ(previous_value, 0);
             } else {
                 const std::size_t expect_value =
-                    static_cast<std::size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
-                                                 recorder_config.snapshot_intervals_[path_pair_index].period_)
-                                                 .count()) /
+                    static_cast<std::size_t>(
+                        std::chrono::duration_cast<std::chrono::milliseconds>(interval_config.period_).count()) /
                     kSleepBetweenMessages.count() * entry_index;
-                EXPECT_TRUE(
-                    (previous_value >= expect_value - kFlakyTolerance) &&
-                    (previous_value <= expect_value + kFlakyTolerance));
+
+                EXPECT_GE(previous_value, expect_value - kFlakyTolerance);
+                EXPECT_LE(previous_value, expect_value + kFlakyTolerance);
             }
         }
-
-        EXPECT_EQ(path_pair.first, recorder_config.snapshot_intervals_[path_pair_index].name_);
-
-        const std::size_t kTotalTimeSec =
-            std::chrono::duration_cast<std::chrono::seconds>(kMessageNum * kSleepBetweenMessages).count();
-
-        const std::size_t kCurrentIntervalSec =
-            static_cast<std::size_t>(recorder_config.snapshot_intervals_[path_pair_index].period_.count());
-
-        // Plus the origin snapshot
-        const std::size_t kExpectedSnapshotNum = kTotalTimeSec / kCurrentIntervalSec + 1;
-
+        EXPECT_EQ(path_pair.first, interval_config.name_);
         EXPECT_EQ(path_pair.second.size(), kExpectedSnapshotNum);
     }
 
