@@ -71,7 +71,7 @@ cris_cc_test (
     ],
     deps = [
         "//:msg_recorder",
-        "@gtest//:gtest_main",
+        "@cris-core//tests:cris_gtest_main",
     ],
 )
 
