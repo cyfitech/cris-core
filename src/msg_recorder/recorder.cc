@@ -185,7 +185,7 @@ std::string MessageRecorder::RecordDirNameGenerator() {
 
 std::string MessageRecorder::SnapshotDirNameGenerator() {
     auto current_time = std::chrono::system_clock::now();
-    auto milliseconds = now.time_since_epoch();
+    auto milliseconds = current_time.time_since_epoch();
     return fmt::format("{:%Y%m%d-%H%M}{:%S}\n", current_time, milliseconds);
 }
 
