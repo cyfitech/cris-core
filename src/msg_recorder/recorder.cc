@@ -74,8 +74,8 @@ void MessageRecorder::SnapshotWorker() {
                 {
                     std::lock_guard lck(snapshot_mtx_);
                     snapshot_path_map_[current_snapshot_wakeup.interval_config.name_].push_back(snapshot_dir);
+                    MaintainMaxNumOfSnapshots(current_snapshot_wakeup.interval_config);
                 }
-                MaintainMaxNumOfSnapshots(current_snapshot_wakeup.interval_config);
             }
         } else {
             LOG(WARNING) << __func__ << ": A snapshot job skipped: too close to the next snapshot timepoint.";

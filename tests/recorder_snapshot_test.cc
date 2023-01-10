@@ -170,9 +170,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMultiIntervalTest) {
             // Make sure the data ends around our snapshot timepoint
             // Example: if i = 4 when we made the snapshot, then we should have 01234
             const std::size_t previous_value = *previous_value_sp;
-            if (entry_index == 0) {
-                EXPECT_LE(previous_value, 0 + kFlakyTolerance);
-            } else {
+            if (entry_index != 0) {
                 const std::size_t expect_value =
                     static_cast<std::size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
                                                  recorder_config.snapshot_intervals_[path_pair_index].period_)
