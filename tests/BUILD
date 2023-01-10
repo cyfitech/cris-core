@@ -7,6 +7,7 @@ cris_cc_library(
         "//:signal",
         "@gtest//:gtest",
     ],
+    visibility = ["//visibility:public"],
 )
 
 cris_cc_test (
@@ -71,7 +72,7 @@ cris_cc_test (
     ],
     deps = [
         "//:msg_recorder",
-        "@gtest//:gtest_main",
+        "@cris-core//tests:cris_gtest_main",
     ],
 )
 

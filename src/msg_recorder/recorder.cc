@@ -30,20 +30,22 @@ void MessageRecorder::SnapshotWorker() {
         std::chrono::time_point<std::chrono::steady_clock> wake_time;
     };
 
-    std::vector<WakeUpConfig> snapshot_wakeup_intervals;
+    auto compare = [](const WakeUpConfig& lhs, const WakeUpConfig& rhs) {
+        if (lhs.wake_time != rhs.wake_time) {
+            return lhs.wake_time > rhs.wake_time;
+        }
+        return lhs.interval_config.period_.count() > rhs.interval_config.period_.count();
+    };
+
+    std::priority_queue<WakeUpConfig, std::vector<WakeUpConfig>, decltype(compare)> wake_up_queue;
+
+    const auto current_time = std::chrono::steady_clock::now();
     for (const auto& interval : snapshot_config_intervals_) {
-        snapshot_wakeup_intervals.push_back(
-            WakeUpConfig{.interval_config = interval, .wake_time = std::chrono::steady_clock::now()});
+        wake_up_queue.push(WakeUpConfig{
+            .interval_config = interval,
+            .wake_time       = current_time,
+        });
     }
-
-    std::priority_queue wake_up_queue(
-        snapshot_wakeup_intervals.begin(),
-        snapshot_wakeup_intervals.end(),
-        [](const WakeUpConfig l, const WakeUpConfig r) { return l.wake_time > r.wake_time; });
-
-    auto next_snapshot_wakeup = wake_up_queue.top();
-    wake_up_queue.pop();
-    next_snapshot_ = next_snapshot_wakeup.interval_config;
 
     while (!snapshot_shutdown_flag_.load()) {
         const auto kSkipThreshold =
