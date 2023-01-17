@@ -71,11 +71,9 @@ void MessageRecorder::SnapshotWorker() {
             const auto snapshot_dir = record_dir_.parent_path() / std::string("snapshots") /
                 current_snapshot_wakeup.interval_config.name_ / SnapshotDirNameGenerator();
             if (GenerateSnapshot(snapshot_dir)) {
-                {
-                    std::lock_guard lck(snapshot_mtx_);
-                    snapshot_path_map_[current_snapshot_wakeup.interval_config.name_].push_back(snapshot_dir);
-                    MaintainMaxNumOfSnapshots(current_snapshot_wakeup.interval_config);
-                }
+                std::lock_guard lck(snapshot_mtx_);
+                snapshot_path_map_[current_snapshot_wakeup.interval_config.name_].push_back(snapshot_dir);
+                MaintainMaxNumOfSnapshots(current_snapshot_wakeup.interval_config);
             }
         } else {
             LOG(WARNING) << __func__ << ": A snapshot job skipped: too close to the next snapshot timepoint.";
@@ -184,9 +182,7 @@ std::string MessageRecorder::RecordDirNameGenerator() {
 }
 
 std::string MessageRecorder::SnapshotDirNameGenerator() {
-    auto current_time = std::chrono::system_clock::now();
-    auto milliseconds = current_time.time_since_epoch();
-    return fmt::format("{:%Y%m%d-%H%M}{:%S}\n", current_time, milliseconds);
+    return fmt::format("{:%Y%m%d-%H%M%S.%Z}", std::chrono::system_clock::now());
 }
 
 std::filesystem::path MessageRecorder::GetRecordDir() const {

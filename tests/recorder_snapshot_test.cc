@@ -59,7 +59,7 @@ std::string MessageToStr(const TestMessage& msg) {
     return serialized_msg;
 }
 
-TEST_F(RecorderSnapshotTest, RecorderSnapshotMultiIntervalTest) {
+TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
     static constexpr std::size_t     kThreadNum            = 4;
     static constexpr std::size_t     kMessageNum           = 40;
     static constexpr channel_subid_t kTestIntChannelSubId  = 11;
@@ -69,15 +69,15 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMultiIntervalTest) {
         .snapshot_intervals_ =
             std::vector<RecorderConfig::IntervalConfig>{
                 {
-                    .name_   = std::string("SECONDLY"),
+                    .name_   = std::string("1 SECOND"),
                     .period_ = std::chrono::seconds(1),
                 },
                 {
-                    .name_   = std::string("SECONDS_2"),
+                    .name_   = std::string("2 SECONDS"),
                     .period_ = std::chrono::seconds(2),
                 },
                 {
-                    .name_   = std::string("SECONDS_4"),
+                    .name_   = std::string("4 SECONDS"),
                     .period_ = std::chrono::seconds(4),
                 },
             },
@@ -106,14 +106,15 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMultiIntervalTest) {
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
 
     // Plus the origin snapshot
-    const std::size_t     kExpectedMinNum = kMessageNum * kSleepBetweenMessages / std::chrono::seconds(4) + 1;
-    static constexpr auto kMaxWaitingTime = std::chrono::milliseconds(500);
+    const std::size_t kLargestIntervalExpectedNum = kMessageNum * kSleepBetweenMessages / std::chrono::seconds(4) + 1;
+    static constexpr auto kMaxWaitingTime         = std::chrono::milliseconds(500);
 
     auto check_num_time  = std::chrono::steady_clock::now();
     // We may wait half of the interval time at max
     auto check_stop_time = check_num_time + kMaxWaitingTime;
 
-    while (snapshot_path_map["SECONDS_4"].size() < kExpectedMinNum && check_num_time < check_stop_time) {
+    // Wait for the snapshot to be finished at the last second
+    while (snapshot_path_map["4 SECONDS"].size() < kLargestIntervalExpectedNum && check_num_time < check_stop_time) {
         check_num_time += kSleepBetweenMessages;
         std::this_thread::sleep_until(check_num_time);
         snapshot_path_map = recorder.GetSnapshotPaths();
