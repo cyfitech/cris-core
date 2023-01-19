@@ -125,10 +125,8 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
 
     EXPECT_EQ(snapshot_path_map.size(), recorder_config.snapshot_intervals_.size());
 
+    std::size_t snapshot_name_index = 0;
     for (const auto& [snapshot_name, snapshot_dirs] : snapshot_path_map) {
-        const std::size_t snapshot_name_index =
-            static_cast<std::size_t>(distance(snapshot_path_map.begin(), snapshot_path_map.find(snapshot_name)));
-
         for (std::size_t snapshot_dir_index = 0; snapshot_dir_index < snapshot_dirs.size(); ++snapshot_dir_index) {
             MessageReplayer replayer(snapshot_dirs[snapshot_dir_index]);
             core::CRNode    subscriber(runner);
@@ -187,6 +185,8 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
         const std::size_t kExpectedSnapshotNum =
             kMessageNum * kSleepBetweenMessages / recorder_config.snapshot_intervals_[snapshot_name_index].period_ + 1;
         EXPECT_EQ(snapshot_dirs.size(), kExpectedSnapshotNum);
+
+        snapshot_name_index++;
     }
 
     runner->Stop();
