@@ -4,6 +4,9 @@ inputs:
   key:
     required: true
     type: string
+  cache_paths:
+    required: true
+    type: string
   cris_base_ssh_token:
     required: true
     type: string
@@ -21,12 +24,12 @@ runs:
     run: |
       set -e
       seq 0 1 9 | xargs -rI{} expr '(' "$(date -u '+%s')" '/' 3600 '/' 8 - {} ')' '*' 3600 '*' 8 | xargs -rI{} date -d @{} -u '+%FT%H' | nl -s ' ' -v0 | xargs printf 'date-%d=%s\n' >> "$GITHUB_OUTPUT"
+      echo 'CRIS_CACHE_PATHS<<EOF' >> "$GITHUB_ENV"
+      printf "%s" "${{ inputs.cache_paths }}" >> "$GITHUB_ENV"
+      echo 'EOF' >> "$GITHUB_ENV"
   - uses: actions/cache@v3
     with:
-      path: |
-        /root/.cache/ccache
-        /root/.cache/pip
-        /root/.ccache
+      path: ${{ env.CRIS_CACHE_PATHS }}
       key: ${{ inputs.key }}:${{ steps.date.outputs.date-0 }}
       restore-keys: |
         ${{ inputs.key }}:${{ steps.date.outputs.date-1 }}
@@ -46,7 +49,7 @@ runs:
       ccache -M 1GiB -o compression=true -o compression_level=5
       ccache -svx
       git config --global --add safe.directory "$(pwd)"
-      mkdir -p ~/root/{.cache/{ccache,pip},.ccache}
+      mkdir -p ~/{.cache/{bazel,ccache,pip},.ccache}
   - name: Auth
     env:
       CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ inputs.cris_base_ssh_token }}
