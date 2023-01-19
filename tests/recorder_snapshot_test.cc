@@ -185,7 +185,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
 
         // Plus the origin snapshot
         const std::size_t kExpectedSnapshotNum =
-            kMessageNum * kSleepBetweenMessages / recorder_config.snapshot_intervals_[path_pair_index].period_ + 1;
+            kMessageNum * kSleepBetweenMessages / recorder_config.snapshot_intervals_[snapshot_name_index].period_ + 1;
         EXPECT_EQ(snapshot_dirs.size(), kExpectedSnapshotNum);
     }
 
