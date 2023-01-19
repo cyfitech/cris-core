@@ -125,12 +125,12 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
 
     EXPECT_EQ(snapshot_path_map.size(), recorder_config.snapshot_intervals_.size());
 
-    for (const auto& path_pair : snapshot_path_map) {
-        const std::size_t path_pair_index =
-            static_cast<std::size_t>(distance(snapshot_path_map.begin(), snapshot_path_map.find(path_pair.first)));
+    for (const auto& [snapshot_name, snapshot_dirs] : snapshot_path_map) {
+        const std::size_t snapshot_name_index =
+            static_cast<std::size_t>(distance(snapshot_path_map.begin(), snapshot_path_map.find(snapshot_name)));
 
-        for (std::size_t entry_index = 0; entry_index < path_pair.second.size(); ++entry_index) {
-            MessageReplayer replayer(path_pair.second[entry_index]);
+        for (std::size_t snapshot_dir_index = 0; snapshot_dir_index < snapshot_dirs.size(); ++snapshot_dir_index) {
+            MessageReplayer replayer(snapshot_dirs[snapshot_dir_index]);
             core::CRNode    subscriber(runner);
 
             replayer.RegisterChannel<TestMessage>(kTestIntChannelSubId);
@@ -171,28 +171,22 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
             // Make sure the data ends around our snapshot timepoint
             // Example: if i = 4 when we made the snapshot, then we should have 01234
             const std::size_t previous_value = *previous_value_sp;
-            if (entry_index != 0) {
-                const std::size_t expect_value =
-                    static_cast<std::size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
-                                                 recorder_config.snapshot_intervals_[path_pair_index].period_)
-                                                 .count()) /
-                    kSleepBetweenMessages.count() * entry_index;
+            if (snapshot_dir_index != 0) {
+                const std::size_t expect_num_end_with =
+                    static_cast<std::size_t>(
+                        recorder_config.snapshot_intervals_[snapshot_name_index].period_ / kSleepBetweenMessages) *
+                    snapshot_dir_index;
 
-                EXPECT_GE(previous_value, expect_value - kFlakyTolerance);
-                EXPECT_LE(previous_value, expect_value + kFlakyTolerance);
+                EXPECT_GE(previous_value, expect_num_end_with - kFlakyTolerance);
+                EXPECT_LE(previous_value, expect_num_end_with + kFlakyTolerance);
             }
         }
-        EXPECT_EQ(path_pair.first, recorder_config.snapshot_intervals_[path_pair_index].name_);
-
-        const std::size_t kTotalTimeSec =
-            std::chrono::duration_cast<std::chrono::seconds>(kMessageNum * kSleepBetweenMessages).count();
-
-        const std::size_t kCurrentIntervalSec =
-            static_cast<std::size_t>(recorder_config.snapshot_intervals_[path_pair_index].period_.count());
+        EXPECT_EQ(snapshot_name, recorder_config.snapshot_intervals_[snapshot_name_index].name_);
 
         // Plus the origin snapshot
-        const std::size_t kExpectedSnapshotNum = kTotalTimeSec / kCurrentIntervalSec + 1;
-        EXPECT_EQ(path_pair.second.size(), kExpectedSnapshotNum);
+        const std::size_t kExpectedSnapshotNum =
+            kMessageNum * kSleepBetweenMessages / recorder_config.snapshot_intervals_[path_pair_index].period_ + 1;
+        EXPECT_EQ(snapshot_dirs.size(), kExpectedSnapshotNum);
     }
 
     runner->Stop();
