@@ -105,17 +105,19 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
     // Test content under each snapshot directory
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
 
-    static constexpr auto kMaxWaitingTime                  = std::chrono::milliseconds(500);
-    bool                  intervals_meet_expected_num_flag = false;
+    static constexpr auto kMaxWaitingTime = std::chrono::milliseconds(500);
 
-    auto check_expected_nums = [&recorder_config, &snapshot_path_map, &intervals_meet_expected_num_flag]() -> void {
+    auto check_expected_nums = [&recorder_config, &snapshot_path_map]() -> bool {
+        bool intervals_meet_expected_num_flag = false;
+
         for (const RecorderConfig::IntervalConfig& interval_config : recorder_config.snapshot_intervals_) {
             // Plus the origin snapshot
             const std::size_t kCurrentIntervalExpectedNum =
                 kMessageNum * kSleepBetweenMessages / interval_config.period_ + 1;
-            intervals_meet_expected_num_flag = intervals_meet_expected_num_flag &&
+            intervals_meet_expected_num_flag &=
                 (snapshot_path_map[interval_config.name_].size() < kCurrentIntervalExpectedNum);
         }
+        return intervals_meet_expected_num_flag;
     };
 
     auto check_num_time  = std::chrono::steady_clock::now();
@@ -123,11 +125,10 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
     auto check_stop_time = check_num_time + kMaxWaitingTime;
 
     // Wait for the snapshot to be finished at the last second
-    while (!intervals_meet_expected_num_flag && check_num_time < check_stop_time) {
+    while (!check_expected_nums() && check_num_time < check_stop_time) {
         check_num_time += kSleepBetweenMessages;
         std::this_thread::sleep_until(check_num_time);
         snapshot_path_map = recorder.GetSnapshotPaths();
-        check_expected_nums();
     }
 
     // The message at the exact time point when the snapshot was token is allowed to be toleranted
@@ -135,11 +136,10 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
 
     EXPECT_EQ(snapshot_path_map.size(), recorder_config.snapshot_intervals_.size());
 
-    for (std::size_t interval_index = 0; interval_index < recorder_config.snapshot_intervals_.size();
-         ++interval_index) {
-        const auto current_interval_name = recorder_config.snapshot_intervals_[interval_index].name_;
-        EXPECT_TRUE(snapshot_path_map.contains(current_interval_name));
-        auto snapshot_dirs = snapshot_path_map[current_interval_name];
+    for (const auto& snapshot_interval : recorder_config.snapshot_intervals_) {
+        auto search = snapshot_path_map.find(snapshot_interval.name_);
+        EXPECT_TRUE(search != snapshot_path_map.end());
+        auto snapshot_dirs = search->second;
 
         for (std::size_t snapshot_dir_index = 0; snapshot_dir_index < snapshot_dirs.size(); ++snapshot_dir_index) {
             MessageReplayer replayer(snapshot_dirs[snapshot_dir_index]);
@@ -182,21 +182,21 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
 
             // Make sure the data ends around our snapshot timepoint
             // Example: if i = 4 when we made the snapshot, then we should have 01234
-            const std::size_t previous_value = *previous_value_sp;
-            if (snapshot_dir_index != 0) {
-                const std::size_t expect_num_end_with =
-                    static_cast<std::size_t>(
-                        recorder_config.snapshot_intervals_[interval_index].period_ / kSleepBetweenMessages) *
-                    snapshot_dir_index;
+            const std::size_t last_recorded = *previous_value_sp;
 
-                EXPECT_GE(previous_value, expect_num_end_with - kFlakyTolerance);
-                EXPECT_LE(previous_value, expect_num_end_with + kFlakyTolerance);
+            if (snapshot_dir_index == 0) {
+                EXPECT_EQ(last_recorded, 0);
+            } else {
+                const std::size_t expect_num_end_with =
+                    snapshot_interval.period_ * snapshot_dir_index / kSleepBetweenMessages;
+
+                EXPECT_GE(last_recorded, expect_num_end_with - kFlakyTolerance);
+                EXPECT_LE(last_recorded, expect_num_end_with + kFlakyTolerance);
             }
         }
 
         // Plus the origin snapshot
-        const std::size_t kExpectedSnapshotNum =
-            kMessageNum * kSleepBetweenMessages / recorder_config.snapshot_intervals_[interval_index].period_ + 1;
+        const std::size_t kExpectedSnapshotNum = kMessageNum * kSleepBetweenMessages / snapshot_interval.period_ + 1;
         EXPECT_EQ(snapshot_dirs.size(), kExpectedSnapshotNum);
     }
 
