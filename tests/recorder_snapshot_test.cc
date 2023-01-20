@@ -105,19 +105,29 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
     // Test content under each snapshot directory
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
 
-    // Plus the origin snapshot
-    const std::size_t kLargestIntervalExpectedNum = kMessageNum * kSleepBetweenMessages / std::chrono::seconds(4) + 1;
-    static constexpr auto kMaxWaitingTime         = std::chrono::milliseconds(500);
+    static constexpr auto kMaxWaitingTime                  = std::chrono::milliseconds(500);
+    bool                  intervals_meet_expected_num_flag = false;
+
+    auto check_expected_nums = [&recorder_config, &snapshot_path_map, &intervals_meet_expected_num_flag]() -> void {
+        for (const RecorderConfig::IntervalConfig& interval_config : recorder_config.snapshot_intervals_) {
+            // Plus the origin snapshot
+            const std::size_t kCurrentIntervalExpectedNum =
+                kMessageNum * kSleepBetweenMessages / interval_config.period_ + 1;
+            intervals_meet_expected_num_flag = intervals_meet_expected_num_flag &&
+                (snapshot_path_map[interval_config.name_].size() < kCurrentIntervalExpectedNum);
+        }
+    };
 
     auto check_num_time  = std::chrono::steady_clock::now();
     // We may wait half of the interval time at max
     auto check_stop_time = check_num_time + kMaxWaitingTime;
 
     // Wait for the snapshot to be finished at the last second
-    while (snapshot_path_map["4 SECONDS"].size() < kLargestIntervalExpectedNum && check_num_time < check_stop_time) {
+    while (!intervals_meet_expected_num_flag && check_num_time < check_stop_time) {
         check_num_time += kSleepBetweenMessages;
         std::this_thread::sleep_until(check_num_time);
         snapshot_path_map = recorder.GetSnapshotPaths();
+        check_expected_nums();
     }
 
     // The message at the exact time point when the snapshot was token is allowed to be toleranted
@@ -125,8 +135,12 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
 
     EXPECT_EQ(snapshot_path_map.size(), recorder_config.snapshot_intervals_.size());
 
-    std::size_t snapshot_name_index = 0;
-    for (const auto& [snapshot_name, snapshot_dirs] : snapshot_path_map) {
+    for (std::size_t interval_index = 0; interval_index < recorder_config.snapshot_intervals_.size();
+         ++interval_index) {
+        const auto current_interval_name = recorder_config.snapshot_intervals_[interval_index].name_;
+        EXPECT_TRUE(snapshot_path_map.contains(current_interval_name));
+        auto snapshot_dirs = snapshot_path_map[current_interval_name];
+
         for (std::size_t snapshot_dir_index = 0; snapshot_dir_index < snapshot_dirs.size(); ++snapshot_dir_index) {
             MessageReplayer replayer(snapshot_dirs[snapshot_dir_index]);
             core::CRNode    subscriber(runner);
@@ -172,21 +186,18 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
             if (snapshot_dir_index != 0) {
                 const std::size_t expect_num_end_with =
                     static_cast<std::size_t>(
-                        recorder_config.snapshot_intervals_[snapshot_name_index].period_ / kSleepBetweenMessages) *
+                        recorder_config.snapshot_intervals_[interval_index].period_ / kSleepBetweenMessages) *
                     snapshot_dir_index;
 
                 EXPECT_GE(previous_value, expect_num_end_with - kFlakyTolerance);
                 EXPECT_LE(previous_value, expect_num_end_with + kFlakyTolerance);
             }
         }
-        EXPECT_EQ(snapshot_name, recorder_config.snapshot_intervals_[snapshot_name_index].name_);
 
         // Plus the origin snapshot
         const std::size_t kExpectedSnapshotNum =
-            kMessageNum * kSleepBetweenMessages / recorder_config.snapshot_intervals_[snapshot_name_index].period_ + 1;
+            kMessageNum * kSleepBetweenMessages / recorder_config.snapshot_intervals_[interval_index].period_ + 1;
         EXPECT_EQ(snapshot_dirs.size(), kExpectedSnapshotNum);
-
-        snapshot_name_index++;
     }
 
     runner->Stop();
