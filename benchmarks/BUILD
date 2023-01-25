@@ -8,6 +8,7 @@ cris_cc_test(
             "*_benchmark.hpp",
         ]),
     deps = [
+        "//:sched",
         "//:timer",
         "//:utils",
     ],
