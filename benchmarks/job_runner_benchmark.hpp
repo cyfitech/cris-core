@@ -6,22 +6,19 @@
 
 namespace cris::core {
 
-static auto GetGlobalRunner() {
-    static auto job_runner = JobRunner::MakeJobRunner({
+static void BM_AddJob(benchmark::State& state) {
+    auto job_runner = JobRunner::MakeJobRunner({
         .thread_num_ = 2,
     });
-    return job_runner;
-}
-
-static void BM_AddJob(benchmark::State& state) {
-    auto job_runner = GetGlobalRunner();
     for ([[maybe_unused]] auto s : state) {
         job_runner->AddJob([]() {});
     }
 }
 
 static void BM_AddJobWithStrand(benchmark::State& state) {
-    auto job_runner = GetGlobalRunner();
+    auto job_runner = JobRunner::MakeJobRunner({
+        .thread_num_ = 2,
+    });
     auto strand     = job_runner->MakeStrand();
     for ([[maybe_unused]] auto s : state) {
         job_runner->AddJob([]() {}, strand);
@@ -29,7 +26,9 @@ static void BM_AddJobWithStrand(benchmark::State& state) {
 }
 
 static void BM_AddJobTryImmediately(benchmark::State& state) {
-    auto job_runner = GetGlobalRunner();
+    auto job_runner = JobRunner::MakeJobRunner({
+        .thread_num_ = 2,
+    });
     auto strand     = job_runner->MakeStrand();
     for ([[maybe_unused]] auto s : state) {
         job_runner->AddJob([]() {}, strand, JobRunner::TryRunImmediately());

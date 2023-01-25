@@ -13,4 +13,8 @@ cris_cc_test(
         "//:utils",
     ],
     linkopts = ["-lbenchmark"],
+    env = {
+        # Mute INFO logs.
+        "GLOG_minloglevel": "1",
+    },
 )
