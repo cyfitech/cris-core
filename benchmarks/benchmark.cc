@@ -4,12 +4,22 @@
 #endif
 #endif
 
-#ifndef _CR_USE_SANITIZER
-#include "job_runner_benchmark.hpp"
-#include "time_benchmark.hpp"
-#include "timer_benchmark.hpp"
-#endif
+#include "cris/core/signal/cr_signal.h"
+#include "cris/core/utils/logging.h"
 
 #include <benchmark/benchmark.h>
 
-BENCHMARK_MAIN();
+int main(int argc, char** argv) {
+    // Mute INFO logs.
+    FLAGS_minloglevel = 1;
+
+    cris::core::InstallSignalHandler();
+
+#ifndef _CR_USE_SANITIZER
+    benchmark::Initialize(&argc, argv);
+    benchmark::RunSpecifiedBenchmarks();
+
+    // Not available until Benchmark v1.5.5
+    // benchmark::Shutdown();
+#endif
+}

@@ -1,5 +1,3 @@
-#pragma once
-
 #include "cris/core/utils/time.h"
 
 #include <benchmark/benchmark.h>

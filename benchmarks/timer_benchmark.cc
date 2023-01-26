@@ -1,5 +1,3 @@
-#pragma once
-
 #include "cris/core/timer/timer.h"
 
 #include <benchmark/benchmark.h>
