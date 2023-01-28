@@ -1,28 +1,38 @@
+# Use clang-tidy 13. Different version may behave differently.
+
 UseColor: true
 
 Checks: >
     bugprone-*,
     -bugprone-easily-swappable-parameters,
     -bugprone-implicit-widening-of-multiplication-result,
+    -bugprone-narrowing-conversions,
     -bugprone-reserved-identifier,
+    -bugprone-unused-raii,
+    -clang-analyzer-cplusplus.NewDelete,
     -clang-analyzer-cplusplus.NewDeleteLeaks,
     -clang-diagnostic-defaulted-function-deleted,
+    -clang-diagnostic-implicit-int-float-conversion,
     -clang-diagnostic-unqualified-std-cast-call,
     cppcoreguidelines-*,
     -cppcoreguidelines-avoid-c-arrays,
     -cppcoreguidelines-avoid-magic-numbers,
     -cppcoreguidelines-avoid-non-const-global-variables,
+    -cppcoreguidelines-c-copy-assignment-signature,
+    -cppcoreguidelines-narrowing-conversions,
     -cppcoreguidelines-non-private-member-variables-in-classes,
     -cppcoreguidelines-owning-memory,
     -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
     -cppcoreguidelines-pro-bounds-constant-array-index,
     -cppcoreguidelines-pro-type-reinterpret-cast,
+    -cppcoreguidelines-pro-type-static-cast-downcast,
     -cppcoreguidelines-pro-type-union-access,
     -cppcoreguidelines-pro-type-vararg,
     -cppcoreguidelines-special-member-functions,
     google-*,
     -google-build-using-namespace,
     -google-readability-avoid-underscore-in-googletest-name,
+    -google-readability-braces-around-statements,
     -google-runtime-int,
     hicpp-avoid-goto,
     hicpp-exception-baseclass,
@@ -31,11 +41,13 @@ Checks: >
     misc-redundant-expression,
     misc-static-assert,
     performance-*,
+    -performance-inefficient-vector-operation,
     -performance-noexcept-move-constructor,
     -performance-unnecessary-value-param,
     portability-*,
     readability-*,
     -readability-avoid-const-params-in-decls,
+    -readability-braces-around-statements,
     -readability-convert-member-functions-to-static,
     -readability-else-after-return,
     -readability-function-cognitive-complexity,
@@ -48,13 +60,17 @@ Checks: >
     -readability-suspicious-call-argument,
     -readability-uppercase-literal-suffix,
 
+CheckOptions:
+    - key: cppcoreguidelines-macro-usage.AllowedRegexp
+      value: '^_*(DEBUG|(CRIS_|CR_)(USE|WITH|DEBUG))_*'
+    - key: performance-move-const-arg.CheckTriviallyCopyableMove
+      value: false
+
 WarningsAsErrors: >
     *,
     -bugprone-exception-escape,
     -clang-diagnostic-deprecated-builtins,
     -clang-diagnostic-deprecated-declarations,
-    -cppcoreguidelines-c-copy-assignment-signature,
-    -google-readability-braces-around-statements,
-    -readability-braces-around-statements,
+    -clang-diagnostic-sign-conversion,
 
 HeaderFilterRegex: 'cris.*'

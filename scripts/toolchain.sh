@@ -5,6 +5,9 @@ set -e
 pushd "$(dirname "$0")/.." >/dev/null
 
 . scripts/distro_cc.sh
+. scripts/detect_cc_type.sh
+
+"./scripts/toolchain_$CC_TYPE.sh"
 
 # Old version of ccache (e.g. ccache 3 shipped in Ubuntu 20.04) may have low hit rate without this.
 [ "$CCACHE_SLOPPINESS" ]                                                                                                    \
@@ -50,7 +53,19 @@ export CLANG_TIDY="${CLANG_TIDY:-$(set -e;                  \
 
 if [ ! "$CLANG_TIDY" ]; then
     printf '\033[33m[WARNING] Clang Tidy (%d) has not been installed.\033[0m\n' "$CLANG_TIDY_DEFAULT_VERSION" >&2
-elif ! "$CLANG_TIDY" --dump-config | grep -i '^[[:space:]]*Checks[[:space:]]*:' > /dev/null; then
-    printf '\033[31m[ERROR] "%s" is not a valid clang-tidy.\033[0m\n' "$CLANG_TIDY" >&2
-    exit 1
+else
+    CLANG_TIDY_VERSION="$(set -e; \
+        "$CLANG_TIDY" --version \
+        | tr '[:upper:]' '[:lower:]' \
+        | sed -n 's/.*llvm[[:space:]][[:space:]]*version[[:space:]][[:space:]]*\([0-9][0-9\.]*\).*/\1/pi' \
+        | cut -d. -f1)"
+    if [ ! "$CLANG_TIDY_VERSION" ] || ! "$CLANG_TIDY" --dump-config | grep -i '^[[:space:]]*Checks[[:space:]]*:' > /dev/null; then
+        printf '\033[31m[ERROR] "%s" is not a valid clang-tidy.\033[0m\n' "$CLANG_TIDY" >&2
+        exit 1
+    elif [ "$CLANG_TIDY_VERSION" != "$CLANG_TIDY_DEFAULT_VERSION" ]; then
+        printf '\033[33m[WARNING] Detected Clang Tidy version (%d) differs from the default (%d), which may provide different outcome.\033[0m\n' \
+            "$CLANG_TIDY_VERSION" \
+            "$CLANG_TIDY_DEFAULT_VERSION" \
+        >&2
+    fi
 fi

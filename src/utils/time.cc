@@ -1,15 +1,12 @@
 #include "cris/core/utils/time.h"
 
 #if defined(__APPLE__) && defined(__MACH__) && __has_include(<mach/mach_time.h>)
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
 #define _CR_USE_MACH_TIME 1
 #include <mach/mach_time.h>
 #elif _MSC_VER
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
 #define _CR_USE_RDTSC 1
 #include <intrin.h>
 #elif (defined(__i386__) || defined(__x86_64__) || defined(__amd64__)) && __has_include(<x86intrin.h>)
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
 #define _CR_USE_RDTSC 1
 #include <x86intrin.h>
 #endif
