@@ -6,19 +6,19 @@ namespace cris::core {
 
 static void BM_GetTSCTick(benchmark::State& state) {
     unsigned cpuid = 0;
-    for ([[maybe_unused]] auto s : state) {
+    for ([[maybe_unused]] const auto s : state) {
         benchmark::DoNotOptimize(GetTSCTick(cpuid));
     }
 }
 
 static void BM_GetSystemTimestampNsec(benchmark::State& state) {
-    for ([[maybe_unused]] auto s : state) {
+    for ([[maybe_unused]] const auto s : state) {
         benchmark::DoNotOptimize(GetSystemTimestampNsec());
     }
 }
 
 static void BM_GetUnixTimestampNsec(benchmark::State& state) {
-    for ([[maybe_unused]] auto s : state) {
+    for ([[maybe_unused]] const auto s : state) {
         benchmark::DoNotOptimize(GetUnixTimestampNsec());
     }
 }

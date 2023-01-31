@@ -8,28 +8,28 @@ namespace cris::core {
 
 static void BM_TimerSessionOverhead(benchmark::State& state) {
     auto* test_section = TimerSection::GetMainSection()->SubSection("benchmark")->SubSection(__func__);
-    for ([[maybe_unused]] auto s : state) {
+    for ([[maybe_unused]] const auto s : state) {
         auto session = test_section->StartTimerSession();
     }
 }
 
 static void BM_TimerReportShortDuration(benchmark::State& state) {
     auto* test_section = TimerSection::GetMainSection()->SubSection("benchmark")->SubSection(__func__);
-    for ([[maybe_unused]] auto s : state) {
+    for ([[maybe_unused]] const auto s : state) {
         test_section->ReportDurationNsec(1);
     }
 }
 
 static void BM_TimerReportMediumDuration(benchmark::State& state) {
     auto* test_section = TimerSection::GetMainSection()->SubSection("benchmark")->SubSection(__func__);
-    for ([[maybe_unused]] auto s : state) {
+    for ([[maybe_unused]] const auto s : state) {
         test_section->ReportDuration(std::chrono::microseconds(5));
     }
 }
 
 static void BM_TimerReportLongDuration(benchmark::State& state) {
     auto* test_section = TimerSection::GetMainSection()->SubSection("benchmark")->SubSection(__func__);
-    for ([[maybe_unused]] auto s : state) {
+    for ([[maybe_unused]] const auto s : state) {
         test_section->ReportDuration(std::chrono::milliseconds(10));
     }
 }

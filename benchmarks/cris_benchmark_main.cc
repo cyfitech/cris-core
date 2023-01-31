@@ -16,7 +16,7 @@ int main(int argc, char** argv) {
     cris::core::InstallSignalHandler();
 
     benchmark::Initialize(&argc, argv);
-#ifndef _CR_USE_SANITIZER
+#if !defined(_CR_USE_SANITIZER) || !_CR_USE_SANITIZER
     benchmark::RunSpecifiedBenchmarks();
 
     // Not available until Benchmark v1.5.5
