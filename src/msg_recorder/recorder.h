@@ -17,6 +17,7 @@
 #include <string>
 #include <thread>
 #include <utility>
+#include <vector>
 
 namespace cris::core {
 
@@ -38,7 +39,7 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     template<CRMessageType message_t>
     void RegisterChannel(const channel_subid_t subid, const std::string& alias = "");
 
-    void GenerateSnapshot();
+    bool GenerateSnapshot(const std::filesystem::path& snapshot_dir);
 
     std::filesystem::path GetRecordDir() const;
 
@@ -50,7 +51,8 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
 
     RecordFile* CreateFile(const std::string& message_type, const channel_subid_t subid, const std::string& alias);
 
-    void GenerateSnapshotImpl();
+    bool GenerateSnapshotImpl(const std::filesystem::path& snapshot_dir);
+    void MaintainMaxNumOfSnapshots(const RecorderConfig::IntervalConfig& interval_config);
 
     void SnapshotWorker();
     void StopSnapshotWorker();
