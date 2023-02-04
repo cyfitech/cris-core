@@ -69,7 +69,6 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     std::mutex                                               snapshot_mtx_;
     std::condition_variable                                  snapshot_cv_;
     std::map<std::string, std::deque<std::filesystem::path>> snapshot_path_map_;
-    RecorderConfig::IntervalConfig                           next_snapshot_;
     std::thread                                              snapshot_thread_;
 };
 

@@ -32,8 +32,6 @@ class RecorderSnapshotTest : public testing::Test {
     RecorderSnapshotTest() { std::filesystem::create_directories(GetTestTempDir()); }
     ~RecorderSnapshotTest() { std::filesystem::remove_all(GetTestTempDir()); }
 
-    void TestSnapshot(RecorderConfig recorder_config);
-
     std::filesystem::path GetTestTempDir() const { return record_test_temp_dir_; }
 
    private:
@@ -148,6 +146,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
             core::CRNode    subscriber(runner);
 
             replayer.RegisterChannel<TestMessage>(kTestIntChannelSubId);
+
             // Raise the replayer speed to erase any waiting time
             replayer.SetSpeedupRate(1e9);
 
@@ -182,7 +181,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
             replay_complete_cv.wait(lock, [&replay_is_complete] { return replay_is_complete; });
 
             // Make sure the data ends around our snapshot timepoint
-            // Example: if i = 4 when we made the snapshot, then we should have 0123
+            // Example: if i = 4 when we made the snapshot, then we should have 01234
             const std::size_t last_recorded = *previous_value_sp;
 
             if (snapshot_dir_index == 0) {
@@ -195,6 +194,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
                 EXPECT_LE(last_recorded, expect_num_end_with + kFlakyTolerance);
             }
         }
+
         // Plus the origin snapshot
         const std::size_t kExpectedSnapshotNum = kMessageNum * kSleepBetweenMessages / snapshot_interval.period_ + 1;
         EXPECT_EQ(snapshot_dirs.size(), kExpectedSnapshotNum);
