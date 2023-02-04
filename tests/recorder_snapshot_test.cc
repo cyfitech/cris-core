@@ -61,7 +61,7 @@ std::string MessageToStr(const TestMessage& msg) {
     return serialized_msg;
 }
 
-TEST_F(RecorderSnapshotTest, RecorderSnapshotMultiIntervalTest) {
+TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
     static constexpr std::size_t     kThreadNum            = 4;
     static constexpr std::size_t     kMessageNum           = 40;
     static constexpr channel_subid_t kTestIntChannelSubId  = 11;
@@ -71,15 +71,15 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMultiIntervalTest) {
         .snapshot_intervals_ =
             std::vector<RecorderConfig::IntervalConfig>{
                 {
-                    .name_   = std::string("SECONDLY"),
+                    .name_   = std::string("1 SECOND"),
                     .period_ = std::chrono::seconds(1),
                 },
                 {
-                    .name_   = std::string("SECONDS_2"),
+                    .name_   = std::string("2 SECONDS"),
                     .period_ = std::chrono::seconds(2),
                 },
                 {
-                    .name_   = std::string("SECONDS_4"),
+                    .name_   = std::string("4 SECONDS"),
                     .period_ = std::chrono::seconds(4),
                 },
             },
@@ -107,15 +107,27 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMultiIntervalTest) {
     // Test content under each snapshot directory
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
 
-    // Plus the origin snapshot
-    const std::size_t     kExpectedMinNum = kMessageNum * kSleepBetweenMessages / std::chrono::seconds(4) + 1;
     static constexpr auto kMaxWaitingTime = std::chrono::milliseconds(500);
+
+    auto check_expected_nums = [&recorder_config, &snapshot_path_map]() -> bool {
+        for (const RecorderConfig::IntervalConfig& interval_config : recorder_config.snapshot_intervals_) {
+            // Plus the origin snapshot
+            const std::size_t kCurrentIntervalExpectedNum =
+                kMessageNum * kSleepBetweenMessages / interval_config.period_ + 1;
+
+            if (snapshot_path_map[interval_config.name_].size() < kCurrentIntervalExpectedNum) {
+                return false;
+            }
+        }
+        return true;
+    };
 
     auto check_num_time  = std::chrono::steady_clock::now();
     // We may wait half of the interval time at max
     auto check_stop_time = check_num_time + kMaxWaitingTime;
 
-    while (snapshot_path_map["SECONDS_4"].size() < kExpectedMinNum && check_num_time < check_stop_time) {
+    // Wait for the snapshot to be finished at the last second
+    while (!check_expected_nums() && check_num_time < check_stop_time) {
         check_num_time += kSleepBetweenMessages;
         std::this_thread::sleep_until(check_num_time);
         snapshot_path_map = recorder.GetSnapshotPaths();
@@ -126,12 +138,13 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMultiIntervalTest) {
 
     EXPECT_EQ(snapshot_path_map.size(), recorder_config.snapshot_intervals_.size());
 
-    for (const auto& path_pair : snapshot_path_map) {
-        const std::size_t path_pair_index =
-            static_cast<std::size_t>(distance(snapshot_path_map.begin(), snapshot_path_map.find(path_pair.first)));
+    for (const auto& snapshot_interval : recorder_config.snapshot_intervals_) {
+        auto search = snapshot_path_map.find(snapshot_interval.name_);
+        EXPECT_TRUE(search != snapshot_path_map.end());
+        auto snapshot_dirs = search->second;
 
-        for (std::size_t entry_index = 0; entry_index < path_pair.second.size(); ++entry_index) {
-            MessageReplayer replayer(path_pair.second[entry_index]);
+        for (std::size_t snapshot_dir_index = 0; snapshot_dir_index < snapshot_dirs.size(); ++snapshot_dir_index) {
+            MessageReplayer replayer(snapshot_dirs[snapshot_dir_index]);
             core::CRNode    subscriber(runner);
 
             replayer.RegisterChannel<TestMessage>(kTestIntChannelSubId);
@@ -169,30 +182,22 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMultiIntervalTest) {
             replay_complete_cv.wait(lock, [&replay_is_complete] { return replay_is_complete; });
 
             // Make sure the data ends around our snapshot timepoint
-            // Example: if i = 4 when we made the snapshot, then we should have 01234
-            const std::size_t previous_value = *previous_value_sp;
-            if (entry_index != 0) {
-                const std::size_t expect_value =
-                    static_cast<std::size_t>(std::chrono::duration_cast<std::chrono::milliseconds>(
-                                                 recorder_config.snapshot_intervals_[path_pair_index].period_)
-                                                 .count()) /
-                    kSleepBetweenMessages.count() * entry_index;
+            // Example: if i = 4 when we made the snapshot, then we should have 0123
+            const std::size_t last_recorded = *previous_value_sp;
 
-                EXPECT_GE(previous_value, expect_value - kFlakyTolerance);
-                EXPECT_LE(previous_value, expect_value + kFlakyTolerance);
+            if (snapshot_dir_index == 0) {
+                EXPECT_LE(last_recorded, 0 + kFlakyTolerance);
+            } else {
+                const std::size_t expect_num_end_with =
+                    snapshot_interval.period_ * snapshot_dir_index / kSleepBetweenMessages;
+
+                EXPECT_GE(last_recorded, expect_num_end_with - kFlakyTolerance);
+                EXPECT_LE(last_recorded, expect_num_end_with + kFlakyTolerance);
             }
         }
-        EXPECT_EQ(path_pair.first, recorder_config.snapshot_intervals_[path_pair_index].name_);
-
-        const std::size_t kTotalTimeSec =
-            std::chrono::duration_cast<std::chrono::seconds>(kMessageNum * kSleepBetweenMessages).count();
-
-        const std::size_t kCurrentIntervalSec =
-            static_cast<std::size_t>(recorder_config.snapshot_intervals_[path_pair_index].period_.count());
-
         // Plus the origin snapshot
-        const std::size_t kExpectedSnapshotNum = kTotalTimeSec / kCurrentIntervalSec + 1;
-        EXPECT_EQ(path_pair.second.size(), kExpectedSnapshotNum);
+        const std::size_t kExpectedSnapshotNum = kMessageNum * kSleepBetweenMessages / snapshot_interval.period_ + 1;
+        EXPECT_EQ(snapshot_dirs.size(), kExpectedSnapshotNum);
     }
 
     runner->Stop();

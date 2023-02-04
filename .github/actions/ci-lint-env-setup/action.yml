@@ -1,0 +1,23 @@
+name: Setup CI Environment for Linter
+
+inputs:
+  key:
+    required: true
+    type: string
+  cris_base_ssh_token:
+    required: true
+    type: string
+  cris_xchg_ssh_token:
+    required: true
+    type: string
+
+runs:
+  using: "composite"
+  steps:
+  - uses: ./.github/actions/ci-env-setup
+    with:
+      key: ${{ inputs.key }}
+      cache_paths: |
+        /root/.cache/bazel
+      cris_base_ssh_token: ${{ inputs.cris_base_ssh_token }}
+      cris_xchg_ssh_token: ${{ inputs.cris_xchg_ssh_token }}

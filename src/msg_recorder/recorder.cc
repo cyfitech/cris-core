@@ -71,11 +71,17 @@ void MessageRecorder::SnapshotWorker() {
             const auto snapshot_dir = record_dir_.parent_path() / std::string("snapshots") /
                 current_snapshot_wakeup.interval_config.name_ / SnapshotDirNameGenerator();
             if (GenerateSnapshot(snapshot_dir)) {
+<<<<<<< HEAD
                 {
                     std::lock_guard lck(snapshot_mtx_);
                     snapshot_path_map_[current_snapshot_wakeup.interval_config.name_].push_back(snapshot_dir);
                     MaintainMaxNumOfSnapshots(current_snapshot_wakeup.interval_config);
                 }
+=======
+                std::lock_guard lck(snapshot_mtx_);
+                snapshot_path_map_[current_snapshot_wakeup.interval_config.name_].push_back(snapshot_dir);
+                MaintainMaxNumOfSnapshots(current_snapshot_wakeup.interval_config);
+>>>>>>> origin/master
             }
         } else {
             LOG(WARNING) << __func__ << ": A snapshot job skipped: too close to the next snapshot timepoint.";
@@ -169,7 +175,11 @@ bool MessageRecorder::GenerateSnapshotImpl(const std::filesystem::path& snapshot
 
 void MessageRecorder::MaintainMaxNumOfSnapshots(const RecorderConfig::IntervalConfig& interval_config) {
     auto& snapshot_dirs = snapshot_path_map_[interval_config.name_];
+<<<<<<< HEAD
     while (snapshot_dirs.size() > interval_config.max_num_of_copies_) {
+=======
+    while (snapshot_dirs.size() > snapshot_max_num_) {
+>>>>>>> origin/master
         if (std::error_code ec;
             std::filesystem::remove_all(snapshot_dirs.front(), ec) == static_cast<std::uintmax_t>(-1)) {
             LOG(ERROR) << __func__ << ": Locally saved more than " << interval_config.max_num_of_copies_

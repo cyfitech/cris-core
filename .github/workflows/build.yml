@@ -15,7 +15,7 @@ jobs:
       image: ghcr.io/cyfitech/cris-build-ubuntu2004:20221216
     steps:
     - uses: actions/checkout@v3
-    - uses: ./.github/actions/ci-env-setup
+    - uses: ./.github/actions/ci-lint-env-setup
       with:
         key: ${{ github.job }}
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
@@ -48,7 +48,7 @@ jobs:
       CXX: clang++-11
     steps:
     - uses: actions/checkout@v3
-    - uses: ./.github/actions/ci-env-setup
+    - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
@@ -66,7 +66,7 @@ jobs:
       CXX: clang++-12
     steps:
     - uses: actions/checkout@v3
-    - uses: ./.github/actions/ci-env-setup
+    - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
@@ -84,7 +84,7 @@ jobs:
       CXX: clang++-13
     steps:
     - uses: actions/checkout@v3
-    - uses: ./.github/actions/ci-env-setup
+    - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
@@ -102,7 +102,7 @@ jobs:
       CXX: clang++-14
     steps:
     - uses: actions/checkout@v3
-    - uses: ./.github/actions/ci-env-setup
+    - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
@@ -120,13 +120,13 @@ jobs:
       CXX: g++-10
     steps:
     - uses: actions/checkout@v3
-    - uses: ./.github/actions/ci-env-setup
+    - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
-      run: export HOME=/root && scripts/bazel_wrapper.sh test --copt='-O3' --config=prof --nocache_test_results --test_output=all -s //...
+      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=rel --config=prof --nocache_test_results --test_output=all -s //...
     - uses: ./.github/actions/ci-env-cleanup
 
   gcc10-ubuntu2004:
@@ -138,13 +138,13 @@ jobs:
       CXX: g++-10
     steps:
     - uses: actions/checkout@v3
-    - uses: ./.github/actions/ci-env-setup
+    - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
-      run: export HOME=/root && scripts/bazel_wrapper.sh test --copt='-O3' --config=prof --nocache_test_results --test_output=all -s //...
+      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=rel --config=prof --nocache_test_results --test_output=all -s //...
     - uses: ./.github/actions/ci-env-cleanup
 
   gcc11-ubuntu2204:
@@ -158,13 +158,13 @@ jobs:
       CXX: g++-11
     steps:
     - uses: actions/checkout@v3
-    - uses: ./.github/actions/ci-env-setup
+    - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
-      run: export HOME=/root && scripts/bazel_wrapper.sh test --copt='-O3' --config=prof --nocache_test_results --test_output=all -s //...
+      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=rel --config=prof --nocache_test_results --test_output=all -s //...
     - uses: ./.github/actions/ci-env-cleanup
 
   asan:
@@ -176,7 +176,7 @@ jobs:
       CXX: clang++-13
     steps:
     - uses: actions/checkout@v3
-    - uses: ./.github/actions/ci-env-setup
+    - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
@@ -194,7 +194,7 @@ jobs:
       CXX: clang++-13
     steps:
     - uses: actions/checkout@v3
-    - uses: ./.github/actions/ci-env-setup
+    - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
@@ -212,7 +212,7 @@ jobs:
       CXX: clang++-13
     steps:
     - uses: actions/checkout@v3
-    - uses: ./.github/actions/ci-env-setup
+    - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
@@ -230,7 +230,7 @@ jobs:
       CXX: clang++-13
     steps:
     - uses: actions/checkout@v3
-    - uses: ./.github/actions/ci-env-setup
+    - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
@@ -248,7 +248,7 @@ jobs:
       CXX: g++-10
     steps:
     - uses: actions/checkout@v3
-    - uses: ./.github/actions/ci-env-setup
+    - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}

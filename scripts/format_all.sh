@@ -17,7 +17,9 @@ if [ ! "$CLANG_FORMAT" ]; then
 else
     CLANG_FORMAT_VERSION="$(set -e; \
         "$CLANG_FORMAT" --version \
-        | sed -n 's/^.*clang-format[[:space:]]*version[[:space:]]*\([[:digit:]]*\)\..*$/\1/pi')"
+        | tr '[:upper:]' '[:lower:]' \
+        | sed -n 's/.*clang-format[[:space:]][[:space:]]*version[[:space:]][[:space:]]*\([0-9][0-9\.]*\).*/\1/pi' \
+        | cut -d. -f1)"
     if [ ! "$CLANG_FORMAT_VERSION" ]; then
         printf '\033[31m[ERROR] "%s" is not a valid clang-format.\033[0m\n' "$CLANG_FORMAT" >&2
         exit 1
