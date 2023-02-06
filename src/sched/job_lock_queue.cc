@@ -67,7 +67,11 @@ bool JobLockQueue::ConsumeOne(const std::function<void(job_t&&)>& functor) {
     if (size_ == 0) {
         return false;
     }
+    const std::size_t job_container_size = jobs_.size();
     std::size_t read_head_after_pop = read_head_ + 1;
+    if (read_head_after_pop >= job_container_size) {
+        read_head_after_pop -= job_container_size;
+    }
     functor(std::move(jobs_[read_head_]));
     read_head_ = read_head_after_pop;
     --size_;

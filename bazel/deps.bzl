@@ -33,6 +33,14 @@ filegroup(
     visibility = ["//visibility:private"],
 )
 
+config_setting(
+    name = "dbg_build",
+    values = {
+        "compilation_mode": "dbg",
+    },
+    visibility = ["//visibility:private"],
+)
+
 cmake(
     name = "libfmt",
     lib_source = ":all_content",
@@ -42,6 +50,10 @@ cmake(
         "FMT_MASTER_PROJECT": "OFF",
         "FMT_INSTALL": "ON",
     },
+    out_static_libs = select({
+        ":dbg_build":           ["libfmtd.a"],
+        "//conditions:default": ["libfmt.a"],
+    }),
     generate_args = [
         "-G Ninja",
     ],

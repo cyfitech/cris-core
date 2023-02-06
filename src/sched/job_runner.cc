@@ -28,7 +28,7 @@ static thread_local std::size_t    kCurrentThreadWorkerIndex = 0;
 class JobRunnerWorker {
    public:
     using job_t       = JobRunner::job_t;
-    using job_queue_t = JobLockQueue;
+    using job_queue_t = JobLockFreeQueue;
 
     explicit JobRunnerWorker(JobRunner* runner, std::size_t idx);
 
@@ -82,7 +82,7 @@ class JobAliveToken {
 class JobRunnerStrand : public std::enable_shared_from_this<JobRunnerStrand> {
    public:
     using job_t               = JobRunner::job_t;
-    using job_queue_t         = JobLockQueue;
+    using job_queue_t         = JobLockFreeQueue;
     using ForceRunImmediately = JobRunner::ForceRunImmediately;
 
     explicit JobRunnerStrand(std::weak_ptr<JobRunner> runner) : runner_weak_(runner) {}
