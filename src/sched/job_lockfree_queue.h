@@ -14,9 +14,9 @@
 
 namespace cris::core {
 
-class JobLockFreeQueue : public JobQueueBase {
+class JobLockFreeQueue : public JobQueue {
    public:
-    using job_t = JobQueueBase::job_t;
+    using job_t = JobQueue::job_t;
 
     explicit JobLockFreeQueue(std::size_t init_capacity = 8);
     ~JobLockFreeQueue() override;

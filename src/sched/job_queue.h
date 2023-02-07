@@ -7,11 +7,11 @@
 
 namespace cris::core {
 
-class JobQueueBase {
+class JobQueue {
    public:
     using job_t = JobRunner::job_t;
 
-    virtual ~JobQueueBase() = default;
+    virtual ~JobQueue() = default;
 
     virtual void Push(job_t job) = 0;
 
