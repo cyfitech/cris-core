@@ -67,6 +67,10 @@ class JobRunner : public std::enable_shared_from_this<JobRunner> {
 
     bool AddJob(std::function<void(JobAliveTokenPtr&&)>&& job, JobRunnerStrandPtr strand);
 
+    bool AddJobs(std::vector<job_t>&& jobs, std::size_t scheduler_hint);
+
+    bool AddJobs(std::vector<job_t>&& jobs) { return AddJobs(std::move(jobs), DefaultSchedulerHint()); }
+
     ///
     /// Add a job to run, run the job in the current thread immediately if possible.
     ///

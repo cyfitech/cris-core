@@ -263,6 +263,32 @@ bool JobRunner::AddJob(job_t&& job, std::size_t scheduler_hint) {
     return true;
 }
 
+bool JobRunner::AddJobs(std::vector<job_t>&& jobs, std::size_t scheduler_hint) {
+    // In default case, modulo operation is not needed because the RNG guarantee the output range.
+    // Use conditions to avoid unnecessary modulos.
+    const std::size_t worker_idx =
+        scheduler_hint < config_.thread_num_ ? scheduler_hint : scheduler_hint % config_.thread_num_;
+    auto& worker = workers_[worker_idx];
+    if (!worker) [[unlikely]] {
+        LOG(ERROR) << __func__ << ": Try to schedule to uninitialized worker " << worker_idx
+                   << ", worker num: " << config_.thread_num_;
+        return false;
+    }
+
+    worker->job_queue_.PushBatch(std::move(jobs));
+    // Notify the scheduled worker first, so that it has better chance to
+    // pick up this job.
+    worker->inactive_cv_.notify_one();
+
+    // Randomly notify another worker, in case all awake workers are busy,
+    // and that worker may steal the jobs.
+    // Note that notifying all workers may be too expensive.
+    if (!ready_for_stealing_.load()) {
+        NotifyOneWorker();
+    }
+    return true;
+}
+
 bool JobRunner::AddJob(job_t&& job, JobRunnerStrandPtr strand) {
     return strand ? strand->AddJob(std::move(job)) : AddJob(std::move(job));
 }

@@ -19,7 +19,7 @@
         constexpr std::size_t kMaxAttempts = 1000;                \
         constexpr auto        kAttemptGap  = 5ms;                 \
         bool                  is_eq        = false;               \
-        for (std::size_t i = 0; i < kMaxAttempts; ++i) {          \
+        for (std::size_t _i = 0; _i < kMaxAttempts; ++_i) {       \
             if ((lfs) == (rhs)) {                                 \
                 is_eq = true;                                     \
                 break;                                            \
@@ -105,6 +105,39 @@ TEST(JobRunnerTest, Basic) {
 
     // These jobs may be discarded when the runner destructs.
     test_batch(/* wait = */ false);
+}
+
+TEST(JobRunnerTest, JobBatch) {
+    static constexpr std::size_t kTestBatchNum  = 3;
+    static constexpr std::size_t kTestBatchSize = 500;
+    static constexpr std::size_t kThreadNum     = 4;
+
+    JobRunner::Config config = {
+        .thread_num_ = kThreadNum,
+    };
+    auto runner = JobRunner::MakeJobRunner(config);
+
+    for (std::size_t i = 0; i < kTestBatchNum; ++i) {
+        std::mutex mtx;
+        auto       cv = std::make_shared<std::condition_variable>();
+
+        std::unique_lock lock(mtx);
+
+        auto call_count = std::make_shared<std::atomic<std::size_t>>(0);
+
+        std::vector<JobRunner::job_t> job_batch;
+        job_batch.reserve(kTestBatchSize);
+
+        for (std::size_t j = 0; j < kTestBatchSize; ++j) {
+            job_batch.push_back([call_count, cv]() {
+                call_count->fetch_add(1);
+                cv->notify_all();
+            });
+        }
+
+        EXPECT_TRUE(runner->AddJobs(std::move(job_batch)));
+        EVENTUALLY_EQ(call_count->load(), kTestBatchSize);
+    };
 }
 
 TEST(JobRunnerTest, JobLocality) {
