@@ -1,21 +1,11 @@
 #include "cris/core/sched/job_runner.h"
 
+#include "cris/core/sched/job_lockfree_queue.h"
 #include "cris/core/sched/spin_impl.h"
 #include "cris/core/sched/spin_mutex.h"
 #include "cris/core/utils/defs.h"
 #include "cris/core/utils/logging.h"
 #include "cris/core/utils/time.h"
-
-#if defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wambiguous-reversed-operator"
-#endif
-
-#include <boost/lockfree/queue.hpp>
-
-#if defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
 
 #include <chrono>
 #include <condition_variable>
@@ -34,10 +24,11 @@ namespace cris::core {
 static thread_local std::uintptr_t kCurrentThreadJobRunner   = 0;
 static thread_local std::size_t    kCurrentThreadWorkerIndex = 0;
 
+using job_queue_t = JobLockFreeQueue;
+
 class JobRunnerWorker {
    public:
-    using job_t       = JobRunner::job_t;
-    using job_queue_t = boost::lockfree::queue<job_t*>;
+    using job_t = JobRunner::job_t;
 
     explicit JobRunnerWorker(JobRunner* runner, std::size_t idx);
 
@@ -91,7 +82,6 @@ class JobAliveToken {
 class JobRunnerStrand : public std::enable_shared_from_this<JobRunnerStrand> {
    public:
     using job_t               = JobRunner::job_t;
-    using job_queue_t         = boost::lockfree::queue<job_t*>;
     using ForceRunImmediately = JobRunner::ForceRunImmediately;
 
     explicit JobRunnerStrand(std::weak_ptr<JobRunner> runner) : runner_weak_(runner) {}
@@ -130,7 +120,7 @@ bool JobRunnerStrand::AddJob(std::function<void(JobAliveTokenPtr&&)>&& job) {
         job(std::move(alive_token));
     };
 
-    pending_jobs_.push(new job_t(std::move(serialized_job)));
+    pending_jobs_.Push(std::move(serialized_job));
     PushToRunnerIfNeeded(/* is_in_running_job = */ false);
     return true;
 }
@@ -189,7 +179,7 @@ void JobRunnerStrand::PushToRunnerIfNeeded(const bool is_in_running_job) {
             return;
         }
 
-        pending_jobs_.consume_one([&next](job_t* const job_ptr) { next.reset(job_ptr); });
+        pending_jobs_.ConsumeOne([&next](job_t&& job) { next = std::make_unique<job_t>(std::move(job)); });
 
         if (!next) {
             has_ready_job_ = false;
@@ -215,7 +205,7 @@ bool JobRunnerStrand::AddJob(std::function<void(JobAliveTokenPtr&&)> job, JobRun
     // It will not break the order because the pending queue is empty at the point we check.
     {
         std::unique_lock lck(hybrid_spin_mtx_, std::try_to_lock);
-        if (!lck.owns_lock() || has_ready_job_ || !pending_jobs_.empty()) {
+        if (!lck.owns_lock() || has_ready_job_ || !pending_jobs_.Empty()) {
             return false;
         }
         has_ready_job_ = true;
@@ -260,7 +250,7 @@ bool JobRunner::AddJob(job_t&& job, std::size_t scheduler_hint) {
         return false;
     }
 
-    worker->job_queue_.push(new job_t(std::move(job)));
+    worker->job_queue_.Push(std::move(job));
     // Notify the scheduled worker first, so that it has better chance to
     // pick up this job.
     worker->inactive_cv_.notify_one();
@@ -390,13 +380,12 @@ JobRunnerWorker::JobRunnerWorker(JobRunner* runner, std::size_t idx)
 
 JobRunnerWorker::~JobRunnerWorker() {
     DCHECK(!thread_.joinable());
-    job_queue_.consume_all([](job_t* const job_ptr) { delete job_ptr; });
 }
 
 std::unique_ptr<JobRunner::job_t> JobRunnerWorker::TryGetOneJob() {
-    std::unique_ptr<job_t> job{nullptr};
-    job_queue_.consume_one([&job](job_t* const job_ptr) { job.reset(job_ptr); });
-    return job;
+    std::unique_ptr<job_t> job_ptr{nullptr};
+    job_queue_.ConsumeOne([&job_ptr](job_t&& job) { job_ptr = std::make_unique<job_t>(std::move(job)); });
+    return job_ptr;
 }
 
 bool JobRunnerWorker::TryProcessOne() {
