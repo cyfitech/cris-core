@@ -158,3 +158,15 @@ cris_cc_test (
         "@cris-core//tests:cris_gtest_main",
     ],
 )
+
+cris_cc_test (
+    name = "recorder_config_test",
+    srcs = ["recorder_config_test.cc"],
+    deps = [
+        "//:config",
+        "//:msg_recorder",
+        "@fmt//:libfmt",
+        "@cris-core//tests:cris_gtest_main",
+    ],
+)
+

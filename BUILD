@@ -85,10 +85,12 @@ cris_cc_library (
     srcs = [
         "src/msg_recorder/recorder.cc",
         "src/msg_recorder/replayer.cc",
+        "src/msg_recorder/recorder_config.cc",
     ],
     hdrs = [
         "src/msg_recorder/recorder.h",
         "src/msg_recorder/replayer.h",
+        "src/msg_recorder/recorder_config.h",
     ],
     include_prefix = "cris/core",
     strip_include_prefix = "src",
