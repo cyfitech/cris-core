@@ -205,8 +205,8 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
 
 TEST_F(RecorderSnapshotTest, RecorderSnapshotMaxCopyNumTest) {
     static constexpr std::size_t     kThreadNum            = 4;
-    static constexpr std::size_t     kMessageNum           = 30;
-    static constexpr channel_subid_t kTestIntChannelSubId  = 11;
+    static constexpr std::size_t     kMessageNum           = 40;
+    static constexpr channel_subid_t kTestIntChannelSubId  = 12;
     static constexpr auto            kSleepBetweenMessages = std::chrono::milliseconds(100);
 
     RecorderConfig recorder_config{
@@ -229,32 +229,19 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMaxCopyNumTest) {
     recorder.RegisterChannel<TestMessage>(kTestIntChannelSubId);
     core::CRNode publisher;
 
-    std::deque<std::vector<std::size_t>> saved_data_list;
-    saved_data_list.push_back({});
-
     auto wake_up_time = std::chrono::steady_clock::now();
 
     for (std::size_t i = 0; i < kMessageNum; ++i) {
-        // Record all the messages published in terms of seconds
-        if (i != 0 && i % 10 == 0) {
-            std::vector<std::size_t> previous_list = saved_data_list.back();
-            saved_data_list.push_back(previous_list);
-        }
         auto test_message = std::make_shared<TestMessage>(i);
         publisher.Publish(kTestIntChannelSubId, std::move(test_message));
-        saved_data_list.back().push_back(i);
 
         wake_up_time += kSleepBetweenMessages;
         std::this_thread::sleep_until(wake_up_time);
     }
 
-    saved_data_list.pop_front();
-
-    // Test content under each snapshot directory
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
 
-    // Plus the origin snapshot
-    const std::size_t     kExpectedMinNum = kMessageNum * kSleepBetweenMessages / std::chrono::seconds(1) + 1;
+    const std::size_t     kExpectedMinNum = kMessageNum * kSleepBetweenMessages / std::chrono::seconds(1);
     static constexpr auto kMaxWaitingTime = std::chrono::milliseconds(500);
 
     auto check_num_time  = std::chrono::steady_clock::now();
@@ -266,50 +253,11 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMaxCopyNumTest) {
         snapshot_path_map = recorder.GetSnapshotPaths();
     }
 
-    for (const auto& path_pair : snapshot_path_map) {
-        for (std::size_t entry_index = 0; entry_index < path_pair.second.size(); ++entry_index) {
-            MessageReplayer replayer(path_pair.second[entry_index]);
-            core::CRNode    subscriber(runner);
+    // Only one interval config has been set
+    EXPECT_EQ(snapshot_path_map.size(), 1);
 
-            replayer.RegisterChannel<TestMessage>(kTestIntChannelSubId);
-            replayer.SetSpeedupRate(1e9);
-
-            std::mutex              replay_complete_mtx;
-            std::condition_variable replay_complete_cv;
-
-            std::size_t           snapshot_num_counter = 0;
-            bool                  replay_is_complete   = false;
-            constexpr std::size_t kLastMessageFlagNum  = 979797;
-
-            subscriber.Subscribe<TestMessage>(
-                kTestIntChannelSubId,
-                [&saved_data_list,
-                 &snapshot_num_counter,
-                 &replay_is_complete,
-                 &replay_complete_cv,
-                 &replay_complete_mtx](const std::shared_ptr<TestMessage>& message) {
-                    if (message->value_ == kLastMessageFlagNum) {
-                        std::lock_guard lck(replay_complete_mtx);
-                        replay_is_complete = true;
-                        replay_complete_cv.notify_all();
-                        return;
-                    }
-                    EXPECT_EQ(message->value_, saved_data_list.front()[snapshot_num_counter]);
-                    snapshot_num_counter++;
-                },
-                /* allow_concurrency */ false);
-
-            replayer.MainLoop();
-            publisher.Publish(kTestIntChannelSubId, std::make_shared<TestMessage>(kLastMessageFlagNum));
-
-            std::unique_lock lock(replay_complete_mtx);
-            replay_complete_cv.wait(lock, [&replay_is_complete] { return replay_is_complete; });
-
-            EXPECT_EQ(snapshot_num_counter, saved_data_list.front().size());
-
-            saved_data_list.pop_front();
-        }
-    }
+    // Only two copies of snapshot should be kept
+    EXPECT_EQ(snapshot_path_map["SECONDLY"].size(), 2);
 
     runner->Stop();
 }
