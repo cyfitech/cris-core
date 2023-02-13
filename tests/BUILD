@@ -120,6 +120,26 @@ cris_cc_test (
     ],
 )
 
+filegroup(
+    name = "job_queue_tsan_suppressions",
+    srcs = ["job_queue_tsan_suppressions.txt"],
+)
+
+cris_cc_test (
+    name = "job_queue_test",
+    srcs = ["job_queue_test.cc"],
+    env = {
+        "TSAN_OPTIONS": "suppressions=$(execpath job_queue_tsan_suppressions)",
+    },
+    data = [
+        ":job_queue_tsan_suppressions",
+    ],
+    deps = [
+        "//:sched",
+        "@cris-core//tests:cris_gtest_main",
+    ],
+)
+
 cris_cc_test (
     name = "config_test",
     srcs = ["config_test.cc"],
@@ -138,3 +158,15 @@ cris_cc_test (
         "@cris-core//tests:cris_gtest_main",
     ],
 )
+
+cris_cc_test (
+    name = "recorder_config_test",
+    srcs = ["recorder_config_test.cc"],
+    deps = [
+        "//:config",
+        "//:msg_recorder",
+        "@fmt//:libfmt",
+        "@cris-core//tests:cris_gtest_main",
+    ],
+)
+
