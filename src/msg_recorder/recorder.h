@@ -4,6 +4,7 @@
 #include "cris/core/msg/message.h"
 #include "cris/core/msg/node.h"
 #include "cris/core/msg_recorder/record_file.h"
+#include "cris/core/msg_recorder/recorder_config.h"
 
 #include <chrono>
 #include <condition_variable>
