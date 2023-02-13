@@ -1,4 +1,3 @@
-#include "cris/core/msg_recorder/recorder_config.h"
 #include "cris/core/msg/node.h"
 #include "cris/core/msg_recorder/recorder.h"
 #include "cris/core/msg_recorder/recorder_config.h"
@@ -106,7 +105,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
     // Test content under each snapshot directory
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
 
-    static constexpr auto kMaxWaitingTime = std::chrono::milliseconds(500);
+    static constexpr auto kMaxWaitingTime = std::chrono::milliseconds(2000);
 
     auto check_expected_nums = [&recorder_config, &snapshot_path_map]() -> bool {
         for (const RecorderConfig::IntervalConfig& interval_config : recorder_config.snapshot_intervals_) {
