@@ -18,8 +18,6 @@
 #include <utility>
 #include <vector>
 
-using print_duration_t = std::chrono::nanoseconds;
-
 namespace cris::core {
 
 MessageRecorder::MessageRecorder(const RecorderConfig& recorder_config, std::shared_ptr<JobRunner> runner)
@@ -184,6 +182,7 @@ std::string MessageRecorder::RecordDirNameGenerator() {
 }
 
 std::string MessageRecorder::SnapshotDirNameGenerator() {
+    using print_duration_t            = std::chrono::nanoseconds;
     constexpr auto print_tick_per_sec = print_duration_t::period::den / print_duration_t::period::num;
     const auto     print_precision    = static_cast<int>(std::log10(print_tick_per_sec));
 
