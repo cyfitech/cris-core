@@ -19,8 +19,6 @@
 #include <utility>
 #include <vector>
 
-using print_duration_t = std::chrono::nanoseconds;
-
 namespace cris::core {
 
 MessageRecorder::MessageRecorder(const RecorderConfig& recorder_config, std::shared_ptr<JobRunner> runner)
