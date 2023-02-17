@@ -335,7 +335,7 @@ bool JobRunner::Steal() {
     static thread_local std::default_random_engine random_engine(random_device());
     std::uniform_int_distribution<std::size_t>     random_worker_selector(0, config_.thread_num_);
 
-    DLOG(INFO) << __func__ << ": JobRunnerWorker " << kCurrentThreadWorkerIndex << " stealing.";
+    DVLOG(1) << __func__ << ": JobRunnerWorker " << kCurrentThreadWorkerIndex << " stealing.";
     std::size_t idx = random_worker_selector(random_engine);
     for (std::size_t i = 0; i < config_.thread_num_; ++idx, ++i) {
         if (idx >= config_.thread_num_) {
@@ -346,8 +346,8 @@ bool JobRunner::Steal() {
             continue;
         }
         if (workers_[idx]->TryProcessOne()) {
-            DLOG(INFO) << __func__ << ": JobRunnerWorker " << kCurrentThreadWorkerIndex << " stole a job from " << idx
-                       << ".";
+            DVLOG(1) << __func__ << ": JobRunnerWorker " << kCurrentThreadWorkerIndex << " stole a job from " << idx
+                     << ".";
             return true;
         }
     }
@@ -452,14 +452,14 @@ void JobRunnerWorker::WorkerLoop() {
             continue;
         }
         runner_->active_workers_num_.fetch_sub(1);
-        DLOG(INFO) << __func__ << ": JobRunnerWorker " << index_ << " is inactive.";
+        DVLOG(1) << __func__ << ": JobRunnerWorker " << index_ << " is inactive.";
         std::unique_lock<std::mutex> lock(inactive_cv_mutex_);
         constexpr auto               kWorkerIdleTime = std::chrono::seconds(1);
         if (shutdown_flag_.load()) {
             break;
         }
         inactive_cv_.wait_for(lock, kWorkerIdleTime);
-        DLOG(INFO) << __func__ << ": JobRunnerWorker " << index_ << " is active.";
+        DVLOG(1) << __func__ << ": JobRunnerWorker " << index_ << " is active.";
         runner_->active_workers_num_.fetch_add(1);
     }
     runner_->active_workers_num_.fetch_sub(1);
