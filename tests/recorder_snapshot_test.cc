@@ -206,6 +206,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
 TEST_F(RecorderSnapshotTest, RecorderSnapshotMaxCopyNumTest) {
     static constexpr std::size_t     kThreadNum            = 4;
     static constexpr std::size_t     kMessageNum           = 40;
+    static constexpr std::size_t     kMaxNumOfCopies       = 2;
     static constexpr channel_subid_t kTestIntChannelSubId  = 12;
     static constexpr auto            kSleepBetweenMessages = std::chrono::milliseconds(100);
 
@@ -215,7 +216,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMaxCopyNumTest) {
                 {
                     .name_              = std::string("SECONDLY"),
                     .period_            = std::chrono::seconds(1),
-                    .max_num_of_copies_ = 2,
+                    .max_num_of_copies_ = kMaxNumOfCopies,
                 },
             },
         .record_dir_ = GetTestTempDir(),
@@ -239,25 +240,79 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMaxCopyNumTest) {
         std::this_thread::sleep_until(wake_up_time);
     }
 
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
-
-    const std::size_t     kExpectedMinNum = kMessageNum * kSleepBetweenMessages / std::chrono::seconds(1);
-    static constexpr auto kMaxWaitingTime = std::chrono::milliseconds(500);
-
-    auto check_num_time  = std::chrono::steady_clock::now();
-    auto check_stop_time = check_num_time + kMaxWaitingTime;
-
-    while (snapshot_path_map["SECONDLY"].size() < kExpectedMinNum && check_num_time < check_stop_time) {
-        check_num_time += kSleepBetweenMessages;
-        std::this_thread::sleep_until(check_num_time);
-        snapshot_path_map = recorder.GetSnapshotPaths();
-    }
 
     // Only one interval config has been set
     EXPECT_EQ(snapshot_path_map.size(), 1);
 
     // Only two copies of snapshot should be kept
     EXPECT_EQ(snapshot_path_map["SECONDLY"].size(), 2);
+
+    // Check that the only 'kMaxNumOfCopies' snapshots kept matches the last element value in each interval.
+    std::map<std::size_t, std::size_t> reference_map = {{0, 30}, {1, 40}};
+    for (const auto& [index, last_element_value] : reference_map) {
+        MessageReplayer replayer(snapshot_path_map["SECONDLY"][index]);
+        core::CRNode    subscriber(runner);
+
+        replayer.RegisterChannel<TestMessage>(kTestIntChannelSubId);
+        replayer.SetSpeedupRate(1e9);
+
+        std::mutex              replay_complete_mtx;
+        std::condition_variable replay_complete_cv;
+
+        auto                  previous_value_sp   = std::make_shared<std::size_t>(0);
+        bool                  replay_is_complete  = false;
+        constexpr std::size_t kLastMessageFlagNum = 979797;
+
+        subscriber.Subscribe<TestMessage>(
+            kTestIntChannelSubId,
+            [previous_value_sp, &replay_is_complete, &replay_complete_cv, &replay_complete_mtx](
+                const std::shared_ptr<TestMessage>& message) {
+                if (message->value_ == kLastMessageFlagNum) {
+                    std::lock_guard lck(replay_complete_mtx);
+                    replay_is_complete = true;
+                    replay_complete_cv.notify_all();
+                    return;
+                }
+                *previous_value_sp = message->value_;
+            },
+            /* allow_concurrency = */ false);
+
+        replayer.MainLoop();
+        publisher.Publish(kTestIntChannelSubId, std::make_shared<TestMessage>(kLastMessageFlagNum));
+
+        std::unique_lock lock(replay_complete_mtx);
+        replay_complete_cv.wait(lock, [&replay_is_complete] { return replay_is_complete; });
+
+        constexpr std::size_t kFlakyTolerance = 2;
+        EXPECT_GE(*previous_value_sp, reference_map[index] - kFlakyTolerance);
+        EXPECT_LE(*previous_value_sp, reference_map[index] + kFlakyTolerance);
+    }
+
+    // Check that only 'kMaxNumOfCopies' snapshots kept from the file system.
+    auto        snapshot_parent_dir = snapshot_path_map["SECONDLY"][0].parent_path();
+    std::size_t valid_snapshot_dir_counter{0};
+    for (auto const& dir_entry : std::filesystem::directory_iterator{snapshot_parent_dir}) {
+        if (std::filesystem::is_directory(dir_entry)) {
+            // Check that the folder content is in valid leveldb storage format.
+            bool has_extension_ldb{false};
+            bool has_extension_d{false};
+            for (auto const& dir : std::filesystem::recursive_directory_iterator{dir_entry.path()}) {
+                if (dir.path().extension() == ".ldb") {
+                    has_extension_ldb = true;
+                };
+                if (dir.path().extension() == ".d") {
+                    has_extension_d = true;
+                };
+            }
+            if (has_extension_ldb && has_extension_d) {
+                ++valid_snapshot_dir_counter;
+            }
+        }
+    }
+    EXPECT_EQ(valid_snapshot_dir_counter, 2);
 
     runner->Stop();
 }
