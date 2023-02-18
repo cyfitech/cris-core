@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <filesystem>
 #include <memory>
 #include <mutex>
@@ -182,7 +183,17 @@ std::string MessageRecorder::RecordDirNameGenerator() {
 }
 
 std::string MessageRecorder::SnapshotDirNameGenerator() {
-    return fmt::format("{:%Y%m%d-%H%M%S.%Z}", std::chrono::system_clock::now());
+    using print_duration_t            = std::chrono::nanoseconds;
+    constexpr auto print_tick_per_sec = print_duration_t::period::den / print_duration_t::period::num;
+    const auto     print_precision    = static_cast<int>(std::log10(print_tick_per_sec));
+
+    auto now = std::chrono::system_clock::now();
+    return fmt::format(
+        "{:%Y%m%d-%H%M%S}.{:0{}}.{:%Z}\n",
+        std::chrono::time_point_cast<std::chrono::seconds>(now),
+        std::chrono::duration_cast<print_duration_t>(now.time_since_epoch()).count() % print_tick_per_sec,
+        print_precision,
+        now);
 }
 
 std::filesystem::path MessageRecorder::GetRecordDir() const {
