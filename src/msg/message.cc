@@ -111,7 +111,7 @@ std::shared_lock<std::shared_mutex> CRMessageBase::SubscriptionReadLock() {
     return std::shared_lock(SubscriptionMutex());
 }
 
-std::unique_lock<std::shared_mutex> SubscriptionWriteLock() {
+std::unique_lock<std::shared_mutex> CRMessageBase::SubscriptionWriteLock() {
     return std::unique_lock(SubscriptionMutex());
 }
 
