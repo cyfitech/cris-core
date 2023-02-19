@@ -10,7 +10,8 @@ if [ -d 'run' ] && [ -w 'run' ] || [ -w '.' ]; then
     cat << ________EOF | sed 's/^        //' > run/toolchain.bazelrc
         # GCC-specific Bazel Configurations
 
-        # TODO(chenhao94, xkszltl): Add LTO options
-        # build:rel --config="lto"
+        build:rel --config="lto"
+        build:lto --copt="-fwhole-program"
+        build:lto --linkopt="-fwhole-program"
 ________EOF
 fi
