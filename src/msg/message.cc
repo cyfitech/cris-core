@@ -5,8 +5,6 @@
 
 #include <boost/functional/hash.hpp>
 
-#include <mutex>
-#include <shared_mutex>
 #include <typeindex>
 #include <unordered_map>
 #include <utility>
@@ -36,7 +34,6 @@ class SubscriptionMap {
     static SubscriptionMap& GetInstance();
 
    private:
-    std::shared_mutex                                                             mtx_;
     std::unordered_map<channel_id_t, SubscriptionInfo, boost::hash<channel_id_t>> map_;
 };
 
@@ -46,8 +43,7 @@ SubscriptionMap& SubscriptionMap::GetInstance() {
 };
 
 bool SubscriptionMap::Subscribe(const channel_id_t channel, CRNode* node) {
-    std::lock_guard lck(mtx_);
-    auto&           subscription_list = map_[channel].sub_list_;
+    auto& subscription_list = map_[channel].sub_list_;
 
     if (std::find(subscription_list.begin(), subscription_list.end(), node) != subscription_list.end()) {
         LOG(WARNING) << __func__ << ": Channel (" << channel.first.name() << ", " << channel.second << ") "
@@ -59,8 +55,7 @@ bool SubscriptionMap::Subscribe(const channel_id_t channel, CRNode* node) {
 }
 
 void SubscriptionMap::Unsubscribe(const channel_id_t channel, CRNode* node) {
-    std::lock_guard lck(mtx_);
-    auto            subscription_map_search = map_.find(channel);
+    auto subscription_map_search = map_.find(channel);
     if (subscription_map_search == map_.end()) {
         LOG(WARNING) << __func__ << ": Channel (" << channel.first.name() << ", " << channel.second << ") is unknown";
         return;
@@ -73,8 +68,7 @@ void SubscriptionMap::Unsubscribe(const channel_id_t channel, CRNode* node) {
 }
 
 void SubscriptionMap::Dispatch(const CRMessageBasePtr& message) {
-    std::shared_lock lck(mtx_);
-    auto             subscription_find = map_.find(message->GetChannelId());
+    auto subscription_find = map_.find(message->GetChannelId());
     if (subscription_find == map_.end()) {
         return;
     }
@@ -88,7 +82,6 @@ void SubscriptionMap::Dispatch(const CRMessageBasePtr& message) {
 
 cr_timestamp_nsec_t SubscriptionMap::GetLatestDeliveredTime(const channel_id_t channel) {
     constexpr cr_timestamp_nsec_t kDefaultDeliveredTime = 0;
-    std::shared_lock              lck(mtx_);
 
     const auto subscription_find = map_.find(channel);
     if (subscription_find == map_.end()) {
@@ -100,23 +93,60 @@ cr_timestamp_nsec_t SubscriptionMap::GetLatestDeliveredTime(const channel_id_t c
 
 }  // namespace
 
+static std::shared_mutex& SubscriptionMutex() {
+    static std::shared_mutex mtx;
+    return mtx;
+}
+
 channel_id_t CRMessageBase::GetChannelId() const {
     return std::make_pair(GetMessageTypeIndex(), GetChannelSubId());
 }
 
 void CRMessageBase::Dispatch(const CRMessageBasePtr& message) {
+    auto lck = SubscriptionReadLock();
     return SubscriptionMap::GetInstance().Dispatch(message);
 }
 
-bool CRMessageBase::Subscribe(const channel_id_t channel, CRNode* node) {
+std::shared_lock<std::shared_mutex> CRMessageBase::SubscriptionReadLock() {
+    return std::shared_lock(SubscriptionMutex());
+}
+
+std::unique_lock<std::shared_mutex> CRMessageBase::SubscriptionWriteLock() {
+    return std::unique_lock(SubscriptionMutex());
+}
+
+bool CRMessageBase::SubscribeUnsafe(
+    const channel_id_t                         channel,
+    CRNode*                                    node,
+    const std::unique_lock<std::shared_mutex>& lck) {
+    if (!lck.owns_lock()) [[unlikely]] {
+        LOG(ERROR) << __func__ << ": Must be called with owning lock.";
+        return false;
+    }
     return SubscriptionMap::GetInstance().Subscribe(channel, node);
 }
 
-void CRMessageBase::Unsubscribe(const channel_id_t channel, CRNode* node) {
+void CRMessageBase::UnsubscribeUnsafe(
+    const channel_id_t                         channel,
+    CRNode*                                    node,
+    const std::unique_lock<std::shared_mutex>& lck) {
+    if (!lck.owns_lock()) [[unlikely]] {
+        LOG(ERROR) << __func__ << ": Must be called with owning lock.";
+        return;
+    }
     return SubscriptionMap::GetInstance().Unsubscribe(channel, node);
 }
 
+bool CRMessageBase::Subscribe(const channel_id_t channel, CRNode* node) {
+    return SubscribeUnsafe(channel, node, SubscriptionWriteLock());
+}
+
+void CRMessageBase::Unsubscribe(const channel_id_t channel, CRNode* node) {
+    return UnsubscribeUnsafe(channel, node, SubscriptionWriteLock());
+}
+
 cr_timestamp_nsec_t CRMessageBase::GetLatestDeliveredTime(const channel_id_t channel) {
+    auto lck = SubscriptionReadLock();
     return SubscriptionMap::GetInstance().GetLatestDeliveredTime(channel);
 }
 
