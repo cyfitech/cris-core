@@ -345,4 +345,37 @@ TEST(NodeTest, JobAliveToken) {
     });
 }
 
+TEST(NodeTest, SubscribeWhenPublishing) {
+    static constexpr std::size_t kThreadNum         = 4;
+    constexpr std::size_t        kSubChannelForTest = 4;
+    constexpr std::size_t        kMessageNumber     = 50000;
+
+    using TestMessageType = TestMessage<11>;
+
+    auto runner = JobRunner::MakeJobRunner(JobRunner::Config{
+        .thread_num_ = kThreadNum,
+    });
+
+    std::thread producer_thread([] {
+        CRNode publisher;
+        for (std::size_t msg_idx = 0; msg_idx < kMessageNumber; ++msg_idx) {
+            publisher.Publish(kSubChannelForTest, std::make_shared<TestMessageType>(msg_idx));
+        }
+    });
+
+    CRNode                     subscriber(runner);
+    std::optional<std::size_t> last_received = std::nullopt;
+    subscriber.Subscribe<TestMessageType>(
+        kSubChannelForTest,
+        [&last_received](const std::shared_ptr<TestMessageType>& message) {
+            if (last_received) {
+                EXPECT_EQ(*last_received + 1, message->value_);
+            }
+            last_received = message->value_;
+        },
+        /* allow_concurrency = */ false);
+
+    producer_thread.join();
+    runner->Stop();
+}
 }  // namespace cris::core
