@@ -246,7 +246,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMaxCopyNumTest) {
             // consumer
             std::thread consumer([snapshot_parent_dir]() {
                 static constexpr std::size_t kSnapshotNumTolerance = 1;
-                for (std::size_t i = 10; i < kMessageNum; ++i) {
+                for (std::size_t j = 10; j < kMessageNum; ++j) {
                     std::size_t valid_snapshot_dir_counter{0};
                     for (auto const& dir_entry : std::filesystem::directory_iterator{snapshot_parent_dir}) {
                         if (std::filesystem::is_directory(dir_entry)) {
