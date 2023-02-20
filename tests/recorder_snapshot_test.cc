@@ -236,10 +236,11 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMaxCopyNumTest) {
     auto wake_up_time = std::chrono::steady_clock::now();
     for (std::size_t i = 0; i < kMessageNum; ++i) {
         // start testing after the origin and the first second snapshot have been done
-        if(i == 10){
+        if (i == 10) {
             {
-                std::lock_guard lck(get_map_mtx);
-                std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
+                std::lock_guard                                           lck(get_map_mtx);
+                std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map =
+                    recorder.GetSnapshotPaths();
                 snapshot_parent_dir = snapshot_path_map["SECONDLY"][0].parent_path();
             }
             // consumer
