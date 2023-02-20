@@ -119,7 +119,7 @@ bool CRMessageBase::SubscribeUnsafe(
     const channel_id_t                         channel,
     CRNode*                                    node,
     const std::unique_lock<std::shared_mutex>& lck) {
-    if (!lck.owns_lock()) {
+    if (!lck.owns_lock()) [[unlikely]] {
         LOG(ERROR) << __func__ << ": Must be called with owning lock.";
         return false;
     }
@@ -130,7 +130,7 @@ void CRMessageBase::UnsubscribeUnsafe(
     const channel_id_t                         channel,
     CRNode*                                    node,
     const std::unique_lock<std::shared_mutex>& lck) {
-    if (!lck.owns_lock()) {
+    if (!lck.owns_lock()) [[unlikely]] {
         LOG(ERROR) << __func__ << ": Must be called with owning lock.";
         return;
     }
