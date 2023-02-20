@@ -6,6 +6,8 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
+#include <mutex>
+#include <shared_mutex>
 #include <string>
 #include <typeindex>
 #include <typeinfo>
@@ -55,7 +57,23 @@ class CRMessageBase {
    private:
     void SetChannelSubId(const channel_subid_t sub_id) { sub_id_ = sub_id; }
 
+    static std::shared_lock<std::shared_mutex> SubscriptionReadLock();
+
+    static std::unique_lock<std::shared_mutex> SubscriptionWriteLock();
+
     static void Dispatch(const std::shared_ptr<CRMessageBase>& message);
+
+    // Must be called with SubscriptionWriteLock.
+    static bool SubscribeUnsafe(
+        const channel_id_t                         channel,
+        CRNode*                                    node,
+        const std::unique_lock<std::shared_mutex>& lck);
+
+    // Must be called with SubscriptionWriteLock.
+    static void UnsubscribeUnsafe(
+        const channel_id_t                         channel,
+        CRNode*                                    node,
+        const std::unique_lock<std::shared_mutex>& lck);
 
     static bool Subscribe(const channel_id_t channel, CRNode* node);
 
