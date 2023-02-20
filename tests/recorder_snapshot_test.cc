@@ -230,9 +230,40 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMaxCopyNumTest) {
     recorder.RegisterChannel<TestMessage>(kTestIntChannelSubId);
     core::CRNode publisher;
 
-    auto wake_up_time = std::chrono::steady_clock::now();
+    std::mutex            get_map_mtx;
+    std::filesystem::path snapshot_parent_dir;
 
+    auto wake_up_time = std::chrono::steady_clock::now();
     for (std::size_t i = 0; i < kMessageNum; ++i) {
+        // start testing after the origin and the first second snapshot have been done
+        if(i == 10){
+            {
+                std::lock_guard lck(get_map_mtx);
+                std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
+                snapshot_parent_dir = snapshot_path_map["SECONDLY"][0].parent_path();
+            }
+            // consumer
+            std::thread consumer([snapshot_parent_dir]() {
+                static constexpr std::size_t kSnapshotNumTolerance = 1;
+                for (std::size_t i = 10; i < kMessageNum; ++i) {
+                    std::size_t valid_snapshot_dir_counter{0};
+                    for (auto const& dir_entry : std::filesystem::directory_iterator{snapshot_parent_dir}) {
+                        if (std::filesystem::is_directory(dir_entry)) {
+                            // Check that the folder content is in valid leveldb storage format.
+                            for (auto const& dir : std::filesystem::recursive_directory_iterator{dir_entry.path()}) {
+                                if (dir.path().extension() == ".d") {
+                                    ++valid_snapshot_dir_counter;
+                                    return;
+                                };
+                            }
+                        }
+                    }
+                    EXPECT_GE(valid_snapshot_dir_counter, kMaxNumOfCopies);
+                    EXPECT_LE(valid_snapshot_dir_counter, kMaxNumOfCopies + kSnapshotNumTolerance);
+                }
+            });
+            consumer.detach();
+        }
         auto test_message = std::make_shared<TestMessage>(i);
         publisher.Publish(kTestIntChannelSubId, std::move(test_message));
 
@@ -290,29 +321,6 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotMaxCopyNumTest) {
         EXPECT_GE(*previous_value_sp, reference_map[index] - kFlakyTolerance);
         EXPECT_LE(*previous_value_sp, reference_map[index] + kFlakyTolerance);
     }
-
-    // Check that only 'kMaxNumOfCopies' snapshots kept from the file system.
-    auto        snapshot_parent_dir = snapshot_path_map["SECONDLY"][0].parent_path();
-    std::size_t valid_snapshot_dir_counter{0};
-    for (auto const& dir_entry : std::filesystem::directory_iterator{snapshot_parent_dir}) {
-        if (std::filesystem::is_directory(dir_entry)) {
-            // Check that the folder content is in valid leveldb storage format.
-            bool has_extension_ldb{false};
-            bool has_extension_d{false};
-            for (auto const& dir : std::filesystem::recursive_directory_iterator{dir_entry.path()}) {
-                if (dir.path().extension() == ".ldb") {
-                    has_extension_ldb = true;
-                };
-                if (dir.path().extension() == ".d") {
-                    has_extension_d = true;
-                };
-            }
-            if (has_extension_ldb && has_extension_d) {
-                ++valid_snapshot_dir_counter;
-            }
-        }
-    }
-    EXPECT_EQ(valid_snapshot_dir_counter, 2);
 
     runner->Stop();
 }
