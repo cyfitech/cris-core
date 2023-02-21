@@ -9,6 +9,8 @@
 #pragma GCC diagnostic ignored "-Wshadow"
 #endif
 
+#include <glog/raw_logging.h>
+
 #include <boost/stacktrace.hpp>
 
 #if defined(__clang__) || defined(__GNUC__)
@@ -21,6 +23,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+#include <sstream>
 #include <string>
 #include <thread>
 
@@ -52,20 +55,27 @@ static void InvokeDefaultSignalHandler(int signal_number) {
 }
 
 static void DumpSignalInfo(int signal_number, siginfo_t* siginfo) {
-    LOG(ERROR) << "******************************************************";
+    RAW_LOG(ERROR, "******************************************************");
 
-    LOG(ERROR) << "**** Signal " << signal_number << " (" << strsignal(signal_number) << ") received (@"
-               << siginfo->si_addr << ") ****";
+    RAW_LOG(
+        ERROR,
+        "**** Signal %d (%s) received (@%p) ****",
+        signal_number,
+        strsignal(signal_number),
+        siginfo->si_addr);
 
-    LOG(ERROR) << "PID " << getpid() << ", TID " << std::this_thread::get_id() << ", from PID " << siginfo->si_pid;
+    std::stringstream tid;
+    tid << std::this_thread::get_id();
+    RAW_LOG(ERROR, "PID %d, TID %s, from PID %d", getpid(), tid.str().c_str(), siginfo->si_pid);
 }
 
 static void DumpStacktrace() {
-    LOG(ERROR);
-    LOG(ERROR) << "******************************************************";
-    LOG(ERROR) << "*******************   STACKTRACE   *******************";
-    LOG(ERROR) << "******************************************************";
-    LOG(ERROR) << "\n" << boost::stacktrace::stacktrace();
+    RAW_LOG(ERROR, "******************************************************");
+    RAW_LOG(ERROR, "*******************   STACKTRACE   *******************");
+    RAW_LOG(ERROR, "******************************************************");
+    std::stringstream trace;
+    trace << boost::stacktrace::stacktrace();
+    RAW_LOG(ERROR, "\n%s", trace.str().c_str());
 }
 
 static std::atomic<pthread_t*> current_thread_in_handler{nullptr};
