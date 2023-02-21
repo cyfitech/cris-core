@@ -40,26 +40,31 @@ template<class T>
     abort();
 }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
 #define CRIS_CONFIG_PARSE_IMP(config, obj, name, val, is_expert, is_return, extra_message) \
-    if (const auto ec = obj[name].get(val)) {                                        \
-        if (is_expert) {                                                             \
-            if (simdjson::simdjson_error(ec).error() != simdjson::NO_SUCH_FIELD) {   \
-                Fail(config, extra_message, ec);                                     \
-            }                                                                        \
-        } else {                                                                     \
-            Fail(config, extra_message, ec);                                         \
-        }                                                                            \
-        if (is_return) {                                                             \
-            return;                                                                  \
-        }                                                                            \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses,-warnings-as-errors) */                   \
+    if (const auto ec = obj[name].get(val)) {                                              \
+        if (is_expert) {                                                                   \
+            if (simdjson::simdjson_error(ec).error() != simdjson::NO_SUCH_FIELD) {         \
+                Fail(config, extra_message, ec);                                           \
+            }                                                                              \
+        } else {                                                                           \
+            Fail(config, extra_message, ec);                                               \
+        }                                                                                  \
+        if (is_return) {                                                                   \
+            return;                                                                        \
+        }                                                                                  \
     }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
 #define CRIS_CONFIG_PARSE(config, obj, name, val, extra_message) \
     CRIS_CONFIG_PARSE_IMP(config, obj, name, val, false, false, extra_message)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
 #define CRIS_CONFIG_EXPERT_PARSE_NORETURN(config, obj, name, val, extra_message) \
     CRIS_CONFIG_PARSE_IMP(config, obj, name, val, true, false, extra_message)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
 #define CRIS_CONFIG_EXPERT_PARSE_RETURN(config, obj, name, val, extra_message) \
     CRIS_CONFIG_PARSE_IMP(config, obj, name, val, true, true, extra_message)
 }  // namespace cris::core
