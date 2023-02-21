@@ -13,6 +13,8 @@
 
 #include <boost/stacktrace.hpp>
 
+#include <unistd.h>
+
 #if defined(__clang__) || defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif
@@ -57,12 +59,7 @@ static void InvokeDefaultSignalHandler(int signal_number) {
 static void DumpSignalInfo(int signal_number, siginfo_t* siginfo) {
     RAW_LOG(ERROR, "******************************************************");
 
-    RAW_LOG(
-        ERROR,
-        "**** Signal %d (%s) received (@%p) ****",
-        signal_number,
-        strsignal(signal_number),
-        siginfo->si_addr);
+    RAW_LOG(ERROR, "**** Signal %d received (@%p) ****", signal_number, siginfo->si_addr);
 
     std::stringstream tid;
     tid << std::this_thread::get_id();
