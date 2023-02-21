@@ -179,4 +179,3 @@ cris_cc_test (
         "@cris-core//tests:cris_gtest_main",
     ],
 )
-
