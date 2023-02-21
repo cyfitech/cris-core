@@ -11,9 +11,8 @@ if [ -d 'run' ] && [ -w 'run' ] || [ -w '.' ]; then
         # GCC-specific Bazel Configurations
 
         build:rel --config="lto"
+        build:lto --nostart_end_lib
         build:lto --copt="-flto"
-        build:lto --copt="-fuse-linker-plugin"
         build:lto --linkopt="-flto"
-        build:lto --linkopt="-fuse-linker-plugin"
 ________EOF
 fi
