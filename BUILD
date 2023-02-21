@@ -2,6 +2,20 @@ package(default_visibility = ["//visibility:public"])
 
 load("//bazel:rules.bzl", "cris_cc_library")
 
+config_setting(
+    name = "use_clang",
+    values = {
+        "compiler": "clang",
+    },
+)
+
+config_setting(
+    name = "use_gcc",
+    values = {
+        "compiler": "gcc",
+    },
+)
+
 cris_cc_library (
     name = "utils",
     srcs = glob(["src/utils/**/*.cc"]),
@@ -114,21 +128,42 @@ cris_cc_library (
     ],
 )
 
+# By default, treat as GCC since `--compiler=gcc` is not supported until Bazel 6.0,
+# but `--compiler=clang` is set by the `./scripts/bazel_wrapper.sh` when building by Clang.
+#
+# TODO(chenhao94): When we complete the Bazel upgrade, we should stop treat default as GCC, since the libbacktrace
+# is part of libgcc. The fallback (addr2line) may not always provide readable stacktrace, but it builds.
+
+BACKTRACE_COPTS = select({
+    "@platforms//os:osx" :  ["-DBOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED"],
+    "use_gcc":              ["-DBOOST_STACKTRACE_USE_BACKTRACE"],
+    "use_clang":            ["-DBOOST_STACKTRACE_USE_ADDR2LINE"],
+    "//conditions:default": ["-DBOOST_STACKTRACE_USE_BACKTRACE"],  # Assume GCC.
+})
+
+BACKTRACE_LINKOPTS = select({
+    "@platforms//os:osx" :  [""],
+    "use_gcc": [
+        "-ldl",
+        "-lbacktrace",
+    ],
+    "use_clang": [
+        "-ldl",
+    ],
+    "//conditions:default": [  # Assume GCC
+        "-ldl",
+        "-lbacktrace",
+    ],
+})
+
 cris_cc_library (
     name = "signal",
     srcs = glob(["src/signal/**/*.cc"]),
     hdrs = glob(["src/signal/**/*.h"]),
     include_prefix = "cris/core",
     strip_include_prefix = "src",
-    copts = [
-        "-DBOOST_STACKTRACE_USE_ADDR2LINE",
-    ] + select({
-        "@platforms//os:osx" : ["-DBOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED"],
-        "//conditions:default": [],
-    }),
-    linkopts = [
-        "-ldl",
-    ],
+    copts = BACKTRACE_COPTS,
+    linkopts = BACKTRACE_LINKOPTS,
     deps = [
         ":utils",
         ":timer",
