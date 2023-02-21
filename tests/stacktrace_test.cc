@@ -1,4 +1,5 @@
 #include "cris/core/signal/cr_signal.h"
+#include "cris/core/utils/logging.h"
 
 #include "gtest/gtest.h"
 
@@ -7,10 +8,12 @@
 namespace cris::core {
 
 __attribute__((noinline)) static void CrashTestInnerFunc() {
+    LOG(INFO) << __func__ << ": Generate side-effect to prevent this function from being optimized away.";
     std::abort();
 }
 
 __attribute__((noinline)) static void CrashTestFunc() {
+    LOG(INFO) << __func__ << ": Generate side-effect to prevent this function from being optimized away.";
     CrashTestInnerFunc();
 }
 
