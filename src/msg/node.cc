@@ -72,10 +72,11 @@ void CRNode::SubscribeImpl(
     const channel_id_t                                                 channel,
     std::function<void(const CRMessageBasePtr&, JobAliveTokenPtr&&)>&& callback,
     JobRunnerStrandPtr                                                 strand) {
+    auto lck = CRMessageBase::SubscriptionWriteLock();
     CHECK(can_subscribe_) << __func__ << ": Node \"" << GetName() << "\"(at 0x" << std::hex
                           << reinterpret_cast<std::uintptr_t>(this) << ") has not bound with any runner." << std::dec;
 
-    if (!CRMessageBase::Subscribe(channel, this)) {
+    if (!CRMessageBase::SubscribeUnsafe(channel, this, lck)) {
         return;
     }
     subscribed_.push_back(channel);
