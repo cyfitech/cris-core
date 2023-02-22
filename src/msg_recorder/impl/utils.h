@@ -8,4 +8,5 @@ namespace cris::core::impl {
 
 std::string GetMessageRecordFileName(const std::string& message_type, const CRMessageBase::channel_subid_t subid);
 
+const std::string& GetHostName();
 }  // namespace cris::core::impl
