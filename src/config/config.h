@@ -294,7 +294,8 @@ template<class T>
     CRIS_CONF_JSON_ENTRY_IMPL(config, val, obj, name, false, false, extra_message)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
-#define CRIS_CONF_JSON_ENTRY_DEFAULTMSG(config, val, obj, name) \
+#define CRIS_CONF_JSON_ENTRY_DEFAULTMSG(config, val, obj, name)          \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses,-warnings-as-errors) */ \
     CRIS_CONF_JSON_ENTRY_IMPL(config, val, obj, name, false, false, std::string("\"") + name + "\" is required.")
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)

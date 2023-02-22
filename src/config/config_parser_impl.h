@@ -5,10 +5,7 @@
 
 #include <simdjson.h>
 
-#include <chrono>
 #include <cstdlib>
-#include <string>
-#include <type_traits>
 
 namespace cris::core {
 

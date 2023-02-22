@@ -29,7 +29,6 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
         snapshot_intervals,
         obj,
         "snapshot_intervals",
-
         "Expect a list of objects for \"snapshot_intervals\"");
 
     for (auto&& data : snapshot_intervals) {
@@ -45,7 +44,6 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
             max_num_of_copies,
             data,
             "max_num_of_copies",
-
             "\"max_num_of_copies\" must be an unsigned integer.");
 
         config.snapshot_intervals_.push_back(RecorderConfig::IntervalConfig{
