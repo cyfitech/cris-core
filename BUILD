@@ -130,9 +130,9 @@ cris_cc_library (
 )
 
 selects.config_setting_group(
-    name = "osx_use_clang",
+    name = "macos_use_clang",
     match_all = [
-        "@platforms//os:osx",
+        "@platforms//os:macos",
         "use_clang",
     ]
 )
@@ -165,13 +165,13 @@ cris_cc_library (
     include_prefix = "cris/core",
     strip_include_prefix = "src",
     copts = select({
-        "osx_use_clang" :       ["-DBOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED"],
+        "macos_use_clang" :     ["-DBOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED"],
         "linux_use_gcc" :       ["-DBOOST_STACKTRACE_USE_BACKTRACE"],
         "linux_use_clang":      ["-DBOOST_STACKTRACE_USE_ADDR2LINE"],
         "//conditions:default": ["-DBOOST_STACKTRACE_USE_BACKTRACE"],  # Assume GCC.
     }),
     linkopts = select({
-        "osx_use_clang" :       [],
+        "macos_use_clang" :     [],
         "linux_use_gcc" :       ["-ldl", "-lbacktrace"],
         "linux_use_clang":      ["-ldl"],
         "//conditions:default": ["-ldl", "-lbacktrace"],  # Assume GCC.
