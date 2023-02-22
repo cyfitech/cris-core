@@ -21,7 +21,9 @@ TEST(StacktraceTest, Basics) {
     InstallSignalHandler();
 
     // Stacktrace should at least include the function names of 2 stack frames.
-    EXPECT_DEATH(CrashTestFunc(), "\\bCrashTestInnerFunc().*\n.*\\bCrashTestFunc()");
+    // EXPECT_DEATH contains `goto`.
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
+    EXPECT_DEATH(CrashTestFunc(), "cris::core::CrashTestInnerFunc().*\n.*cris::core::CrashTestFunc()");
 }
 
 }  // namespace cris::core
