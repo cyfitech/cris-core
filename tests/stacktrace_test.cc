@@ -21,7 +21,7 @@ TEST(StacktraceTest, Basics) {
     InstallSignalHandler();
 
     // Stacktrace should at least include the function names of 2 stack frames.
-    EXPECT_DEATH(CrashTestFunc(), "cris::core::CrashTestInnerFunc().*\n.*cris::core::CrashstFunc()");
+    EXPECT_DEATH(CrashTestFunc(), "cris::core::CrashTestInnerFunc().*\n.*cris::core::CrashTestFunc()");
 }
 
 }  // namespace cris::core
