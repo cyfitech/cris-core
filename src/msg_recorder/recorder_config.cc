@@ -20,30 +20,24 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
     }
 
     string_view record_dir;
-    CRIS_CONF_JSON_ENTRY_NORETURN(config, record_dir, obj, "record_dir", "Expect a string for \"record_dir\".");
+    CRIS_CONF_JSON_ENTRY_NORETURN(record_dir, obj, config, "Expect a string for \"record_dir\".");
     config.record_dir_ = string(record_dir.data(), record_dir.size());
 
     simdjson::ondemand::array snapshot_intervals;
-    CRIS_CONF_JSON_ENTRY_RETURN(
-        config,
-        snapshot_intervals,
-        obj,
-        "snapshot_intervals",
-        "Expect a list of objects for \"snapshot_intervals\"");
+    CRIS_CONF_JSON_ENTRY_RETURN(snapshot_intervals, obj, config, "Expect a list of objects for \"snapshot_intervals\"");
 
     for (auto&& data : snapshot_intervals) {
         string_view name;
-        CRIS_CONF_JSON_ENTRY_DEFAULTMSG(config, name, data, "name");
+        CRIS_CONF_JSON_ENTRY(name, data, config);
 
         uint64_t period_sec = 0;
-        CRIS_CONF_JSON_ENTRY_DEFAULTMSG(config, period_sec, data, "period_sec");
+        CRIS_CONF_JSON_ENTRY(period_sec, data, config);
 
         uint64_t max_num_of_copies = RecorderConfig::IntervalConfig::kDefaultMaxNumOfCopies;
         CRIS_CONF_JSON_ENTRY_NORETURN(
-            config,
             max_num_of_copies,
             data,
-            "max_num_of_copies",
+            config,
             "\"max_num_of_copies\" must be an unsigned integer.");
 
         config.snapshot_intervals_.push_back(RecorderConfig::IntervalConfig{
