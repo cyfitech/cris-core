@@ -170,3 +170,12 @@ cris_cc_test (
     ],
 )
 
+cris_cc_test (
+    name = "stacktrace_test",
+    srcs = ["stacktrace_test.cc"],
+    tags = ["manual"],
+    deps = [
+        "//:signal",
+        "@cris-core//tests:cris_gtest_main",
+    ],
+)

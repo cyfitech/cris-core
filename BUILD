@@ -1,6 +1,21 @@
 package(default_visibility = ["//visibility:public"])
 
 load("//bazel:rules.bzl", "cris_cc_library")
+load("@bazel_skylib//lib:selects.bzl", "selects")
+
+config_setting(
+    name = "use_clang",
+    values = {
+        "compiler": "clang",
+    },
+)
+
+config_setting(
+    name = "use_gcc",
+    values = {
+        "compiler": "gcc",
+    },
+)
 
 cris_cc_library (
     name = "utils",
@@ -114,21 +129,53 @@ cris_cc_library (
     ],
 )
 
+selects.config_setting_group(
+    name = "macos_use_clang",
+    match_all = [
+        "@platforms//os:macos",
+        "use_clang",
+    ]
+)
+
+selects.config_setting_group(
+    name = "linux_use_gcc",
+    match_all = [
+        "@platforms//os:linux",
+        "use_gcc",
+    ]
+)
+
+selects.config_setting_group(
+    name = "linux_use_clang",
+    match_all = [
+        "@platforms//os:linux",
+        "use_clang",
+    ]
+)
+# By default, treat as GCC since `--compiler=gcc` is not supported until Bazel 6.0,
+# but `--compiler=clang` is set by the `./scripts/bazel_wrapper.sh` when building by Clang.
+#
+# TODO(chenhao94): When we complete the Bazel upgrade, we should stop treat default as GCC, since the libbacktrace
+# is part of libgcc. The fallback (addr2line) may not always provide readable stacktrace, but it builds.
+
 cris_cc_library (
     name = "signal",
     srcs = glob(["src/signal/**/*.cc"]),
     hdrs = glob(["src/signal/**/*.h"]),
     include_prefix = "cris/core",
     strip_include_prefix = "src",
-    copts = [
-        "-DBOOST_STACKTRACE_USE_ADDR2LINE",
-    ] + select({
-        "@platforms//os:osx" : ["-DBOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED"],
-        "//conditions:default": [],
+    copts = select({
+        "macos_use_clang" :     ["-DBOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED"],
+        "linux_use_gcc" :       ["-DBOOST_STACKTRACE_USE_BACKTRACE"],
+        "linux_use_clang":      ["-DBOOST_STACKTRACE_USE_ADDR2LINE"],
+        "//conditions:default": ["-DBOOST_STACKTRACE_USE_BACKTRACE"],  # Assume GCC.
     }),
-    linkopts = [
-        "-ldl",
-    ],
+    linkopts = select({
+        "macos_use_clang" :     [],
+        "linux_use_gcc" :       ["-ldl", "-lbacktrace"],
+        "linux_use_clang":      ["-ldl"],
+        "//conditions:default": ["-ldl", "-lbacktrace"],  # Assume GCC.
+    }),
     deps = [
         ":utils",
         ":timer",
