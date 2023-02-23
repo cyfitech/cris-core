@@ -274,19 +274,19 @@ template<class T>
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
-#define CRIS_CONF_JSON_ENTRY_IMPL(val, obj, name, config, extra_message) \
+#define CRIS_CONF_JSON_ENTRY_IMPL(var, obj, key, conf, extra_message)    \
     /* NOLINTNEXTLINE(bugprone-macro-parentheses,-warnings-as-errors) */ \
-    if (const auto ec = obj[name].get(val)) {                            \
-        FailToParseConfig(config, extra_message, ec);                    \
+    if (const auto ec = obj[key].get(var)) {                             \
+        FailToParseConfig(conf, extra_message, ec);                      \
     }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
-#define CRIS_CONF_JSON_ENTRY_WITH_MSG(val, obj, name, config, extra_message) \
-    CRIS_CONF_JSON_ENTRY_IMPL(val, obj, name, config, extra_message)
+#define CRIS_CONF_JSON_ENTRY_WITH_MSG(var, obj, key, conf, extra_message) \
+    CRIS_CONF_JSON_ENTRY_IMPL(var, obj, key, conf, extra_message)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
-#define CRIS_CONF_JSON_ENTRY(val, obj, name, config)                     \
+#define CRIS_CONF_JSON_ENTRY(var, obj, key, conf)                        \
     /* NOLINTNEXTLINE(bugprone-macro-parentheses,-warnings-as-errors) */ \
-    CRIS_CONF_JSON_ENTRY_IMPL(val, obj, name, config, std::string("\"") + name + "\" is required.")
+    CRIS_CONF_JSON_ENTRY_IMPL(var, obj, key, conf, std::string("\"") + key + "\" is required.")
 
 }  // namespace cris::core
