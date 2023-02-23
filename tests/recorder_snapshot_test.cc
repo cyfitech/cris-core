@@ -32,7 +32,17 @@ class RecorderSnapshotTest : public testing::Test {
     RecorderSnapshotTest() { std::filesystem::create_directories(GetTestTempDir()); }
     ~RecorderSnapshotTest() { std::filesystem::remove_all(GetTestTempDir()); }
 
+    std::size_t GetSnapshotLastValue(
+        std::filesystem::path      replay_dir,
+        std::shared_ptr<JobRunner> runner,
+        core::CRNode&              publisher);
+
     std::filesystem::path GetTestTempDir() const { return record_test_temp_dir_; }
+
+    static constexpr std::size_t     kThreadNum            = 4;
+    static constexpr std::size_t     kMessageNum           = 40;
+    static constexpr channel_subid_t kTestIntChannelSubId  = 11;
+    static constexpr auto            kSleepBetweenMessages = std::chrono::milliseconds(100);
 
    private:
     std::filesystem::path record_test_temp_dir_{
@@ -59,12 +69,54 @@ std::string MessageToStr(const TestMessage& msg) {
     return serialized_msg;
 }
 
-TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
-    static constexpr std::size_t     kThreadNum            = 4;
-    static constexpr std::size_t     kMessageNum           = 40;
-    static constexpr channel_subid_t kTestIntChannelSubId  = 11;
-    static constexpr auto            kSleepBetweenMessages = std::chrono::milliseconds(100);
+std::size_t RecorderSnapshotTest::GetSnapshotLastValue(
+    std::filesystem::path      replay_dir,
+    std::shared_ptr<JobRunner> runner,
+    core::CRNode&              publisher) {
+    MessageReplayer replayer(replay_dir);
+    core::CRNode    subscriber(runner);
 
+    replayer.RegisterChannel<TestMessage>(kTestIntChannelSubId);
+
+    // Raise the replayer speed to erase any waiting time
+    replayer.SetSpeedupRate(1e9);
+
+    std::mutex              replay_complete_mtx;
+    std::condition_variable replay_complete_cv;
+
+    auto                  previous_value_sp   = std::make_shared<std::size_t>(0);
+    bool                  replay_is_complete  = false;
+    constexpr std::size_t kLastMessageFlagNum = 989898;
+
+    subscriber.Subscribe<TestMessage>(
+        kTestIntChannelSubId,
+        [previous_value_sp, &replay_is_complete, &replay_complete_cv, &replay_complete_mtx](
+            const std::shared_ptr<TestMessage>& message) {
+            if (message->value_ == kLastMessageFlagNum) {
+                std::lock_guard lck(replay_complete_mtx);
+                replay_is_complete = true;
+                replay_complete_cv.notify_all();
+                return;
+            }
+            if (message->value_ != 0) {
+                EXPECT_EQ(message->value_ - *previous_value_sp, 1);
+            }
+            *previous_value_sp = message->value_;
+        },
+        /* allow_concurrency = */ false);
+
+    replayer.MainLoop();
+    publisher.Publish(kTestIntChannelSubId, std::make_shared<TestMessage>(kLastMessageFlagNum));
+
+    std::unique_lock lock(replay_complete_mtx);
+    replay_complete_cv.wait(lock, [&replay_is_complete] { return replay_is_complete; });
+
+    // Make sure the data ends around our snapshot timepoint
+    // Example: if i = 4 when we made the snapshot, then we should have 01234
+    return *previous_value_sp;
+}
+
+TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
     RecorderConfig recorder_config{
         .snapshot_intervals_ =
             std::vector<RecorderConfig::IntervalConfig>{
@@ -105,7 +157,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
     // Test content under each snapshot directory
     std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
 
-    static constexpr auto kMaxWaitingTime = std::chrono::milliseconds(2000);
+    static constexpr auto kMaxWaitingTime = std::chrono::milliseconds(500);
 
     auto check_expected_nums = [&recorder_config, &snapshot_path_map]() -> bool {
         for (const RecorderConfig::IntervalConfig& interval_config : recorder_config.snapshot_intervals_) {
@@ -142,48 +194,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
         auto snapshot_dirs = search->second;
 
         for (std::size_t snapshot_dir_index = 0; snapshot_dir_index < snapshot_dirs.size(); ++snapshot_dir_index) {
-            MessageReplayer replayer(snapshot_dirs[snapshot_dir_index]);
-            core::CRNode    subscriber(runner);
-
-            replayer.RegisterChannel<TestMessage>(kTestIntChannelSubId);
-
-            // Raise the replayer speed to erase any waiting time
-            replayer.SetSpeedupRate(1e9);
-
-            std::mutex              replay_complete_mtx;
-            std::condition_variable replay_complete_cv;
-
-            auto                  previous_value_sp   = std::make_shared<std::size_t>(0);
-            bool                  replay_is_complete  = false;
-            constexpr std::size_t kLastMessageFlagNum = 989898;
-
-            subscriber.Subscribe<TestMessage>(
-                kTestIntChannelSubId,
-                [previous_value_sp, &replay_is_complete, &replay_complete_cv, &replay_complete_mtx](
-                    const std::shared_ptr<TestMessage>& message) {
-                    if (message->value_ == kLastMessageFlagNum) {
-                        std::lock_guard lck(replay_complete_mtx);
-                        replay_is_complete = true;
-                        replay_complete_cv.notify_all();
-                        return;
-                    }
-                    if (message->value_ != 0) {
-                        EXPECT_EQ(message->value_ - *previous_value_sp, 1);
-                    }
-                    *previous_value_sp = message->value_;
-                },
-                /* allow_concurrency = */ false);
-
-            replayer.MainLoop();
-            publisher.Publish(kTestIntChannelSubId, std::make_shared<TestMessage>(kLastMessageFlagNum));
-
-            std::unique_lock lock(replay_complete_mtx);
-            replay_complete_cv.wait(lock, [&replay_is_complete] { return replay_is_complete; });
-
-            // Make sure the data ends around our snapshot timepoint
-            // Example: if i = 4 when we made the snapshot, then we should have 01234
-            const std::size_t last_recorded = *previous_value_sp;
-
+            const auto last_recorded = GetSnapshotLastValue(snapshot_dirs[snapshot_dir_index], runner, publisher);
             if (snapshot_dir_index == 0) {
                 EXPECT_LE(last_recorded, 0 + kFlakyTolerance);
             } else {
