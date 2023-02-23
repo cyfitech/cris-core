@@ -274,41 +274,19 @@ template<class T>
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
-#define CRIS_CONF_JSON_ENTRY_IMPL(val, obj, check_field, is_return, config, extra_message) \
-    /* NOLINTNEXTLINE(bugprone-macro-parentheses,-warnings-as-errors) */                   \
-    if (const auto ec = obj[#val].get(val)) {                                              \
-        if (check_field) {                                                                 \
-            if (simdjson::simdjson_error(ec).error() != simdjson::NO_SUCH_FIELD) {         \
-                FailToParseConfig(config, extra_message, ec);                              \
-            }                                                                              \
-        } else {                                                                           \
-            FailToParseConfig(config, extra_message, ec);                                  \
-        }                                                                                  \
-        if (is_return) {                                                                   \
-            return;                                                                        \
-        }                                                                                  \
+#define CRIS_CONF_JSON_ENTRY_IMPL(val, obj, name, config, extra_message) \
+    /* NOLINTNEXTLINE(bugprone-macro-parentheses,-warnings-as-errors) */ \
+    if (const auto ec = obj[name].get(val)) {                            \
+        FailToParseConfig(config, extra_message, ec);                    \
     }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
-#define CRIS_CONF_JSON_ENTRY_WITH_MSG(val, obj, config, extra_message) \
-    CRIS_CONF_JSON_ENTRY_IMPL(val, obj, /* check_field = */ false, /* is_return = */ false, config, extra_message)
+#define CRIS_CONF_JSON_ENTRY_WITH_MSG(val, obj, name, config, extra_message) \
+    CRIS_CONF_JSON_ENTRY_IMPL(val, obj, name, config, extra_message)
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
-#define CRIS_CONF_JSON_ENTRY(val, obj, config)                           \
+#define CRIS_CONF_JSON_ENTRY(val, obj, name, config)                     \
     /* NOLINTNEXTLINE(bugprone-macro-parentheses,-warnings-as-errors) */ \
-    CRIS_CONF_JSON_ENTRY_IMPL(                                           \
-        val,                                                             \
-        obj,                                                             \
-        /* check_field = */ false,                                       \
-        /* is_return = */ false,                                         \
-        config,                                                          \
-        std::string("\"") + #val + "\" is required.")
+    CRIS_CONF_JSON_ENTRY_IMPL(val, obj, name, config, std::string("\"") + name + "\" is required.")
 
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
-#define CRIS_CONF_JSON_ENTRY_NORETURN(val, obj, config, extra_message) \
-    CRIS_CONF_JSON_ENTRY_IMPL(val, obj, /* check_field = */ true, /* is_return = */ false, config, extra_message)
-
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
-#define CRIS_CONF_JSON_ENTRY_RETURN(val, obj, config, extra_message) \
-    CRIS_CONF_JSON_ENTRY_IMPL(val, obj, /* check_field = */ true, /* is_return = */ true, config, extra_message)
 }  // namespace cris::core
