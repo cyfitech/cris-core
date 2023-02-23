@@ -155,8 +155,7 @@ selects.config_setting_group(
 # By default, treat as GCC since `--compiler=gcc` is not supported until Bazel 6.0,
 # but `--compiler=clang` is set by the `./scripts/bazel_wrapper.sh` when building by Clang.
 #
-# TODO(chenhao94): When we complete the Bazel upgrade, we should stop treat default as GCC, since the libbacktrace
-# is part of libgcc. The fallback (addr2line) may not always provide readable stacktrace, but it builds.
+# TODO(chenhao94): When we complete the Bazel upgrade, we should stop treat default as GCC.
 
 cris_cc_library (
     name = "signal",
@@ -165,22 +164,22 @@ cris_cc_library (
     include_prefix = "cris/core",
     strip_include_prefix = "src",
     copts = select({
-        "macos_use_clang" :     ["-DBOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED"],
-        "linux_use_gcc" :       ["-DBOOST_STACKTRACE_USE_BACKTRACE"],
-        "linux_use_clang":      ["-DBOOST_STACKTRACE_USE_ADDR2LINE"],
-        "//conditions:default": ["-DBOOST_STACKTRACE_USE_BACKTRACE"],  # Assume GCC.
+        "@platforms//os:macos": ["-DBOOST_STACKTRACE_GNU_SOURCE_NOT_REQUIRED"],
+        "//conditions:default": ["-DBOOST_STACKTRACE_USE_BACKTRACE"],
     }),
     linkopts = select({
-        "macos_use_clang" :     [],
-        "linux_use_gcc" :       ["-ldl", "-lbacktrace"],
+        "@platforms//os:macos": [],
         "linux_use_clang":      ["-ldl"],
-        "//conditions:default": ["-ldl", "-lbacktrace"],  # Assume GCC.
+        "//conditions:default": ["-ldl", "-lbacktrace"],
     }),
     deps = [
         ":utils",
         ":timer",
         "@com_github_google_glog//:glog",
-    ],
+    ] + select({
+        "linux_use_clang":      ["@libbacktrace//:libbacktrace"],
+        "//conditions:default": [],
+    }),
 )
 
 cris_cc_library (

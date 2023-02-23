@@ -94,6 +94,30 @@ cmake(
             """,
         )
 
+def cris_deps_libbacktrace(prefix = "."):
+    if not native.existing_rule("libbacktrace"):
+        native.new_local_repository(
+            name = "libbacktrace",
+            path = prefix + "/external/libbacktrace",
+            build_file_content = """
+load("@rules_foreign_cc//foreign_cc:defs.bzl", "configure_make")
+
+filegroup(
+    name = "all_content",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:private"],
+)
+
+configure_make(
+    name = "libbacktrace",
+    lib_source = ":all_content",
+    copts = ["-fno-lto"],
+    linkopts = ["-fno-lto"],
+    visibility = ["//visibility:public"],
+)
+            """,
+        )
+
 def cris_deps_bazel_clang_tidy(prefix = "."):
     if not native.existing_rule("bazel_clang_tidy"):
         native.local_repository(
@@ -108,3 +132,4 @@ def cris_core_deps(prefix = "."):
     cris_deps_gtest(prefix)
     cris_deps_fmt(prefix)
     cris_deps_simdjson(prefix)
+    cris_deps_libbacktrace(prefix)
