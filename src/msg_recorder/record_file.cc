@@ -164,7 +164,7 @@ RecordFileIterator RecordFile::Iterate() const {
 }
 
 bool RecordFile::isOpen() {
-    if (db) {
+    if (db_) {
         return true;
     }
     return false;
