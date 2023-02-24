@@ -102,15 +102,15 @@ RecordFile::~RecordFile() {
     }
 }
 
-void RecordFile::OpenDB() {
+bool RecordFile::OpenDB() {
     if (db_) {
         LOG(ERROR) << __func__ << ": Failed to open the database, it has been opened elsewhere.";
-        return;
+        return false;
     }
 
     if (file_path_.empty()) {
         LOG(ERROR) << __func__ << ": Failed to open the database, the file path is empty.";
-        return;
+        return false;
     }
 
     leveldb::DB*     db = nullptr;
@@ -127,8 +127,10 @@ void RecordFile::OpenDB() {
     if (!status.ok()) [[unlikely]] {
         LOG(ERROR) << __func__ << ": Failed to create record file \"" << file_path_
                    << "\", status: " << status.ToString();
+        return false;
     }
     db_.reset(db);
+    return true;
 }
 
 void RecordFile::CloseDB() {
@@ -159,6 +161,10 @@ RecordFileIterator RecordFile::Iterate() const {
     auto* itr = db_->NewIterator(leveldb::ReadOptions());
     itr->SeekToFirst();
     return RecordFileIterator(itr, legacy_);
+}
+
+bool RecordFile::isOpen() {
+    return db_ ? true : false;
 }
 
 bool RecordFile::Empty() const {

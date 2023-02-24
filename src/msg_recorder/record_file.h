@@ -60,9 +60,11 @@ class RecordFile {
 
     bool Empty() const;
 
+    bool isOpen();
+
     void Compact();
 
-    void OpenDB();
+    bool OpenDB();
 
     void CloseDB();
 
