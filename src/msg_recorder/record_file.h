@@ -60,7 +60,7 @@ class RecordFile {
 
     bool Empty() const;
 
-    bool isOpen();
+    bool isOpen() const;
 
     void Compact();
 

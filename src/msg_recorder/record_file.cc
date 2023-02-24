@@ -163,11 +163,8 @@ RecordFileIterator RecordFile::Iterate() const {
     return RecordFileIterator(itr, legacy_);
 }
 
-bool RecordFile::isOpen() {
-    if (db_) {
-        return true;
-    }
-    return false;
+bool RecordFile::isOpen() const {
+    return db_ != nullptr;
 }
 
 bool RecordFile::Empty() const {
