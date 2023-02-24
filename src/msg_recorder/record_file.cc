@@ -104,7 +104,7 @@ RecordFile::~RecordFile() {
 
 bool RecordFile::OpenDB() {
     if (db_) {
-        LOG(ERROR) << __func__ << ": Failed to open the database, it has been opened elsewhere.";
+        LOG(ERROR) << __func__ << ": Already has another DB opened.";
         return false;
     }
 
@@ -163,7 +163,7 @@ RecordFileIterator RecordFile::Iterate() const {
     return RecordFileIterator(itr, legacy_);
 }
 
-bool RecordFile::isOpen() const {
+bool RecordFile::IsOpen() const {
     return db_ != nullptr;
 }
 
