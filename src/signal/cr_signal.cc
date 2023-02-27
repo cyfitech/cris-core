@@ -71,8 +71,11 @@ static void DumpStacktrace() {
     RAW_LOG(ERROR, "*******************   STACKTRACE   *******************");
     RAW_LOG(ERROR, "******************************************************");
     std::stringstream trace;
+    trace << '\n';
     trace << boost::stacktrace::stacktrace();
-    RAW_LOG(ERROR, "\n%s", trace.str().c_str());
+    for (std::string trace_line; std::getline(trace, trace_line);) {
+        RAW_LOG(ERROR, "%s", trace_line.c_str());
+    }
 }
 
 static std::atomic<pthread_t*> current_thread_in_handler{nullptr};
