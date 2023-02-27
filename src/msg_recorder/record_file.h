@@ -88,7 +88,7 @@ class RecordFile {
 
     RecordFileIterator Iterate() const;
 
-    RecordFileIteratorReverse IterateReverse() const;
+    ReverseRecordFileIterator IterateReverse() const;
 
     bool Empty() const;
 

@@ -90,7 +90,7 @@ void RecordFileIterator::ReadNextValidKey() {
 }
 
 ReverseRecordFileIterator::ReverseRecordFileIterator(leveldb::Iterator* db_itr)
-    : RecordFileIteratorReverse(db_itr, false) {
+    : ReverseRecordFileIterator(db_itr, false) {
 }
 
 ReverseRecordFileIterator::ReverseRecordFileIterator(leveldb::Iterator* db_itr, const bool legacy)
@@ -208,10 +208,10 @@ RecordFileIterator RecordFile::Iterate() const {
     return RecordFileIterator(itr, legacy_);
 }
 
-RecordFileIteratorReverse RecordFile::IterateReverse() const {
+ReverseRecordFileIterator RecordFile::IterateReverse() const {
     auto* itr = db_->NewIterator(leveldb::ReadOptions());
     itr->SeekToLast();
-    return RecordFileIteratorReverse(itr, legacy_);
+    return ReverseRecordFileIterator(itr, legacy_);
 }
 
 bool RecordFile::IsOpen() const {
