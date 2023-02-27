@@ -89,6 +89,51 @@ void RecordFileIterator::ReadNextValidKey() {
     }
 }
 
+RecordFileIteratorReverse::RecordFileIteratorReverse(leveldb::Iterator* db_itr)
+    : RecordFileIteratorReverse(db_itr, false) {
+}
+
+RecordFileIteratorReverse::RecordFileIteratorReverse(leveldb::Iterator* db_itr, const bool legacy)
+    : db_itr_(db_itr)
+    , legacy_(legacy) {
+    db_itr_->SeekToLast();
+    ReadPrevValidKey();
+}
+
+bool RecordFileIteratorReverse::Valid() const {
+    return db_itr_->Valid();
+}
+
+std::optional<RecordFileKey> RecordFileIteratorReverse::TryReadCurrentKey() const {
+    auto key_slice = db_itr_->key();
+    auto key_bytes = std::string_view(key_slice.data(), key_slice.size());
+    return legacy_ ? RecordFileKey::FromBytesLegacy(key_bytes) : RecordFileKey::FromBytes(key_bytes);
+}
+
+RecordFileKey RecordFileIteratorReverse::GetKey() const {
+    return current_key_;
+}
+
+std::pair<RecordFileKey, std::string> RecordFileIteratorReverse::Get() const {
+    return std::make_pair(GetKey(), db_itr_->value().ToString());
+}
+
+void RecordFileIteratorReverse::Prev() {
+    db_itr_->Prev();
+    ReadPrevValidKey();
+}
+
+void RecordFileIteratorReverse::ReadPrevValidKey() {
+    for (; db_itr_->Valid(); db_itr_->Prev()) {
+        auto key_opt = TryReadCurrentKey();
+        if (!key_opt) {
+            continue;
+        }
+        current_key_ = *key_opt;
+        break;
+    }
+}
+
 RecordFile::RecordFile(std::string file_path) : file_path_(std::move(file_path)) {
     OpenDB();
 }
@@ -161,6 +206,12 @@ RecordFileIterator RecordFile::Iterate() const {
     auto* itr = db_->NewIterator(leveldb::ReadOptions());
     itr->SeekToFirst();
     return RecordFileIterator(itr, legacy_);
+}
+
+RecordFileIteratorReverse RecordFile::IterateReverse() const {
+    auto* itr = db_->NewIterator(leveldb::ReadOptions());
+    itr->SeekToLast();
+    return RecordFileIteratorReverse(itr, legacy_);
 }
 
 bool RecordFile::IsOpen() const {
