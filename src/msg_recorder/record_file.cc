@@ -89,41 +89,41 @@ void RecordFileIterator::ReadNextValidKey() {
     }
 }
 
-RecordFileIteratorReverse::RecordFileIteratorReverse(leveldb::Iterator* db_itr)
+ReverseRecordFileIterator::ReverseRecordFileIterator(leveldb::Iterator* db_itr)
     : RecordFileIteratorReverse(db_itr, false) {
 }
 
-RecordFileIteratorReverse::RecordFileIteratorReverse(leveldb::Iterator* db_itr, const bool legacy)
+ReverseRecordFileIterator::ReverseRecordFileIterator(leveldb::Iterator* db_itr, const bool legacy)
     : db_itr_(db_itr)
     , legacy_(legacy) {
     db_itr_->SeekToLast();
     ReadPrevValidKey();
 }
 
-bool RecordFileIteratorReverse::Valid() const {
+bool ReverseRecordFileIterator::Valid() const {
     return db_itr_->Valid();
 }
 
-std::optional<RecordFileKey> RecordFileIteratorReverse::TryReadCurrentKey() const {
+std::optional<RecordFileKey> ReverseRecordFileIterator::TryReadCurrentKey() const {
     auto key_slice = db_itr_->key();
     auto key_bytes = std::string_view(key_slice.data(), key_slice.size());
     return legacy_ ? RecordFileKey::FromBytesLegacy(key_bytes) : RecordFileKey::FromBytes(key_bytes);
 }
 
-RecordFileKey RecordFileIteratorReverse::GetKey() const {
+RecordFileKey ReverseRecordFileIterator::GetKey() const {
     return current_key_;
 }
 
-std::pair<RecordFileKey, std::string> RecordFileIteratorReverse::Get() const {
+std::pair<RecordFileKey, std::string> ReverseRecordFileIterator::Get() const {
     return std::make_pair(GetKey(), db_itr_->value().ToString());
 }
 
-void RecordFileIteratorReverse::Prev() {
+void ReverseRecordFileIterator::Prev() {
     db_itr_->Prev();
     ReadPrevValidKey();
 }
 
-void RecordFileIteratorReverse::ReadPrevValidKey() {
+void ReverseRecordFileIterator::ReadPrevValidKey() {
     for (; db_itr_->Valid(); db_itr_->Prev()) {
         auto key_opt = TryReadCurrentKey();
         if (!key_opt) {

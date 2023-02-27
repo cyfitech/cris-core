@@ -41,17 +41,17 @@ class RecordFileIterator {
     RecordFileKey                      current_key_;
 };
 
-class RecordFileIteratorReverse {
+class ReverseRecordFileIterator {
    public:
-    explicit RecordFileIteratorReverse(leveldb::Iterator* db_itr);
+    explicit ReverseRecordFileIterator(leveldb::Iterator* db_itr);
 
-    explicit RecordFileIteratorReverse(leveldb::Iterator* db_itr, const bool legacy);
+    explicit ReverseRecordFileIterator(leveldb::Iterator* db_itr, const bool legacy);
 
-    RecordFileIteratorReverse(const RecordFileIteratorReverse&) = delete;
-    RecordFileIteratorReverse(RecordFileIteratorReverse&&)      = default;
-    RecordFileIteratorReverse& operator=(const RecordFileIteratorReverse&) = delete;
-    RecordFileIteratorReverse& operator=(RecordFileIteratorReverse&&) = default;
-    ~RecordFileIteratorReverse()                                      = default;
+    ReverseRecordFileIterator(const ReverseRecordFileIterator&) = delete;
+    ReverseRecordFileIterator(ReverseRecordFileIterator&&)      = default;
+    ReverseRecordFileIterator& operator=(const ReverseRecordFileIterator&) = delete;
+    ReverseRecordFileIterator& operator=(ReverseRecordFileIterator&&) = default;
+    ~ReverseRecordFileIterator()                                      = default;
 
     bool Valid() const;
 
