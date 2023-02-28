@@ -4,6 +4,7 @@
 
 #include "leveldb/db.h"
 
+#include <atomic>
 #include <memory>
 #include <optional>
 #include <string>
@@ -78,9 +79,9 @@ class RecordFile {
     ~RecordFile();
 
     RecordFile(const RecordFile&) = delete;
-    RecordFile(RecordFile&&)      = default;
+    RecordFile(RecordFile&&)      = delete;
     RecordFile& operator=(const RecordFile&) = delete;
-    RecordFile& operator=(RecordFile&&) = default;
+    RecordFile& operator=(RecordFile&&) = delete;
 
     void Write(std::string serialized_value);
 
@@ -99,6 +100,8 @@ class RecordFile {
     bool OpenDB();
 
     void CloseDB();
+
+    std::atomic_bool compact_before_close{false};
 
    protected:
     std::string                  file_path_;
