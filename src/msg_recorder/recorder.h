@@ -1,6 +1,5 @@
 #pragma once
 
-#include "cris/core/msg_recorder/recorder_config.h"
 #include "cris/core/msg/message.h"
 #include "cris/core/msg/node.h"
 #include "cris/core/msg_recorder/record_file.h"
@@ -46,6 +45,9 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
 
     // Mapping from interval names to snapshot lists. Snapshots are ordered from old to new in the lists.
     std::map<std::string, std::vector<std::filesystem::path>> GetSnapshotPaths();
+
+   protected:
+    std::vector<RecordFile*> GetRecordFiles();
 
    private:
     using msg_serializer = std::function<std::string(const CRMessageBasePtr&)>;

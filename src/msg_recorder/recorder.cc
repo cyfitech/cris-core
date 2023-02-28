@@ -210,6 +210,14 @@ std::map<std::string, std::vector<std::filesystem::path>> MessageRecorder::GetSn
     return result_map;
 }
 
+std::vector<RecordFile*> MessageRecorder::GetRecordFiles() {
+    std::vector<RecordFile*> result_files;
+    for (auto& file_ptr : files_) {
+        result_files.emplace_back(file_ptr.get());
+    }
+    return result_files;
+}
+
 RecordFile* MessageRecorder::CreateFile(
     const std::string&                     message_type,
     const MessageRecorder::channel_subid_t subid,
