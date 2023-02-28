@@ -189,7 +189,7 @@ std::string MessageRecorder::SnapshotDirNameGenerator() {
 
     auto now = std::chrono::system_clock::now();
     return fmt::format(
-        "{:%Y%m%d-%H%M%S}.{:0{}}.{:%Z}\n",
+        "{:%Y%m%d-%H%M%S}.{:0{}}.{:%Z}",
         std::chrono::time_point_cast<std::chrono::seconds>(now),
         std::chrono::duration_cast<print_duration_t>(now.time_since_epoch()).count() % print_tick_per_sec,
         print_precision,
