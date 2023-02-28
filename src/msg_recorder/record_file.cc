@@ -203,15 +203,11 @@ void RecordFile::Write(RecordFileKey key, std::string serialized_value) {
 }
 
 RecordFileIterator RecordFile::Iterate() const {
-    auto* itr = db_->NewIterator(leveldb::ReadOptions());
-    itr->SeekToFirst();
-    return RecordFileIterator(itr, legacy_);
+    return RecordFileIterator(db_->NewIterator(leveldb::ReadOptions()), legacy_);
 }
 
 RecordFileReverseIterator RecordFile::ReverseIterate() const {
-    auto* itr = db_->NewIterator(leveldb::ReadOptions());
-    itr->SeekToLast();
-    return RecordFileReverseIterator(itr, legacy_);
+    return RecordFileReverseIterator(db_->NewIterator(leveldb::ReadOptions()), legacy_);
 }
 
 bool RecordFile::IsOpen() const {
