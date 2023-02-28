@@ -41,6 +41,36 @@ class RecordFileIterator {
     RecordFileKey                      current_key_;
 };
 
+class RecordFileReverseIterator {
+   public:
+    explicit RecordFileReverseIterator(leveldb::Iterator* db_itr);
+
+    explicit RecordFileReverseIterator(leveldb::Iterator* db_itr, const bool legacy);
+
+    RecordFileReverseIterator(const RecordFileReverseIterator&) = delete;
+    RecordFileReverseIterator(RecordFileReverseIterator&&)      = default;
+    RecordFileReverseIterator& operator=(const RecordFileReverseIterator&) = delete;
+    RecordFileReverseIterator& operator=(RecordFileReverseIterator&&) = default;
+    ~RecordFileReverseIterator()                                      = default;
+
+    bool Valid() const;
+
+    RecordFileKey GetKey() const;
+
+    std::pair<RecordFileKey, std::string> Get() const;
+
+    void Prev();
+
+   protected:
+    std::optional<RecordFileKey> TryReadCurrentKey() const;
+
+    void ReadPrevValidKey();
+
+    std::unique_ptr<leveldb::Iterator> db_itr_;
+    bool                               legacy_{false};
+    RecordFileKey                      current_key_;
+};
+
 class RecordFile {
    public:
     explicit RecordFile(std::string file_path);
@@ -57,6 +87,8 @@ class RecordFile {
     void Write(RecordFileKey key, std::string serialized_value);
 
     RecordFileIterator Iterate() const;
+
+    RecordFileReverseIterator ReverseIterate() const;
 
     bool Empty() const;
 
