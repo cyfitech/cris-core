@@ -51,7 +51,6 @@ RecordFileIterator::RecordFileIterator(leveldb::Iterator* db_itr) : RecordFileIt
 RecordFileIterator::RecordFileIterator(leveldb::Iterator* db_itr, const bool legacy)
     : db_itr_(db_itr)
     , legacy_(legacy) {
-    db_itr_->SeekToFirst();
     ReadNextValidKey();
 }
 
@@ -96,7 +95,6 @@ RecordFileReverseIterator::RecordFileReverseIterator(leveldb::Iterator* db_itr)
 RecordFileReverseIterator::RecordFileReverseIterator(leveldb::Iterator* db_itr, const bool legacy)
     : db_itr_(db_itr)
     , legacy_(legacy) {
-    db_itr_->SeekToLast();
     ReadPrevValidKey();
 }
 
@@ -203,11 +201,15 @@ void RecordFile::Write(RecordFileKey key, std::string serialized_value) {
 }
 
 RecordFileIterator RecordFile::Iterate() const {
-    return RecordFileIterator(db_->NewIterator(leveldb::ReadOptions()), legacy_);
+    auto* itr = db_->NewIterator(leveldb::ReadOptions());
+    itr->SeekToFirst();
+    return RecordFileIterator(itr, legacy_);
 }
 
 RecordFileReverseIterator RecordFile::ReverseIterate() const {
-    return RecordFileReverseIterator(db_->NewIterator(leveldb::ReadOptions()), legacy_);
+    auto* itr = db_->NewIterator(leveldb::ReadOptions());
+    itr->SeekToLast();
+    return RecordFileReverseIterator(itr, legacy_);
 }
 
 bool RecordFile::IsOpen() const {
