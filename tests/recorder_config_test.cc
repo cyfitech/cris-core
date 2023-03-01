@@ -1,3 +1,4 @@
+#include "cris/core/msg_recorder/recorder_config.h"
 #include "cris/core/config/config.h"
 
 #include <gtest/gtest.h>
