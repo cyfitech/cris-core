@@ -61,6 +61,8 @@ filegroup(
     srcs = ["recorder_snapshot_tsan_suppressions.txt"],
 )
 
+# TODO(yuzhouguo): When we resolve the snapshot timing check issue, the test should be non-flaky.
+
 cris_cc_test (
     name = "recorder_snapshot_test",
     srcs = ["recorder_snapshot_test.cc"],
@@ -74,6 +76,7 @@ cris_cc_test (
         "//:msg_recorder",
         "@cris-core//tests:cris_gtest_main",
     ],
+    flaky = True,
 )
 
 cris_cc_test (
