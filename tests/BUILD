@@ -29,6 +29,15 @@ cris_cc_test (
 )
 
 cris_cc_test (
+    name = "time_test",
+    srcs = ["time_test.cc"],
+    deps = [
+        "//:utils",
+        "@cris-core//tests:cris_gtest_main",
+    ],
+)
+
+cris_cc_test (
     name = "message_test",
     srcs = ["message_test.cc"],
     deps = [

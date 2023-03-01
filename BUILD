@@ -25,6 +25,7 @@ cris_cc_library (
     strip_include_prefix = "src",
     deps = [
         "@com_github_google_glog//:glog",
+        "@fmt//:libfmt",
     ],
 )
 
