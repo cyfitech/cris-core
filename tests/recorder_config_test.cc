@@ -171,4 +171,99 @@ TEST_F(RecordConfigTest, RecorderConfigTestDefault) {
     }
 }
 
+TEST_F(RecordConfigTest, NoRollingConfigOK) {
+    auto recorder_config_file = MakeRecordConfigFile("{}");
+    auto recorder_config      = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
+    EXPECT_EQ(RecorderConfig::Rolling::NONE, recorder_config.rolling_);
+}
+
+TEST_F(RecordConfigTest, RollingConfigByDayOK) {
+    auto recorder_config_file = MakeRecordConfigFile(
+        R"({
+            "recorder": {
+                "rolling": "day"
+            }
+        })");
+    auto recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
+    EXPECT_EQ(RecorderConfig::Rolling::DAY, recorder_config.rolling_);
+}
+
+TEST_F(RecordConfigTest, RollingConfigByHourOK) {
+    auto recorder_config_file = MakeRecordConfigFile(
+        R"({
+            "recorder": {
+                "rolling": "hour"
+            }
+        })");
+    auto recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
+    EXPECT_EQ(RecorderConfig::Rolling::HOUR, recorder_config.rolling_);
+}
+
+TEST_F(RecordConfigTest, RollingConfigBySizeOK) {
+    auto recorder_config_file = MakeRecordConfigFile(
+        R"({
+            "recorder": {
+                "rolling": "size",
+                "size_limit_mb": 100
+            }
+        })");
+    auto recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
+    EXPECT_EQ(RecorderConfig::Rolling::SIZE, recorder_config.rolling_);
+    EXPECT_EQ(100u, recorder_config.size_limit_mb_);
+}
+
+TEST_F(RecordConfigTest, RollingConfigNonStringFail) {
+    auto recorder_config_file = MakeRecordConfigFile(
+        R"({
+            "recorder": {
+                "rolling": 123
+            }
+        })");
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
+    EXPECT_DEATH(
+        recorder_config_file.Get<RecorderConfig>("recorder"),
+        R"(Expect a string for "rolling". The JSON element does not have the requested type.)");
+}
+
+TEST_F(RecordConfigTest, RollingConfigByUnknownFail) {
+    auto recorder_config_file = MakeRecordConfigFile(
+        R"({
+            "recorder": {
+                "rolling": "unknown"
+            }
+        })");
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
+    EXPECT_DEATH(
+        recorder_config_file.Get<RecorderConfig>("recorder"),
+        R"(Expect a string for "rolling" be in \["day", "hour", "size"\])");
+}
+
+TEST_F(RecordConfigTest, RollingConfigBySizeInvalidSizeLimitTypeFail) {
+    auto recorder_config_file = MakeRecordConfigFile(
+        R"({
+            "recorder": {
+                "rolling": "size",
+                "size_limit_mb": "123"
+            }
+        })");
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
+    EXPECT_DEATH(
+        recorder_config_file.Get<RecorderConfig>("recorder"),
+        R"(Expect a non-zero positive integer for "size_limit_mb". The JSON element does not have the requested type.)");
+}
+
+TEST_F(RecordConfigTest, RollingConfigBySizeZeroSizeLimitFail) {
+    auto recorder_config_file = MakeRecordConfigFile(
+        R"({
+            "recorder": {
+                "rolling": "size",
+                "size_limit_mb": 0
+            }
+        })");
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
+    EXPECT_DEATH(
+        recorder_config_file.Get<RecorderConfig>("recorder"),
+        R"(Expect a non-zero positive integer for "size_limit_mb".)");
+}
+
 }  // namespace cris::core
