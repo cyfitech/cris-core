@@ -6,6 +6,7 @@
 #include "cris/core/msg_recorder/record_file.h"
 #include "cris/core/msg_recorder/recorder_config.h"
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <filesystem>
@@ -47,6 +48,8 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     // Mapping from interval names to snapshot lists. Snapshots are ordered from old to new in the lists.
     std::map<std::string, std::vector<std::filesystem::path>> GetSnapshotPaths();
 
+    void SetPostSnapshotJobFinishCallback(std::function<void()>&& callback);
+
    private:
     using msg_serializer = std::function<std::string(const CRMessageBasePtr&)>;
 
@@ -72,6 +75,8 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     std::condition_variable                                  snapshot_cv_;
     std::map<std::string, std::deque<std::filesystem::path>> snapshot_path_map_;
     std::thread                                              snapshot_thread_;
+
+    std::function<void()> post_finish_;
 };
 
 template<CRMessageType message_t>
