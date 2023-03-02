@@ -1,11 +1,11 @@
 #pragma once
 
-#include "cris/core/msg_recorder/recorder_config.h"
 #include "cris/core/msg/message.h"
 #include "cris/core/msg/node.h"
 #include "cris/core/msg_recorder/record_file.h"
 #include "cris/core/msg_recorder/recorder_config.h"
 
+#include <atomic>
 #include <chrono>
 #include <condition_variable>
 #include <filesystem>
@@ -40,12 +40,20 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     template<CRMessageType message_t>
     void RegisterChannel(const channel_subid_t subid, const std::string& alias = "");
 
-    bool GenerateSnapshot(const std::filesystem::path& snapshot_dir);
+    bool GenerateSnapshot(
+        const RecorderConfig::IntervalConfig& interval_config,
+        const std::filesystem::path&          snapshot_dir);
 
     std::filesystem::path GetRecordDir() const;
 
     // Mapping from interval names to snapshot lists. Snapshots are ordered from old to new in the lists.
     std::map<std::string, std::vector<std::filesystem::path>> GetSnapshotPaths();
+
+    void SetSnapshotJobPreStartCallback(
+        std::function<void(const RecorderConfig::IntervalConfig&, const std::filesystem::path&)>&& callback);
+
+    void SetSnapshotJobPostFinishCallback(
+        std::function<void(const RecorderConfig::IntervalConfig&, const std::filesystem::path&)>&& callback);
 
    private:
     using msg_serializer = std::function<std::string(const CRMessageBasePtr&)>;
@@ -72,6 +80,9 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     std::condition_variable                                  snapshot_cv_;
     std::map<std::string, std::deque<std::filesystem::path>> snapshot_path_map_;
     std::thread                                              snapshot_thread_;
+
+    std::function<void(const RecorderConfig::IntervalConfig&, const std::filesystem::path&)> post_finish_;
+    std::function<void(const RecorderConfig::IntervalConfig&, const std::filesystem::path&)> pre_start_;
 };
 
 template<CRMessageType message_t>

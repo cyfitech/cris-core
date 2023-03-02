@@ -30,6 +30,16 @@ MessageRecorder::MessageRecorder(const RecorderConfig& recorder_config, std::sha
     std::filesystem::create_directories(record_dir_);
 }
 
+void MessageRecorder::SetSnapshotJobPreStartCallback(
+    std::function<void(const RecorderConfig::IntervalConfig&, const std::filesystem::path&)>&& callback) {
+    post_finish_ = std::move(callback);
+}
+
+void MessageRecorder::SetSnapshotJobPostFinishCallback(
+    std::function<void(const RecorderConfig::IntervalConfig&, const std::filesystem::path&)>&& callback) {
+    post_finish_ = std::move(callback);
+}
+
 void MessageRecorder::SnapshotWorker() {
     if (snapshot_config_intervals_.empty()) {
         return;
@@ -71,7 +81,7 @@ void MessageRecorder::SnapshotWorker() {
         if ((next_wake_time_for_this_interval - std::chrono::steady_clock::now()) > kSkipThreshold) {
             const auto snapshot_dir = record_dir_.parent_path() / std::string("snapshots") /
                 current_snapshot_wakeup.interval_config.name_ / SnapshotDirNameGenerator();
-            if (GenerateSnapshot(snapshot_dir)) {
+            if (GenerateSnapshot(current_snapshot_wakeup.interval_config, snapshot_dir)) {
                 std::lock_guard lck(snapshot_mtx_);
                 snapshot_path_map_[current_snapshot_wakeup.interval_config.name_].push_back(snapshot_dir);
                 MaintainMaxNumOfSnapshots(current_snapshot_wakeup.interval_config);
@@ -93,17 +103,27 @@ void MessageRecorder::SnapshotWorker() {
     }
 }
 
-bool MessageRecorder::GenerateSnapshot(const std::filesystem::path& snapshot_dir) {
+bool MessageRecorder::GenerateSnapshot(
+    const RecorderConfig::IntervalConfig& interval_config,
+    const std::filesystem::path&          snapshot_dir) {
     bool successful_flag         = false;
     bool snapshot_generated_flag = false;
     AddJobToRunner(
-        [this, &snapshot_generated_flag, &successful_flag, &snapshot_dir]() {
+        [this, &snapshot_generated_flag, &successful_flag, &snapshot_dir, &interval_config]() {
+            if (pre_start_) {
+                pre_start_(interval_config, snapshot_dir);
+            }
+
             successful_flag = GenerateSnapshotImpl(snapshot_dir);
             {
                 std::lock_guard lck(snapshot_mtx_);
                 snapshot_generated_flag = true;
             }
             snapshot_cv_.notify_all();
+
+            if (post_finish_) {
+                post_finish_(interval_config, snapshot_dir);
+            }
         },
         record_strand_);
     std::unique_lock lock(snapshot_mtx_);
