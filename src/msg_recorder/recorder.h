@@ -47,11 +47,7 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     // Mapping from interval names to snapshot lists. Snapshots are ordered from old to new in the lists.
     std::map<std::string, std::vector<std::filesystem::path>> GetSnapshotPaths();
 
-    void SetPostStartCallback(std::function<void()>&& callback);
-
-    void SetPreFinishCallback(std::function<void()>&& callback);
-
-    void SetPostFinishCallback(std::function<void()>&& callback);
+    void SetPostSnapshotJobFinishCallback(std::function<void()>&& callback);
 
    private:
     using msg_serializer = std::function<std::string(const CRMessageBasePtr&)>;
@@ -79,8 +75,6 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     std::map<std::string, std::deque<std::filesystem::path>> snapshot_path_map_;
     std::thread                                              snapshot_thread_;
 
-    std::function<void()> post_start_;
-    std::function<void()> pre_finish_;
     std::function<void()> post_finish_;
 };
 
