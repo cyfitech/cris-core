@@ -30,6 +30,18 @@ MessageRecorder::MessageRecorder(const RecorderConfig& recorder_config, std::sha
     std::filesystem::create_directories(record_dir_);
 }
 
+void MessageRecorder::SetPostStartCallback(std::function<void()>&& callback) {
+    post_start_ = std::move(callback);
+}
+
+void MessageRecorder::SetPreFinishCallback(std::function<void()>&& callback) {
+    pre_finish_ = std::move(callback);
+}
+
+void MessageRecorder::SetPostFinishCallback(std::function<void()>&& callback) {
+    post_finish_ = std::move(callback);
+}
+
 void MessageRecorder::SnapshotWorker() {
     if (snapshot_config_intervals_.empty()) {
         return;
@@ -59,6 +71,10 @@ void MessageRecorder::SnapshotWorker() {
 
     auto current_snapshot_wakeup = wake_up_queue.top();
     wake_up_queue.pop();
+
+    if (post_start_) {
+        post_start_();
+    }
 
     while (!snapshot_shutdown_flag_.load()) {
         const auto kSkipThreshold =
@@ -113,6 +129,9 @@ bool MessageRecorder::GenerateSnapshot(const std::filesystem::path& snapshot_dir
 }
 
 void MessageRecorder::StopSnapshotWorker() {
+    if (pre_finish_) {
+        pre_finish_();
+    }
     if (auto runner = runner_weak_.lock()) {
         runner->Stop();
     }
@@ -123,6 +142,9 @@ void MessageRecorder::StopSnapshotWorker() {
     snapshot_cv_.notify_all();
     if (snapshot_thread_.joinable()) {
         snapshot_thread_.join();
+    }
+    if (post_finish_) {
+        post_finish_();
     }
 }
 
