@@ -30,10 +30,6 @@ MessageRecorder::MessageRecorder(const RecorderConfig& recorder_config, std::sha
     std::filesystem::create_directories(record_dir_);
 }
 
-void MessageRecorder::SetPostSnapshotJobFinishCallback(std::function<void()>&& callback) {
-    post_finish_ = std::move(callback);
-}
-
 void MessageRecorder::SnapshotWorker() {
     if (snapshot_config_intervals_.empty()) {
         return;
@@ -166,10 +162,6 @@ bool MessageRecorder::GenerateSnapshotImpl(const std::filesystem::path& snapshot
     }
 
     std::for_each(files_.begin(), files_.end(), [](auto& file) { file->OpenDB(); });
-
-    if (post_finish_) {
-        post_finish_();
-    }
 
     return generated_successful_flag;
 }
