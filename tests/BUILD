@@ -74,6 +74,9 @@ cris_cc_test (
         "//:msg_recorder",
         "@cris-core//tests:cris_gtest_main",
     ],
+    # TODO(yuzhouguo): When we resolve the snapshot timing check issue, the test should be non-flaky.
+    # https://github.com/cyfitech/cris-core/issues/154
+    flaky = True,
 )
 
 cris_cc_test (
