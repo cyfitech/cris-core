@@ -51,7 +51,7 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
 
     std::filesystem::path GetRecordDir() const;
 
-    // Mapping from interval names to snapshot info lists. Snapshots are ordered from old to new in the lists.
+    // Mapping from interval names to snapshot paths. Snapshots are ordered from old to new in the lists.
     std::map<std::string, std::vector<std::filesystem::path>> GetSnapshotPaths();
 
     void SetSnapshotJobPreStartCallback(

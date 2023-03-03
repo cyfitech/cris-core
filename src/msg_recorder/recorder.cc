@@ -228,8 +228,8 @@ std::map<std::string, std::vector<std::filesystem::path>> MessageRecorder::GetSn
     std::map<std::string, std::vector<std::filesystem::path>> result_map;
     std::lock_guard                                           lck(snapshot_mtx_);
 
-    for (const auto& [interval_name, snapshot_dirs] : snapshot_path_map_) {
-        result_map[interval_name] = std::vector(snapshot_dirs.begin(), snapshot_dirs.end());
+    for (const auto& [interval_name, snapshot_path_list] : snapshot_path_map_) {
+        result_map[interval_name] = std::vector(snapshot_path_list.begin(), snapshot_path_list.end());
     }
     return result_map;
 }
