@@ -79,12 +79,11 @@ void MessageRecorder::SnapshotWorker() {
             current_snapshot_wakeup.wake_time + current_snapshot_wakeup.interval_config.period_;
 
         if ((next_wake_time_for_this_interval - std::chrono::steady_clock::now()) > kSkipThreshold) {
-            SnapshotInfo current_info;
-            current_info.snapshot_dir_ = record_dir_.parent_path() / std::string("snapshots") /
+            const auto snapshot_dir = record_dir_.parent_path() / std::string("snapshots") /
                 current_snapshot_wakeup.interval_config.name_ / SnapshotDirNameGenerator();
-            if (GenerateSnapshot(current_snapshot_wakeup.interval_config, current_info)) {
+            if (GenerateSnapshot(snapshot_dir, current_snapshot_wakeup.interval_config)) {
                 std::lock_guard lck(snapshot_mtx_);
-                snapshot_info_map_[current_snapshot_wakeup.interval_config.name_].push_back(current_info);
+                snapshot_path_map_[current_snapshot_wakeup.interval_config.name_].push_back(snapshot_dir);
                 MaintainMaxNumOfSnapshots(current_snapshot_wakeup.interval_config);
             }
         } else {
@@ -105,17 +104,21 @@ void MessageRecorder::SnapshotWorker() {
 }
 
 bool MessageRecorder::GenerateSnapshot(
-    const std::optional<RecorderConfig::IntervalConfig> interval_config,
-    const SnapshotInfo&                                 snapshot_info) {
+    const std::filesystem::path&                        snapshot_dir,
+    const std::optional<RecorderConfig::IntervalConfig> interval_config) {
     bool successful_flag         = false;
     bool snapshot_generated_flag = false;
     AddJobToRunner(
-        [this, &snapshot_generated_flag, &successful_flag, &snapshot_info, &interval_config]() {
+        [this, &snapshot_generated_flag, &successful_flag, &snapshot_dir, &interval_config]() {
+            SnapshotInfo info{
+                .snapshot_dir_ = snapshot_dir,
+            };
+
             if (pre_start_) {
-                pre_start_(interval_config, snapshot_info);
+                pre_start_(interval_config, info);
             }
 
-            successful_flag = GenerateSnapshotImpl(snapshot_info);
+            successful_flag = GenerateSnapshotImpl(snapshot_dir);
             {
                 std::lock_guard lck(snapshot_mtx_);
                 snapshot_generated_flag = true;
@@ -123,7 +126,7 @@ bool MessageRecorder::GenerateSnapshot(
             snapshot_cv_.notify_all();
 
             if (post_finish_) {
-                post_finish_(interval_config, snapshot_info);
+                post_finish_(interval_config, info);
             }
         },
         record_strand_);
@@ -160,25 +163,24 @@ void MessageRecorder::StopMainLoop() {
     StopSnapshotWorker();
 }
 
-bool MessageRecorder::GenerateSnapshotImpl(const SnapshotInfo& snapshot_info) {
+bool MessageRecorder::GenerateSnapshotImpl(const std::filesystem::path& snapshot_dir) {
     std::lock_guard lck(snapshot_mtx_);
     bool            generated_successful_flag = true;
 
     std::for_each(files_.begin(), files_.end(), [](auto& file) { file->CloseDB(); });
 
     const auto options = std::filesystem::copy_options::recursive | std::filesystem::copy_options::copy_symlinks;
-    if (std::error_code ec; !std::filesystem::create_directories(snapshot_info.snapshot_dir_, ec)) {
-        LOG(ERROR) << __func__ << ": Failed to create snapshot directory " << snapshot_info.snapshot_dir_ << ". "
-                   << ec.message();
+    if (std::error_code ec; !std::filesystem::create_directories(snapshot_dir, ec)) {
+        LOG(ERROR) << __func__ << ": Failed to create snapshot directory " << snapshot_dir << ". " << ec.message();
         generated_successful_flag = false;
     }
 
     {
         std::error_code ec;
-        std::filesystem::copy(record_dir_, snapshot_info.snapshot_dir_, options, ec);
+        std::filesystem::copy(record_dir_, snapshot_dir, options, ec);
         if (ec) {
             LOG(ERROR) << __func__ << ": Failed to copy record directory " << record_dir_ << " to snapshot directory "
-                       << snapshot_info.snapshot_dir_ << ". " << ec.message();
+                       << snapshot_dir << ". " << ec.message();
             generated_successful_flag = false;
         }
     }
@@ -189,14 +191,14 @@ bool MessageRecorder::GenerateSnapshotImpl(const SnapshotInfo& snapshot_info) {
 }
 
 void MessageRecorder::MaintainMaxNumOfSnapshots(const RecorderConfig::IntervalConfig& interval_config) {
-    auto& snapshot_info_list = snapshot_info_map_[interval_config.name_];
-    while (snapshot_info_list.size() > snapshot_max_num_) {
-        if (std::error_code ec; std::filesystem::remove_all(snapshot_info_list.front().snapshot_dir_, ec) ==
-            static_cast<std::uintmax_t>(-1)) {
+    auto& snapshot_dirs = snapshot_path_map_[interval_config.name_];
+    while (snapshot_dirs.size() > snapshot_max_num_) {
+        if (std::error_code ec;
+            std::filesystem::remove_all(snapshot_dirs.front(), ec) == static_cast<std::uintmax_t>(-1)) {
             LOG(ERROR) << __func__ << ": Locally saved more than " << snapshot_max_num_
                        << " snapshot copies but failed to remove the oldest one. " << ec.message();
         }
-        snapshot_info_list.pop_front();
+        snapshot_dirs.pop_front();
     }
 }
 
@@ -222,12 +224,12 @@ std::filesystem::path MessageRecorder::GetRecordDir() const {
     return record_dir_;
 }
 
-std::map<std::string, std::vector<SnapshotInfo>> MessageRecorder::GetSnapshotInfoMap() {
-    std::map<std::string, std::vector<SnapshotInfo>> result_map;
-    std::lock_guard                                  lck(snapshot_mtx_);
+std::map<std::string, std::vector<std::filesystem::path>> MessageRecorder::GetSnapshotPaths() {
+    std::map<std::string, std::vector<std::filesystem::path>> result_map;
+    std::lock_guard                                           lck(snapshot_mtx_);
 
-    for (const auto& [interval_name, snapshot_info_list] : snapshot_info_map_) {
-        result_map[interval_name] = std::vector(snapshot_info_list.begin(), snapshot_info_list.end());
+    for (const auto& [interval_name, snapshot_dirs] : snapshot_path_map_) {
+        result_map[interval_name] = std::vector(snapshot_dirs.begin(), snapshot_dirs.end());
     }
     return result_map;
 }

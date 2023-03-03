@@ -103,7 +103,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
     }
 
     // Test content under each snapshot directory
-    std::map<std::string, std::vector<SnapshotInfo>> snapshot_info_map = recorder.GetSnapshotInfoMap();
+    std::map<std::string, std::vector<std::filesystem::path>> snapshot_info_map = recorder.GetSnapshotPaths();
 
     static constexpr auto kMaxWaitingTime = std::chrono::milliseconds(500);
 
@@ -128,7 +128,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
     while (!check_expected_nums() && check_num_time < check_stop_time) {
         check_num_time += kSleepBetweenMessages;
         std::this_thread::sleep_until(check_num_time);
-        snapshot_info_map = recorder.GetSnapshotInfoMap();
+        snapshot_info_map = recorder.GetSnapshotPaths();
     }
 
     // The message at the exact time point when the snapshot was token is allowed to be toleranted
@@ -139,10 +139,10 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
     for (const auto& snapshot_interval : recorder_config.snapshot_intervals_) {
         auto search = snapshot_info_map.find(snapshot_interval.name_);
         EXPECT_TRUE(search != snapshot_info_map.end());
-        auto snapshot_info_list = search->second;
+        auto snapshot_dirs = search->second;
 
-        for (std::size_t snapshot_dir_index = 0; snapshot_dir_index < snapshot_info_list.size(); ++snapshot_dir_index) {
-            MessageReplayer replayer(snapshot_info_list[snapshot_dir_index].snapshot_dir_);
+        for (std::size_t snapshot_dir_index = 0; snapshot_dir_index < snapshot_dirs.size(); ++snapshot_dir_index) {
+            MessageReplayer replayer(snapshot_dirs[snapshot_dir_index]);
             core::CRNode    subscriber(runner);
 
             replayer.RegisterChannel<TestMessage>(kTestIntChannelSubId);
@@ -197,7 +197,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
 
         // Plus the origin snapshot
         const std::size_t kExpectedSnapshotNum = kMessageNum * kSleepBetweenMessages / snapshot_interval.period_ + 1;
-        EXPECT_EQ(snapshot_info_list.size(), kExpectedSnapshotNum);
+        EXPECT_EQ(snapshot_dirs.size(), kExpectedSnapshotNum);
     }
 
     runner->Stop();

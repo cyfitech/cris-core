@@ -23,6 +23,10 @@
 
 namespace cris::core {
 
+struct SnapshotInfo {
+    std::filesystem::path snapshot_dir_;
+};
+
 class MessageRecorder : public CRNamedNode<MessageRecorder> {
    public:
     using Base = CRNamedNode<MessageRecorder>;
@@ -42,13 +46,13 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     void RegisterChannel(const channel_subid_t subid, const std::string& alias = "");
 
     bool GenerateSnapshot(
-        const std::optional<RecorderConfig::IntervalConfig> interval_config,
-        const SnapshotInfo&                                 snapshot_info);
+        const std::filesystem::path&                        snapshot_dir,
+        const std::optional<RecorderConfig::IntervalConfig> interval_config = std::nullopt);
 
     std::filesystem::path GetRecordDir() const;
 
     // Mapping from interval names to snapshot info lists. Snapshots are ordered from old to new in the lists.
-    std::map<std::string, std::vector<SnapshotInfo>> GetSnapshotInfoMap();
+    std::map<std::string, std::vector<std::filesystem::path>> GetSnapshotPaths();
 
     void SetSnapshotJobPreStartCallback(
         std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const SnapshotInfo&)>&& callback);
@@ -61,7 +65,7 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
 
     RecordFile* CreateFile(const std::string& message_type, const channel_subid_t subid, const std::string& alias);
 
-    bool GenerateSnapshotImpl(const SnapshotInfo& snapshot_info);
+    bool GenerateSnapshotImpl(const std::filesystem::path& snapshot_dir);
     void MaintainMaxNumOfSnapshots(const RecorderConfig::IntervalConfig& interval_config);
 
     void SnapshotWorker();
@@ -74,13 +78,13 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     std::vector<std::unique_ptr<RecordFile>>     files_;
     std::shared_ptr<cris::core::JobRunnerStrand> record_strand_;
 
-    const std::size_t                                 snapshot_max_num_{48};
-    const std::vector<RecorderConfig::IntervalConfig> snapshot_config_intervals_;
-    std::atomic<bool>                                 snapshot_shutdown_flag_{false};
-    std::mutex                                        snapshot_mtx_;
-    std::condition_variable                           snapshot_cv_;
-    std::map<std::string, std::deque<SnapshotInfo>>   snapshot_info_map_;
-    std::thread                                       snapshot_thread_;
+    const std::size_t                                        snapshot_max_num_{48};
+    const std::vector<RecorderConfig::IntervalConfig>        snapshot_config_intervals_;
+    std::atomic<bool>                                        snapshot_shutdown_flag_{false};
+    std::mutex                                               snapshot_mtx_;
+    std::condition_variable                                  snapshot_cv_;
+    std::map<std::string, std::deque<std::filesystem::path>> snapshot_path_map_;
+    std::thread                                              snapshot_thread_;
 
     std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const SnapshotInfo&)> pre_start_;
     std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const SnapshotInfo&)> post_finish_;
