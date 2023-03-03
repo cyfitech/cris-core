@@ -181,7 +181,11 @@ void RecordFile::CloseDB() {
         LOG(ERROR) << __func__ << ": The database has already been closed elsewhere.";
         return;
     }
-    Compact();
+
+    if (compact_before_close) {
+        Compact();
+    }
+
     db_.reset();
 }
 
