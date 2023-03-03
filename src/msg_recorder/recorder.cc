@@ -31,12 +31,12 @@ MessageRecorder::MessageRecorder(const RecorderConfig& recorder_config, std::sha
 }
 
 void MessageRecorder::SetSnapshotJobPreStartCallback(
-    std::function<void(const RecorderConfig::IntervalConfig&, const std::filesystem::path&)>&& callback) {
-    post_finish_ = std::move(callback);
+    std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const std::filesystem::path&)>&& callback) {
+    pre_start_ = std::move(callback);
 }
 
 void MessageRecorder::SetSnapshotJobPostFinishCallback(
-    std::function<void(const RecorderConfig::IntervalConfig&, const std::filesystem::path&)>&& callback) {
+    std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const std::filesystem::path&)>&& callback) {
     post_finish_ = std::move(callback);
 }
 
@@ -104,8 +104,8 @@ void MessageRecorder::SnapshotWorker() {
 }
 
 bool MessageRecorder::GenerateSnapshot(
-    const RecorderConfig::IntervalConfig& interval_config,
-    const std::filesystem::path&          snapshot_dir) {
+    const std::optional<RecorderConfig::IntervalConfig> interval_config,
+    const std::filesystem::path&                        snapshot_dir) {
     bool successful_flag         = false;
     bool snapshot_generated_flag = false;
     AddJobToRunner(

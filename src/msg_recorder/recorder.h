@@ -15,6 +15,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
 #include <utility>
@@ -41,8 +42,8 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     void RegisterChannel(const channel_subid_t subid, const std::string& alias = "");
 
     bool GenerateSnapshot(
-        const RecorderConfig::IntervalConfig& interval_config,
-        const std::filesystem::path&          snapshot_dir);
+        const std::optional<RecorderConfig::IntervalConfig> interval_config,
+        const std::filesystem::path&                        snapshot_dir);
 
     std::filesystem::path GetRecordDir() const;
 
@@ -50,10 +51,12 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     std::map<std::string, std::vector<std::filesystem::path>> GetSnapshotPaths();
 
     void SetSnapshotJobPreStartCallback(
-        std::function<void(const RecorderConfig::IntervalConfig&, const std::filesystem::path&)>&& callback);
+        std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const std::filesystem::path&)>&&
+            callback);
 
     void SetSnapshotJobPostFinishCallback(
-        std::function<void(const RecorderConfig::IntervalConfig&, const std::filesystem::path&)>&& callback);
+        std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const std::filesystem::path&)>&&
+            callback);
 
    private:
     using msg_serializer = std::function<std::string(const CRMessageBasePtr&)>;
@@ -81,8 +84,8 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     std::map<std::string, std::deque<std::filesystem::path>> snapshot_path_map_;
     std::thread                                              snapshot_thread_;
 
-    std::function<void(const RecorderConfig::IntervalConfig&, const std::filesystem::path&)> post_finish_;
-    std::function<void(const RecorderConfig::IntervalConfig&, const std::filesystem::path&)> pre_start_;
+    std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const std::filesystem::path&)> pre_start_;
+    std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const std::filesystem::path&)> post_finish_;
 };
 
 template<CRMessageType message_t>
