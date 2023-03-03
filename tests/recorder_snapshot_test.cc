@@ -103,17 +103,17 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
     }
 
     // Test content under each snapshot directory
-    std::map<std::string, std::vector<std::filesystem::path>> snapshot_path_map = recorder.GetSnapshotPaths();
+    std::map<std::string, std::vector<SnapshotInfo>> snapshot_info_map = recorder.GetSnapshotInfoMap();
 
     static constexpr auto kMaxWaitingTime = std::chrono::milliseconds(500);
 
-    auto check_expected_nums = [&recorder_config, &snapshot_path_map]() -> bool {
+    auto check_expected_nums = [&recorder_config, &snapshot_info_map]() -> bool {
         for (const RecorderConfig::IntervalConfig& interval_config : recorder_config.snapshot_intervals_) {
             // Plus the origin snapshot
             const std::size_t kCurrentIntervalExpectedNum =
                 kMessageNum * kSleepBetweenMessages / interval_config.period_ + 1;
 
-            if (snapshot_path_map[interval_config.name_].size() < kCurrentIntervalExpectedNum) {
+            if (snapshot_info_map[interval_config.name_].size() < kCurrentIntervalExpectedNum) {
                 return false;
             }
         }
@@ -128,21 +128,21 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
     while (!check_expected_nums() && check_num_time < check_stop_time) {
         check_num_time += kSleepBetweenMessages;
         std::this_thread::sleep_until(check_num_time);
-        snapshot_path_map = recorder.GetSnapshotPaths();
+        snapshot_info_map = recorder.GetSnapshotInfoMap();
     }
 
     // The message at the exact time point when the snapshot was token is allowed to be toleranted
     constexpr std::size_t kFlakyTolerance = 2;
 
-    EXPECT_EQ(snapshot_path_map.size(), recorder_config.snapshot_intervals_.size());
+    EXPECT_EQ(snapshot_info_map.size(), recorder_config.snapshot_intervals_.size());
 
     for (const auto& snapshot_interval : recorder_config.snapshot_intervals_) {
-        auto search = snapshot_path_map.find(snapshot_interval.name_);
-        EXPECT_TRUE(search != snapshot_path_map.end());
-        auto snapshot_dirs = search->second;
+        auto search = snapshot_info_map.find(snapshot_interval.name_);
+        EXPECT_TRUE(search != snapshot_info_map.end());
+        auto snapshot_info_list = search->second;
 
-        for (std::size_t snapshot_dir_index = 0; snapshot_dir_index < snapshot_dirs.size(); ++snapshot_dir_index) {
-            MessageReplayer replayer(snapshot_dirs[snapshot_dir_index]);
+        for (std::size_t snapshot_dir_index = 0; snapshot_dir_index < snapshot_info_list.size(); ++snapshot_dir_index) {
+            MessageReplayer replayer(snapshot_info_list[snapshot_dir_index].snapshot_dir_);
             core::CRNode    subscriber(runner);
 
             replayer.RegisterChannel<TestMessage>(kTestIntChannelSubId);
@@ -197,7 +197,7 @@ TEST_F(RecorderSnapshotTest, RecorderSnapshotTest) {
 
         // Plus the origin snapshot
         const std::size_t kExpectedSnapshotNum = kMessageNum * kSleepBetweenMessages / snapshot_interval.period_ + 1;
-        EXPECT_EQ(snapshot_dirs.size(), kExpectedSnapshotNum);
+        EXPECT_EQ(snapshot_info_list.size(), kExpectedSnapshotNum);
     }
 
     runner->Stop();

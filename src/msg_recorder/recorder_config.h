@@ -22,6 +22,10 @@ struct RecorderConfig {
     std::filesystem::path       record_dir_;
 };
 
+struct SnapshotInfo {
+    std::filesystem::path snapshot_dir_;
+};
+
 void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val);
 
 }  // namespace cris::core

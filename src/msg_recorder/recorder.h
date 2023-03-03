@@ -43,27 +43,25 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
 
     bool GenerateSnapshot(
         const std::optional<RecorderConfig::IntervalConfig> interval_config,
-        const std::filesystem::path&                        snapshot_dir);
+        const SnapshotInfo&                                 snapshot_info);
 
     std::filesystem::path GetRecordDir() const;
 
-    // Mapping from interval names to snapshot lists. Snapshots are ordered from old to new in the lists.
-    std::map<std::string, std::vector<std::filesystem::path>> GetSnapshotPaths();
+    // Mapping from interval names to snapshot info lists. Snapshots are ordered from old to new in the lists.
+    std::map<std::string, std::vector<SnapshotInfo>> GetSnapshotInfoMap();
 
     void SetSnapshotJobPreStartCallback(
-        std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const std::filesystem::path&)>&&
-            callback);
+        std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const SnapshotInfo&)>&& callback);
 
     void SetSnapshotJobPostFinishCallback(
-        std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const std::filesystem::path&)>&&
-            callback);
+        std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const SnapshotInfo&)>&& callback);
 
    private:
     using msg_serializer = std::function<std::string(const CRMessageBasePtr&)>;
 
     RecordFile* CreateFile(const std::string& message_type, const channel_subid_t subid, const std::string& alias);
 
-    bool GenerateSnapshotImpl(const std::filesystem::path& snapshot_dir);
+    bool GenerateSnapshotImpl(const SnapshotInfo& snapshot_info);
     void MaintainMaxNumOfSnapshots(const RecorderConfig::IntervalConfig& interval_config);
 
     void SnapshotWorker();
@@ -76,16 +74,16 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     std::vector<std::unique_ptr<RecordFile>>     files_;
     std::shared_ptr<cris::core::JobRunnerStrand> record_strand_;
 
-    const std::size_t                                        snapshot_max_num_{48};
-    const std::vector<RecorderConfig::IntervalConfig>        snapshot_config_intervals_;
-    std::atomic<bool>                                        snapshot_shutdown_flag_{false};
-    std::mutex                                               snapshot_mtx_;
-    std::condition_variable                                  snapshot_cv_;
-    std::map<std::string, std::deque<std::filesystem::path>> snapshot_path_map_;
-    std::thread                                              snapshot_thread_;
+    const std::size_t                                 snapshot_max_num_{48};
+    const std::vector<RecorderConfig::IntervalConfig> snapshot_config_intervals_;
+    std::atomic<bool>                                 snapshot_shutdown_flag_{false};
+    std::mutex                                        snapshot_mtx_;
+    std::condition_variable                           snapshot_cv_;
+    std::map<std::string, std::deque<SnapshotInfo>>   snapshot_info_map_;
+    std::thread                                       snapshot_thread_;
 
-    std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const std::filesystem::path&)> pre_start_;
-    std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const std::filesystem::path&)> post_finish_;
+    std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const SnapshotInfo&)> pre_start_;
+    std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const SnapshotInfo&)> post_finish_;
 };
 
 template<CRMessageType message_t>
