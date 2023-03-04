@@ -5,8 +5,11 @@ export DIR = $(shell pwd)
 export MKDIR = mkdir -p
 export RM = rm -rf
 
-export CMD ?= bash
 export DOCKER_IMAGE ?= cajunhotpot/cris-build-debian11:20230223
+
+export PYTHON_EXECUTABLE ?= python3
+
+export CMD ?= "$(PYTHON_EXECUTABLE)" -m pip config --user set global.index-url "$$(set -e; ROOT_DIR=/etc/roaster/scripts . /etc/roaster/scripts/geo/pip-mirror.sh >&2; printf "%s" "$$PIP_INDEX_URL")"; bash -i
 
 .PHONY: all
 all: ci
@@ -48,7 +51,7 @@ env:
 	    $$([ ! -d 'tmp' ] || pwd | grep '[[:space:]]' >/dev/null || echo "-v $$(pwd)/tmp:$$(pwd)/tmp")  \
 	    -w "$$(pwd)"                                                        \
 	    '$(DOCKER_IMAGE)'                                                   \
-	    bash -c '$(CMD)'
+	    bash -cl 'set -e; $(CMD)'
 
 .PHONY: ci
 ci:

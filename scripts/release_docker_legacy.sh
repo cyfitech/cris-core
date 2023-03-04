@@ -3,7 +3,9 @@
 set -e
 
 for cmd in docker sed; do
-    which "$cmd" >/dev/null
+    ! which "$cmd" >/dev/null 2>&1 || continue
+    printf '\033[31m[ERROR] Missing command "%s".\033[0m\n' "$cmd" >&2
+    exit 1
 done
 
 sudo_docker="$([ -w '/var/run/docker.sock' ] || echo sudo) docker"

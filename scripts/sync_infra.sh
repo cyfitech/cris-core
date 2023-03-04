@@ -5,7 +5,9 @@ set -e
 cd "$(dirname "$0")/.."
 
 for cmd in git rsync; do
-    which "$cmd" >/dev/null 2>&1
+    ! which "$cmd" >/dev/null 2>&1 || continue
+    printf '\033[31m[ERROR] Missing command "%s".\033[0m\n' "$cmd" >&2
+    exit 1
 done
 
 tmpdir="$(mktemp -d)"
