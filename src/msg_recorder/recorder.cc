@@ -106,19 +106,17 @@ void MessageRecorder::SnapshotWorker() {
 bool MessageRecorder::GenerateSnapshot(
     const std::filesystem::path&                        snapshot_dir,
     const std::optional<RecorderConfig::IntervalConfig> interval_config) {
-    bool successful_flag         = false;
-    bool snapshot_generated_flag = false;
+    bool         snapshot_generated_flag = false;
+    SnapshotInfo info{
+        .snapshot_dir_ = snapshot_dir,
+    };
     AddJobToRunner(
-        [this, &snapshot_generated_flag, &successful_flag, &snapshot_dir, &interval_config]() {
-            SnapshotInfo info{
-                .snapshot_dir_ = snapshot_dir,
-            };
-
+        [this, &snapshot_generated_flag, &snapshot_dir, &interval_config, &info]() {
             if (pre_start_) {
                 pre_start_(info, interval_config);
             }
 
-            successful_flag = GenerateSnapshotImpl(snapshot_dir);
+            info.success = GenerateSnapshotImpl(snapshot_dir);
             {
                 std::lock_guard lck(snapshot_mtx_);
                 snapshot_generated_flag = true;
@@ -126,7 +124,6 @@ bool MessageRecorder::GenerateSnapshot(
             snapshot_cv_.notify_all();
 
             if (post_finish_) {
-                info.success = successful_flag;
                 post_finish_(info, interval_config);
             }
         },
@@ -134,7 +131,7 @@ bool MessageRecorder::GenerateSnapshot(
     std::unique_lock lock(snapshot_mtx_);
     snapshot_cv_.wait(lock, [&snapshot_generated_flag] { return snapshot_generated_flag; });
 
-    return successful_flag;
+    return info.success;
 }
 
 void MessageRecorder::StopSnapshotWorker() {
