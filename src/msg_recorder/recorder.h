@@ -25,6 +25,7 @@ namespace cris::core {
 
 struct SnapshotInfo {
     std::filesystem::path snapshot_dir_;
+    bool                  success{false};
 };
 
 class MessageRecorder : public CRNamedNode<MessageRecorder> {
@@ -51,14 +52,14 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
 
     std::filesystem::path GetRecordDir() const;
 
-    // Mapping from interval names to snapshot paths. Snapshots are ordered from old to new in the lists.
+    // Mapping from interval names to snapshot lists. Snapshots are ordered from old to new in the lists.
     std::map<std::string, std::vector<std::filesystem::path>> GetSnapshotPaths();
 
     void SetSnapshotJobPreStartCallback(
-        std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const SnapshotInfo&)>&& callback);
+        std::function<void(const SnapshotInfo&, const std::optional<RecorderConfig::IntervalConfig>)>&& callback);
 
     void SetSnapshotJobPostFinishCallback(
-        std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const SnapshotInfo&)>&& callback);
+        std::function<void(const SnapshotInfo&, const std::optional<RecorderConfig::IntervalConfig>)>&& callback);
 
    private:
     using msg_serializer = std::function<std::string(const CRMessageBasePtr&)>;
@@ -86,8 +87,8 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     std::map<std::string, std::deque<std::filesystem::path>> snapshot_path_map_;
     std::thread                                              snapshot_thread_;
 
-    std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const SnapshotInfo&)> pre_start_;
-    std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const SnapshotInfo&)> post_finish_;
+    std::function<void(const SnapshotInfo&, const std::optional<RecorderConfig::IntervalConfig>)> pre_start_;
+    std::function<void(const SnapshotInfo&, const std::optional<RecorderConfig::IntervalConfig>)> post_finish_;
 };
 
 template<CRMessageType message_t>

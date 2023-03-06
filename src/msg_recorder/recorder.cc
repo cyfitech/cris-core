@@ -31,12 +31,12 @@ MessageRecorder::MessageRecorder(const RecorderConfig& recorder_config, std::sha
 }
 
 void MessageRecorder::SetSnapshotJobPreStartCallback(
-    std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const SnapshotInfo&)>&& callback) {
+    std::function<void(const SnapshotInfo&, const std::optional<RecorderConfig::IntervalConfig>)>&& callback) {
     pre_start_ = std::move(callback);
 }
 
 void MessageRecorder::SetSnapshotJobPostFinishCallback(
-    std::function<void(const std::optional<RecorderConfig::IntervalConfig>, const SnapshotInfo&)>&& callback) {
+    std::function<void(const SnapshotInfo&, const std::optional<RecorderConfig::IntervalConfig>)>&& callback) {
     post_finish_ = std::move(callback);
 }
 
@@ -115,7 +115,7 @@ bool MessageRecorder::GenerateSnapshot(
             };
 
             if (pre_start_) {
-                pre_start_(interval_config, info);
+                pre_start_(info, interval_config);
             }
 
             successful_flag = GenerateSnapshotImpl(snapshot_dir);
@@ -126,7 +126,8 @@ bool MessageRecorder::GenerateSnapshot(
             snapshot_cv_.notify_all();
 
             if (post_finish_) {
-                post_finish_(interval_config, info);
+                info.success = successful_flag;
+                post_finish_(info, interval_config);
             }
         },
         record_strand_);
