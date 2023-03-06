@@ -6,7 +6,9 @@ cd "$(dirname "$0")/.."
 
 # Pre-check commands used by this script.
 for cmd in base64 diff git grep sed xargs; do
-    which "$cmd" >/dev/null
+    ! which "$cmd" >/dev/null 2>&1 || continue
+    printf '\033[31m[ERROR] Missing command "%s".\033[0m\n' "$cmd" >&2
+    exit 1
 done
 
 git submodule foreach --recursive -q pwd            \

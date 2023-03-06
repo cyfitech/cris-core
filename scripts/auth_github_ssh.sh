@@ -3,10 +3,9 @@
 set -e
 
 for cmd in grep ps sed xargs; do
-    if ! which "$cmd" >/dev/null 2>&1; then
-        printf '\033[31m[ERROR] Missing command "%s".\033[0m\n' "$cmd" >&2
-        exit 1
-    fi
+    ! which "$cmd" >/dev/null 2>&1 || continue
+    printf '\033[31m[ERROR] Missing command "%s".\033[0m\n' "$cmd" >&2
+    exit 1
 done
 
 mkdir -p ~/'.ssh/config.d'
