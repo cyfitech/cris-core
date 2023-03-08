@@ -43,6 +43,7 @@ TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
         auto recorder_config_file = MakeRecordConfigFile(
             R"({
                 "recorder": {
+                    "hostname": "SOME_HOSTNAME",
                     "record_dir": "record_test"
                 }
             })");
@@ -57,6 +58,7 @@ TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
         auto recorder_config_file = MakeRecordConfigFile(
             R"({
                 "recorder": {
+                    "hostname": "SOME_HOSTNAME",
                     "snapshot_intervals" : [],
                     "record_dir": "record_test"
                 }
@@ -72,6 +74,7 @@ TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
         auto recorder_config_file = MakeRecordConfigFile(
             R"({
                 "recorder": {
+                    "hostname": "SOME_HOSTNAME",
                     "snapshot_intervals" : [
                         {
                             "name": "5 SECONDS",
@@ -104,6 +107,7 @@ TEST_F(RecordConfigTest, RecorderConfigTestBasic) {
         auto recorder_config_file = MakeRecordConfigFile(
             R"({
                 "recorder": {
+                    "hostname": "SOME_HOSTNAME",
                     "snapshot_intervals" : [
                         {
                             "name": "5 SECONDS",
@@ -128,6 +132,7 @@ TEST_F(RecordConfigTest, RecorderConfigTestInvalid) {
         auto recorder_config_file = MakeRecordConfigFile(
             R"({
             "recorder": {
+                "hostname": "SOME_HOSTNAME",
                 "snapshot_intervals" : [
                     {
                         "name": "1 SECOND"
@@ -148,6 +153,7 @@ TEST_F(RecordConfigTest, RecorderConfigTestInvalid) {
         auto recorder_config_file = MakeRecordConfigFile(
             R"({
             "recorder": {
+                "hostname": "SOME_HOSTNAME",
                 "snapshot_intervals" : [],
                 "record_dir": 5
             }
@@ -168,48 +174,49 @@ TEST_F(RecordConfigTest, RecorderConfigTestDefault) {
         RecorderConfig recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
         EXPECT_EQ(recorder_config.snapshot_intervals_.size(), 0);
         EXPECT_EQ(recorder_config.record_dir_, "");
+        EXPECT_EQ(RecorderConfig::Rolling::kNone, recorder_config.rolling_);
     }
-}
-
-TEST_F(RecordConfigTest, NoRollingConfigOK) {
-    auto recorder_config_file = MakeRecordConfigFile("{}");
-    auto recorder_config      = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
-    EXPECT_EQ(RecorderConfig::Rolling::kNone, recorder_config.rolling_);
 }
 
 TEST_F(RecordConfigTest, RollingConfigByDayOK) {
     auto recorder_config_file = MakeRecordConfigFile(
         R"({
             "recorder": {
+                "hostname": "SOME_HOSTNAME",
                 "rolling": "day"
             }
         })");
-    auto recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
+    const auto recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
     EXPECT_EQ(RecorderConfig::Rolling::kDay, recorder_config.rolling_);
+    EXPECT_EQ("SOME_HOSTNAME", recorder_config.hostname_);
 }
 
 TEST_F(RecordConfigTest, RollingConfigByHourOK) {
     auto recorder_config_file = MakeRecordConfigFile(
         R"({
             "recorder": {
+                "hostname": "SOME_HOSTNAME",
                 "rolling": "hour"
             }
         })");
-    auto recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
+    const auto recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
     EXPECT_EQ(RecorderConfig::Rolling::kHour, recorder_config.rolling_);
+    EXPECT_EQ("SOME_HOSTNAME", recorder_config.hostname_);
 }
 
 TEST_F(RecordConfigTest, RollingConfigBySizeOK) {
     auto recorder_config_file = MakeRecordConfigFile(
         R"({
             "recorder": {
+                "hostname": "SOME_HOSTNAME",
                 "rolling": "size",
                 "size_limit_mb": 100
             }
         })");
-    auto recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
+    const auto recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
     EXPECT_EQ(RecorderConfig::Rolling::kSize, recorder_config.rolling_);
     EXPECT_EQ(100u, recorder_config.size_limit_mb_);
+    EXPECT_EQ("SOME_HOSTNAME", recorder_config.hostname_);
 }
 
 TEST_F(RecordConfigTest, RollingConfigNonStringFail) {
@@ -264,6 +271,41 @@ TEST_F(RecordConfigTest, RollingConfigBySizeZeroSizeLimitFail) {
     EXPECT_DEATH(
         recorder_config_file.Get<RecorderConfig>("recorder"),
         R"(Expect a non-zero positive integer for "size_limit_mb".)");
+}
+
+TEST_F(RecordConfigTest, NoHostnameFail) {
+    auto config_file = MakeRecordConfigFile(
+        R"({
+            "recorder": {
+                "rolling": "day"
+            }
+        })");
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
+    EXPECT_DEATH(config_file.Get<RecorderConfig>("recorder"), R"(Expect a non-empty string for "hostname".)");
+}
+
+TEST_F(RecordConfigTest, EmptyHostnameFail) {
+    auto config_file = MakeRecordConfigFile(
+        R"({
+            "recorder": {
+                "rolling": "hour",
+                "hostname": ""
+            }
+        })");
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
+    EXPECT_DEATH(config_file.Get<RecorderConfig>("recorder"), R"(Expect a non-empty string for "hostname".)");
+}
+
+TEST_F(RecordConfigTest, NonStringHostnameFail) {
+    auto config_file = MakeRecordConfigFile(
+        R"({
+            "recorder": {
+                "rolling": "day",
+                "hostname": 9527
+            }
+        })");
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
+    EXPECT_DEATH(config_file.Get<RecorderConfig>("recorder"), R"(Expect a non-empty string for "hostname".)");
 }
 
 }  // namespace cris::core

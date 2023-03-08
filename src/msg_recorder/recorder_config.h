@@ -29,6 +29,7 @@ struct RecorderConfig {
 
     std::vector<IntervalConfig> snapshot_intervals_;
     std::filesystem::path       record_dir_;
+    std::string                 hostname_;
     Rolling                     rolling_{Rolling::kNone};
     std::uint64_t               size_limit_mb_{std::numeric_limits<std::uint64_t>::max()};
 };

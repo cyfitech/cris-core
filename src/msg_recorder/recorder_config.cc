@@ -33,6 +33,12 @@ void ConfigDataParser(RecorderConfig& config, simdjson::ondemand::value& val) {
 
     ParseRollingConfig(config, obj);
 
+    static const string hostname_conf_error{R"(Expect a non-empty string for "hostname".)"};
+    string_view         hostname;
+    CRIS_CONF_JSON_ENTRY_WITH_MSG(hostname, obj, "hostname", config, hostname_conf_error);
+    RAW_CHECK(!hostname.empty(), hostname_conf_error.data());
+    config.hostname_ = hostname;
+
     simdjson::ondemand::array snapshot_intervals;
     if (const auto ec = obj["snapshot_intervals"].get(snapshot_intervals)) {
         if (simdjson::simdjson_error(ec).error() == simdjson::NO_SUCH_FIELD) {
