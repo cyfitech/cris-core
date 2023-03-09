@@ -88,6 +88,7 @@ RecorderConfig RecorderTest::GetTestConfig() const {
     return RecorderConfig{
         .snapshot_intervals_ = {},
         .record_dir_         = GetTestTempDir(),
+        .hostname_{},
     };
 }
 
