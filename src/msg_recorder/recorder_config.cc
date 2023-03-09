@@ -73,15 +73,15 @@ void ParseRollingConfig(RecorderConfig& config, simdjson::ondemand::object& obj)
     }
 
     static const std::map<std::string_view, RecorderConfig::Rolling> rollings{
-        {"day", RecorderConfig::Rolling::DAY},
-        {"hour", RecorderConfig::Rolling::HOUR},
-        {"size", RecorderConfig::Rolling::SIZE}};
+        {"day", RecorderConfig::Rolling::kDay},
+        {"hour", RecorderConfig::Rolling::kHour},
+        {"size", RecorderConfig::Rolling::kSize}};
 
     const auto itr = rollings.find(rolling_sv);
     RAW_CHECK(itr != rollings.cend(), R"(Expect a string for "rolling" be in ["day", "hour", "size"])");
 
     const auto rolling = itr->second;
-    if (rolling != RecorderConfig::Rolling::SIZE) {
+    if (rolling != RecorderConfig::Rolling::kSize) {
         config.rolling_ = rolling;
         return;
     }

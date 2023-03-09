@@ -13,10 +13,10 @@ namespace cris::core {
 
 struct RecorderConfig {
     enum class Rolling {
-        NONE = 0,
-        DAY  = 1,
-        HOUR = 2,
-        SIZE = 3,
+        kNone = 0,
+        kDay  = 1,
+        kHour = 2,
+        kSize = 3,
     };
 
     struct IntervalConfig {
@@ -29,7 +29,7 @@ struct RecorderConfig {
 
     std::vector<IntervalConfig> snapshot_intervals_;
     std::filesystem::path       record_dir_;
-    Rolling                     rolling_{Rolling::NONE};
+    Rolling                     rolling_{Rolling::kNone};
     std::uint64_t               size_limit_mb_{std::numeric_limits<std::uint64_t>::max()};
 };
 

@@ -174,7 +174,7 @@ TEST_F(RecordConfigTest, RecorderConfigTestDefault) {
 TEST_F(RecordConfigTest, NoRollingConfigOK) {
     auto recorder_config_file = MakeRecordConfigFile("{}");
     auto recorder_config      = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
-    EXPECT_EQ(RecorderConfig::Rolling::NONE, recorder_config.rolling_);
+    EXPECT_EQ(RecorderConfig::Rolling::kNone, recorder_config.rolling_);
 }
 
 TEST_F(RecordConfigTest, RollingConfigByDayOK) {
@@ -185,7 +185,7 @@ TEST_F(RecordConfigTest, RollingConfigByDayOK) {
             }
         })");
     auto recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
-    EXPECT_EQ(RecorderConfig::Rolling::DAY, recorder_config.rolling_);
+    EXPECT_EQ(RecorderConfig::Rolling::kDay, recorder_config.rolling_);
 }
 
 TEST_F(RecordConfigTest, RollingConfigByHourOK) {
@@ -196,7 +196,7 @@ TEST_F(RecordConfigTest, RollingConfigByHourOK) {
             }
         })");
     auto recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
-    EXPECT_EQ(RecorderConfig::Rolling::HOUR, recorder_config.rolling_);
+    EXPECT_EQ(RecorderConfig::Rolling::kHour, recorder_config.rolling_);
 }
 
 TEST_F(RecordConfigTest, RollingConfigBySizeOK) {
@@ -208,7 +208,7 @@ TEST_F(RecordConfigTest, RollingConfigBySizeOK) {
             }
         })");
     auto recorder_config = recorder_config_file.Get<RecorderConfig>("recorder")->GetValue();
-    EXPECT_EQ(RecorderConfig::Rolling::SIZE, recorder_config.rolling_);
+    EXPECT_EQ(RecorderConfig::Rolling::kSize, recorder_config.rolling_);
     EXPECT_EQ(100u, recorder_config.size_limit_mb_);
 }
 
