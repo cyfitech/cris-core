@@ -30,9 +30,15 @@ struct SnapshotInfo {
 
 class MessageRecorder : public CRNamedNode<MessageRecorder> {
    public:
-    using Base = CRNamedNode<MessageRecorder>;
+    using Base               = CRNamedNode<MessageRecorder>;
+    using FullRecordDirMaker = std::function<std::filesystem::path()>;
 
-    explicit MessageRecorder(const RecorderConfig& recorder_config, std::shared_ptr<JobRunner> runner);
+    explicit MessageRecorder(RecorderConfig recorder_config, std::shared_ptr<JobRunner> runner);
+
+    explicit MessageRecorder(
+        RecorderConfig             recorder_config,
+        std::shared_ptr<JobRunner> runner,
+        FullRecordDirMaker&&       dir_maker);
 
     MessageRecorder(const MessageRecorder&) = delete;
     MessageRecorder(MessageRecorder&&)      = delete;
@@ -50,7 +56,7 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
         const std::filesystem::path&                        snapshot_dir,
         const std::optional<RecorderConfig::IntervalConfig> interval_config = std::nullopt);
 
-    std::filesystem::path GetRecordDir() const;
+    const std::filesystem::path& GetRecordDir() const noexcept;
 
     // Mapping from interval names to snapshot lists. Snapshots are ordered from old to new in the lists.
     std::map<std::string, std::vector<std::filesystem::path>> GetSnapshotPaths();
@@ -75,12 +81,12 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     static std::string RecordDirNameGenerator();
     static std::string SnapshotDirNameGenerator();
 
-    const std::filesystem::path                  record_dir_;
+    const RecorderConfig                         recorder_config_;
+    const FullRecordDirMaker                     full_record_dir_maker_;
     std::vector<std::unique_ptr<RecordFile>>     files_;
     std::shared_ptr<cris::core::JobRunnerStrand> record_strand_;
 
     const std::size_t                                        snapshot_max_num_{48};
-    const std::vector<RecorderConfig::IntervalConfig>        snapshot_config_intervals_;
     std::atomic<bool>                                        snapshot_shutdown_flag_{false};
     std::mutex                                               snapshot_mtx_;
     std::condition_variable                                  snapshot_cv_;
