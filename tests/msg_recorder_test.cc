@@ -1,4 +1,5 @@
 #include "cris/core/msg/node.h"
+#include "cris/core/msg_recorder/impl/utils.h"
 #include "cris/core/msg_recorder/recorder.h"
 #include "cris/core/msg_recorder/recorder_config.h"
 #include "cris/core/msg_recorder/replayer.h"
@@ -6,6 +7,7 @@
 
 #include "gtest/gtest.h"
 
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <filesystem>
@@ -230,6 +232,48 @@ TEST_F(RecorderTest, RecorderTest) {
     TestReplay(2.0);
     TestReplay(0.5);
     TestReplayCanceled();
+}
+
+TEST(RecorderUtilsTest, FindMatchedSubdirsOK) {
+    namespace fs = std::filesystem;
+    constexpr std::array dirs{"a/b/c", "a/d/c", "e", "f"};
+
+    const auto dir_deleter = [](fs::path* path) {
+        fs::remove_all(*path);
+        delete path;
+    };
+    std::unique_ptr<fs::path, decltype(dir_deleter)> pdir{new fs::path{"./tmp-RecorderUtilsTest"}};
+    auto&                                            temp_dir = *pdir;
+
+    for (const auto& d : dirs) {
+        EXPECT_TRUE(fs::create_directories(temp_dir / d));
+    }
+
+    const std::string dir_name{"c"};
+    const auto        matches = impl::FindMatchedSubdirs(temp_dir, dir_name);
+    EXPECT_EQ(2u, matches.size());
+    EXPECT_EQ((temp_dir / "a/b/c"), matches[0]);
+    EXPECT_EQ((temp_dir / "a/d/c"), matches[1]);
+}
+
+TEST(RecorderUtilsTest, FindMatchedSubdirsNone) {
+    namespace fs = std::filesystem;
+    constexpr std::array dirs{"a/b/c", "a/d/c", "e", "f"};
+
+    const auto dir_deleter = [](fs::path* path) {
+        fs::remove_all(*path);
+        delete path;
+    };
+    std::unique_ptr<fs::path, decltype(dir_deleter)> pdir{new fs::path{"./tmp-RecorderUtilsTest"}};
+    auto&                                            temp_dir = *pdir;
+
+    for (const auto& d : dirs) {
+        EXPECT_TRUE(fs::create_directories(temp_dir / d));
+    }
+
+    const std::string dir_name{"h"};
+    const auto        matches = impl::FindMatchedSubdirs(temp_dir, dir_name);
+    EXPECT_TRUE(matches.empty());
 }
 
 }  // namespace cris::core
