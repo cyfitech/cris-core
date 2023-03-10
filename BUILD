@@ -78,6 +78,18 @@ cris_cc_library (
 )
 
 cris_cc_library (
+    name = "internal_rolling_helper",
+    srcs = ["src/msg_recorder/rolling_helper.cc"],
+    hdrs = ["src/msg_recorder/rolling_helper.h"],
+    include_prefix = "cris/core",
+    strip_include_prefix = "src",
+    deps = [
+        ":utils",
+    ],
+    visibility = ["//visibility:private"],
+)
+
+cris_cc_library (
     name = "internal_msg_record_file",
     srcs = ["src/msg_recorder/record_file.cc"],
     hdrs = ["src/msg_recorder/record_file.h"],
@@ -92,6 +104,7 @@ cris_cc_library (
     deps = [
         ":utils",
         ":internal_msg_record_key",
+        ":internal_rolling_helper",
     ],
     visibility = ["//visibility:private"],
 )

@@ -4,6 +4,7 @@
 #include "cris/core/msg/node.h"
 #include "cris/core/msg_recorder/record_file.h"
 #include "cris/core/msg_recorder/recorder_config.h"
+#include "cris/core/msg_recorder/rolling_helper.h"
 
 #include <atomic>
 #include <chrono>
@@ -30,15 +31,13 @@ struct SnapshotInfo {
 
 class MessageRecorder : public CRNamedNode<MessageRecorder> {
    public:
-    using Base               = CRNamedNode<MessageRecorder>;
-    using FullRecordDirMaker = std::function<std::filesystem::path()>;
-
-    explicit MessageRecorder(RecorderConfig recorder_config, std::shared_ptr<JobRunner> runner);
+    using Base                   = CRNamedNode<MessageRecorder>;
+    using RecordDirPathGenerator = RollingHelper::RecordDirPathGenerator;
 
     explicit MessageRecorder(
         RecorderConfig             recorder_config,
         std::shared_ptr<JobRunner> runner,
-        FullRecordDirMaker&&       dir_maker);
+        RecordDirPathGenerator     dir_path_generator = {});
 
     MessageRecorder(const MessageRecorder&) = delete;
     MessageRecorder(MessageRecorder&&)      = delete;
@@ -72,17 +71,18 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
 
     RecordFile* CreateFile(const std::string& message_type, const channel_subid_t subid, const std::string& alias);
 
+    bool CheckRollingSettings() const noexcept;
+
     bool GenerateSnapshotImpl(const std::filesystem::path& snapshot_dir);
     void MaintainMaxNumOfSnapshots(const RecorderConfig::IntervalConfig& interval_config);
 
     void SnapshotWorker();
     void StopSnapshotWorker();
 
-    static std::string RecordDirNameGenerator();
     static std::string SnapshotDirNameGenerator();
 
     const RecorderConfig                         recorder_config_;
-    const FullRecordDirMaker                     full_record_dir_maker_;
+    RecordDirPathGenerator                       full_record_dir_path_generator_;
     std::vector<std::unique_ptr<RecordFile>>     files_;
     std::shared_ptr<cris::core::JobRunnerStrand> record_strand_;
 
@@ -105,5 +105,13 @@ void MessageRecorder::RegisterChannel(const MessageRecorder::channel_subid_t sub
         [record_file](const std::shared_ptr<message_t>& message) { record_file->Write(MessageToStr(*message)); },
         record_strand_);
 }
+
+std::unique_ptr<RollingHelper> CreateRollingHelper(
+    const RecorderConfig::Rolling                rolling,
+    const RollingHelper::RecordDirPathGenerator* dir_path_generator);
+
+std::string GetRecordSubDirName(const RecorderConfig::Rolling rolling);
+
+std::string RecordDirNameGenerator();
 
 }  // namespace cris::core

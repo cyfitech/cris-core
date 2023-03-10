@@ -1,10 +1,12 @@
 #pragma once
 
 #include "cris/core/msg_recorder/record_key.h"
+#include "cris/core/msg_recorder/rolling_helper.h"
 
 #include "leveldb/db.h"
 
 #include <atomic>
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <string>
@@ -74,7 +76,10 @@ class RecordFileReverseIterator {
 
 class RecordFile {
    public:
-    explicit RecordFile(std::string file_path);
+    explicit RecordFile(
+        std::string                    filepath,
+        std::string                    linkname       = {},
+        std::unique_ptr<RollingHelper> rolling_helper = {});
 
     ~RecordFile();
 
@@ -104,9 +109,22 @@ class RecordFile {
     std::atomic_bool compact_before_close{false};
 
    protected:
-    std::string                  file_path_;
-    std::unique_ptr<leveldb::DB> db_;
-    bool                         legacy_{false};
+    [[nodiscard]] leveldb::DB* OpenDB(const std::string& path);
+
+    bool Roll();
+
+    void Write(const std::string& key, const std::string& value) const;
+
+    std::string                    filepath_;
+    std::string                    filename_;
+    std::string                    linkname_;
+    std::unique_ptr<RollingHelper> rolling_helper_;
+    std::unique_ptr<leveldb::DB>   db_;
+    bool                           legacy_{false};
 };
+
+bool MakeDirs(const std::filesystem::path& path);
+
+bool Symlink(const std::filesystem::path& to, const std::filesystem::path& from);
 
 }  // namespace cris::core
