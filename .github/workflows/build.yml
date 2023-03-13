@@ -57,7 +57,7 @@ jobs:
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
-      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=rel --config=prof --nocache_test_results --test_output=all -s //...
+      run: export HOME=/root && make test BAZEL_OPTS="--nocache_test_results --test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
   llvm12-ubuntu2004:
@@ -75,7 +75,7 @@ jobs:
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
-      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=rel --config=prof --nocache_test_results --test_output=all -s //...
+      run: export HOME=/root && make test BAZEL_OPTS="--nocache_test_results --test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
   llvm13-debian11:
@@ -93,7 +93,7 @@ jobs:
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
-      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=rel --config=prof --nocache_test_results --test_output=all -s //...
+      run: export HOME=/root && make test BAZEL_OPTS="--nocache_test_results --test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
   llvm14-ubuntu2204:
@@ -111,7 +111,7 @@ jobs:
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
-      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=rel --config=prof --nocache_test_results --test_output=all -s //...
+      run: export HOME=/root && make test BAZEL_OPTS="--nocache_test_results --test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
   gcc10-debian11:
@@ -129,7 +129,7 @@ jobs:
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
-      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=rel --config=prof --nocache_test_results --test_output=all -s //...
+      run: export HOME=/root && make test BAZEL_OPTS="--nocache_test_results --test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
   gcc10-ubuntu2004:
@@ -147,7 +147,7 @@ jobs:
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
-      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=rel --config=prof --nocache_test_results --test_output=all -s //...
+      run: export HOME=/root && make test BAZEL_OPTS="--nocache_test_results --test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
   gcc11-ubuntu2204:
@@ -167,7 +167,7 @@ jobs:
         cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
         cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
-      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=rel --config=prof --nocache_test_results --test_output=all -s //...
+      run: export HOME=/root && make test BAZEL_OPTS="--nocache_test_results --test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
   asan:
