@@ -11,6 +11,8 @@ export PYTHON_EXECUTABLE ?= python3
 
 export CMD ?= "$(PYTHON_EXECUTABLE)" -m pip config --user set global.index-url "$$(set -e; ROOT_DIR=/etc/roaster/scripts . /etc/roaster/scripts/geo/pip-mirror.sh >&2; printf "%s" "$$PIP_INDEX_URL")"; bash -i
 
+export BAZEL_OPTS ?=
+
 .PHONY: all
 all: ci
 
@@ -36,6 +38,7 @@ env:
 	    --cap-add=SYS_PTRACE                                                \
 	    --rm                                                                \
 	    --security-opt seccomp=unconfined                                   \
+	    $$([ ! -d "$$repo/.git/modules" ] || pwd | grep '[[:space:]]' >/dev/null || find "$$(realpath -e "$$repo")/.git/modules" -name 'lfs' -type d | xargs -rI{} printf '%s %s' '--tmpfs' {}) \
 	    $$([ ! "$$HTTP_PROXY"  ] || grep '[[:space:]]' <<< "$$HTTP_PROXY"  >/dev/null || echo "-e  HTTP_PROXY=$$HTTP_PROXY" )   \
 	    $$([ ! "$$HTTPS_PROXY" ] || grep '[[:space:]]' <<< "$$HTTPS_PROXY" >/dev/null || echo "-e HTTPS_PROXY=$$HTTPS_PROXY")   \
 	    $$([ ! "$$http_proxy"  ] || grep '[[:space:]]' <<< "$$http_proxy"  >/dev/null || echo "-e  http_proxy=$$http_proxy" )   \
@@ -46,12 +49,20 @@ env:
 	    -v  "bazel_$$vol_cache:/root/.cache/bazel"                          \
 	    -v "ccache_$$vol_cache:/root/.ccache"                               \
 	    -v    "pip_$$vol_cache:/root/.cache/pip"                            \
-	    -v "$$repo:$$repo:ro"                                               \
-	    $$([ ! -d 'run' ] || pwd | grep '[[:space:]]' >/dev/null || echo "-v $$(pwd)/run:$$(pwd)/run")  \
-	    $$([ ! -d 'tmp' ] || pwd | grep '[[:space:]]' >/dev/null || echo "-v $$(pwd)/tmp:$$(pwd)/tmp")  \
-	    -w "$$(pwd)"                                                        \
+	    -v "$$(realpath -e "$$repo"):$$(realpath -e "$$repo"):ro"           \
+	    $$([ ! -d 'run' ] || pwd | grep '[[:space:]]' >/dev/null || echo "-v $$(realpath -e .)/run:$$(realpath -e .)/run")  \
+	    $$([ ! -d 'tmp' ] || pwd | grep '[[:space:]]' >/dev/null || echo "-v $$(realpath -e .)/tmp:$$(realpath -e .)/tmp")  \
+	    -w "$$(realpath -e .)"                                              \
 	    '$(DOCKER_IMAGE)'                                                   \
-	    bash -cl 'set -e; $(CMD)'
+	    bash -cl ":;                                                        \
+	            set -e;                                                     \
+	            if [ '$$([ ! -L "$$(pwd)" ] || printf 'symlink')' ]; then   \
+	                mkdir -p "$$(dirname "$$(pwd)")";                       \
+	                ln -sf '$$(realpath -e .)' '$$(pwd)';                   \
+	            fi;                                                         \
+	            cd '$$(pwd)';                                               \
+	            cd .;                                                       \
+	        "'$(CMD)'
 
 .PHONY: ci
 ci:
@@ -67,11 +78,11 @@ tidy: scripts/bazel_wrapper.sh | lint
 
 .PHONY: build
 build: scripts/bazel_wrapper.sh scripts/distro_cc.sh
-	$< build //...
+	$< build --config=prof --config=rel $(BAZEL_OPTS) //...
 
 .PHONY: test
 test: scripts/bazel_wrapper.sh scripts/distro_cc.sh
-	$< test --config=rel --nocache_test_results --test_output=errors //...
+	$< test --config=prof --config=rel --test_output=errors $(BAZEL_OPTS) //...
 
 .PHONY: sync
 sync: scripts/bazel_pull.sh
