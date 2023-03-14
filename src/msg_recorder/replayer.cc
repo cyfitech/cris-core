@@ -79,7 +79,17 @@ void MessageReplayer::StopMainLoop() {
 }
 
 RecordFileIterator MessageReplayer::GetRecordItr(const std::string& message_type, channel_subid_t subid) {
-    const auto file_path = GetRecordDir() / impl::GetMessageRecordFileName(message_type, subid);
+    const auto filename = impl::GetMessageRecordFileName(message_type, subid);
+
+    const auto matched_files = impl::FindMatchedSubdirs(GetRecordDir(), filename);
+    LOG_IF(ERROR, matched_files.empty()) << "No record file found, record dir=" << GetRecordDir();
+
+    // TODO(yanglu1225): Support rolled (multiple) record dirs
+    LOG_IF(WARNING, matched_files.size() > 1)
+        << "Found multiple record files (dirs), is the record data rolled? Will use the first one (in lexical order)="
+        << matched_files[0];
+
+    const auto& file_path = matched_files[0];
     return record_files_.emplace_back(std::make_unique<RecordFile>(file_path))->Iterate();
 }
 
