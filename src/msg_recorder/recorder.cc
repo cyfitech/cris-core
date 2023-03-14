@@ -21,13 +21,22 @@
 
 namespace cris::core {
 
-MessageRecorder::MessageRecorder(const RecorderConfig& recorder_config, std::shared_ptr<JobRunner> runner)
+MessageRecorder::MessageRecorder(RecorderConfig recorder_config, std::shared_ptr<JobRunner> runner)
     : Base(std::move(runner))
-    , record_dir_(recorder_config.record_dir_ / RecordDirNameGenerator())
+    , recorder_config_(std::move(recorder_config))
     , record_strand_(MakeStrand())
-    , snapshot_config_intervals_(recorder_config.snapshot_intervals_)
     , snapshot_thread_(std::thread([this] { SnapshotWorker(); })) {
-    std::filesystem::create_directories(record_dir_);
+}
+
+MessageRecorder::MessageRecorder(
+    RecorderConfig             recorder_config,
+    std::shared_ptr<JobRunner> runner,
+    FullRecordDirMaker&&       dir_maker)
+    : Base(std::move(runner))
+    , recorder_config_(std::move(recorder_config))
+    , full_record_dir_maker_(std::move(dir_maker))
+    , record_strand_(MakeStrand())
+    , snapshot_thread_(std::thread([this] { SnapshotWorker(); })) {
 }
 
 void MessageRecorder::SetSnapshotJobPreStartCallback(
@@ -41,7 +50,8 @@ void MessageRecorder::SetSnapshotJobPostFinishCallback(
 }
 
 void MessageRecorder::SnapshotWorker() {
-    if (snapshot_config_intervals_.empty()) {
+    const auto& snapshot_intervals = recorder_config_.snapshot_intervals_;
+    if (snapshot_intervals.empty()) {
         return;
     }
 
@@ -60,7 +70,7 @@ void MessageRecorder::SnapshotWorker() {
     std::priority_queue<WakeUpConfig, std::vector<WakeUpConfig>, decltype(compare)> wake_up_queue;
 
     const auto current_time = std::chrono::steady_clock::now();
-    for (const auto& interval : snapshot_config_intervals_) {
+    for (const auto& interval : snapshot_intervals) {
         wake_up_queue.push(WakeUpConfig{
             .interval_config = interval,
             .wake_time       = current_time,
@@ -79,7 +89,7 @@ void MessageRecorder::SnapshotWorker() {
             current_snapshot_wakeup.wake_time + current_snapshot_wakeup.interval_config.period_;
 
         if ((next_wake_time_for_this_interval - std::chrono::steady_clock::now()) > kSkipThreshold) {
-            const auto snapshot_dir = record_dir_.parent_path() / std::string("snapshots") /
+            const auto snapshot_dir = GetRecordDir().parent_path() / std::string("snapshots") /
                 current_snapshot_wakeup.interval_config.name_ / SnapshotDirNameGenerator();
             if (GenerateSnapshot(snapshot_dir, current_snapshot_wakeup.interval_config)) {
                 std::lock_guard lck(snapshot_mtx_);
@@ -175,10 +185,10 @@ bool MessageRecorder::GenerateSnapshotImpl(const std::filesystem::path& snapshot
 
     {
         std::error_code ec;
-        std::filesystem::copy(record_dir_, snapshot_dir, options, ec);
+        std::filesystem::copy(GetRecordDir(), snapshot_dir, options, ec);
         if (ec) {
-            LOG(ERROR) << __func__ << ": Failed to copy record directory " << record_dir_ << " to snapshot directory "
-                       << snapshot_dir << ". " << ec.message();
+            LOG(ERROR) << __func__ << ": Failed to copy record directory " << GetRecordDir()
+                       << " to snapshot directory " << snapshot_dir << ". " << ec.message();
             generated_successful_flag = false;
         }
     }
@@ -218,8 +228,8 @@ std::string MessageRecorder::SnapshotDirNameGenerator() {
         now);
 }
 
-std::filesystem::path MessageRecorder::GetRecordDir() const {
-    return record_dir_;
+const std::filesystem::path& MessageRecorder::GetRecordDir() const noexcept {
+    return recorder_config_.record_dir_;
 }
 
 std::map<std::string, std::vector<std::filesystem::path>> MessageRecorder::GetSnapshotPaths() {
@@ -236,9 +246,20 @@ RecordFile* MessageRecorder::CreateFile(
     const std::string&                     message_type,
     const MessageRecorder::channel_subid_t subid,
     const std::string&                     alias) {
-    auto filename = impl::GetMessageRecordFileName(message_type, subid);
-    auto path     = GetRecordDir() / filename;
+    namespace fs = std::filesystem;
 
+    const auto filename = impl::GetMessageRecordFileName(message_type, subid);
+    const auto dir      = full_record_dir_maker_ ? full_record_dir_maker_() : GetRecordDir() / RecordDirNameGenerator();
+
+    {
+        std::error_code ec{};
+        if (!fs::is_directory(dir) && !fs::create_directories(dir, ec) && ec) {
+            LOG(ERROR) << __func__ << ": Fail to create directory=" << dir.native() << ", error=" << ec.message();
+            return nullptr;
+        }
+    }
+
+    const auto  path        = dir / filename;
     RecordFile* record_file = nullptr;
     {
         std::lock_guard lck(snapshot_mtx_);
@@ -246,7 +267,9 @@ RecordFile* MessageRecorder::CreateFile(
     }
 
     if (!alias.empty()) {
-        std::filesystem::create_symlink(filename, GetRecordDir() / alias);
+        std::error_code ec{};
+        fs::create_symlink(path, dir / alias, ec);
+        LOG_IF(WARNING, ec) << __func__ << ": Fail to create symlink to " << dir.native() << ", error=" << ec.message();
     }
 
     return record_file;
