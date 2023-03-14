@@ -253,8 +253,8 @@ RecordFile* MessageRecorder::CreateFile(
 
     {
         std::error_code ec{};
-        if (!fs::is_directory(dir) && !fs::create_directories(dir, ec) && ec) {
-            LOG(ERROR) << __func__ << ": Fail to create directory=" << dir.native() << ", error=" << ec.message();
+        if (!fs::create_directories(dir, ec) && ec) {
+            LOG(ERROR) << __func__ << ": Failed to create directory " << dir << ", error \"" << ec.message() << "\".";
             return nullptr;
         }
     }
@@ -269,7 +269,8 @@ RecordFile* MessageRecorder::CreateFile(
     if (!alias.empty()) {
         std::error_code ec{};
         fs::create_symlink(path, dir / alias, ec);
-        LOG_IF(WARNING, ec) << __func__ << ": Fail to create symlink to " << dir.native() << ", error=" << ec.message();
+        LOG_IF(WARNING, ec) << __func__ << ": Failed to create symlink to " << dir << ", error \"" << ec.message()
+                            << "\".";
     }
 
     return record_file;
