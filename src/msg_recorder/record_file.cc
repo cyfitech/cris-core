@@ -13,6 +13,8 @@
 #include <type_traits>
 #include <utility>
 
+namespace fs = std::filesystem;
+
 namespace cris::core {
 
 class RecordFileKeyLdbCmp : public leveldb::Comparator {
@@ -132,7 +134,11 @@ void RecordFileReverseIterator::ReadPrevValidKey() {
     }
 }
 
-RecordFile::RecordFile(std::string file_path) : file_path_(std::move(file_path)) {
+RecordFile::RecordFile(std::string filepath, std::string linkname, std::unique_ptr<RollingHelper> rolling_helper)
+    : filepath_{std::move(filepath)}
+    , filename_{fs::path{filepath_}.filename().native()}
+    , linkname_{std::move(linkname)}
+    , rolling_helper_{std::move(rolling_helper)} {
     OpenDB();
 }
 
@@ -140,8 +146,13 @@ RecordFile::~RecordFile() {
     const auto is_empty = Empty();
     CloseDB();
     if (is_empty) {
-        LOG(INFO) << "Record \"" << file_path_ << "\" is empty, removing.";
-        std::filesystem::remove_all(file_path_);
+        if (!linkname_.empty()) {
+            const auto symlink_path = fs::path{filepath_}.parent_path() / linkname_;
+            fs::remove(symlink_path);
+        }
+
+        LOG(INFO) << "Record \"" << filepath_ << "\" is empty, removing.";
+        fs::remove_all(filepath_);
     }
 }
 
@@ -151,29 +162,50 @@ bool RecordFile::OpenDB() {
         return false;
     }
 
-    if (file_path_.empty()) {
+    if (filepath_.empty()) {
         LOG(ERROR) << __func__ << ": Failed to open the database, the file path is empty.";
         return false;
     }
 
-    leveldb::DB*     db = nullptr;
+    leveldb::DB* db = OpenDB(filepath_);
+    if (db == nullptr) {
+        return false;
+    }
+
+    db_.reset(db);
+    return true;
+}
+
+leveldb::DB* RecordFile::OpenDB(const std::string& path) {
+    const fs::path filepath{path};
+    const fs::path dir{filepath.parent_path()};
+    if (!MakeDirs(dir)) {
+        LOG(ERROR) << __func__ << ": Failed to OpenDB().";
+        return nullptr;
+    }
+
     leveldb::Options options;
     options.create_if_missing = true;
 
-    auto status = leveldb::DB::Open(options, file_path_, &db);
+    leveldb::DB* db     = nullptr;
+    auto         status = leveldb::DB::Open(options, path, &db);
     if (!status.ok()) {
         static RecordFileKeyLdbCmp legacy_cmp;
         options.comparator = &legacy_cmp;
-        status             = leveldb::DB::Open(options, file_path_, &db);
+        status             = leveldb::DB::Open(options, path, &db);
         legacy_            = true;
     }
     if (!status.ok()) [[unlikely]] {
-        LOG(ERROR) << __func__ << ": Failed to create record file \"" << file_path_
-                   << "\", status: " << status.ToString();
-        return false;
+        LOG(ERROR) << __func__ << ": Failed to create record file " << filepath << ", status: " << status.ToString();
+        return nullptr;
     }
-    db_.reset(db);
-    return true;
+
+    const auto symlink_path = dir / linkname_;
+    if (!fs::exists(symlink_path)) {
+        Symlink(filepath, symlink_path);
+    }
+
+    return db;
 }
 
 void RecordFile::CloseDB() {
@@ -194,12 +226,58 @@ void RecordFile::Write(std::string serialized_value) {
 }
 
 void RecordFile::Write(RecordFileKey key, std::string serialized_value) {
-    auto           key_str = key.ToBytes();
-    leveldb::Slice key_slice(key_str);
-    leveldb::Slice value_slice = serialized_value;
-    auto           status      = db_->Put(leveldb::WriteOptions(), key_slice, value_slice);
+    const auto key_str = key.ToBytes();
+
+    const RollingHelper::Metadata metadata{
+        .time       = std::chrono::system_clock::now(),
+        .value_size = serialized_value.size()};
+    if (!rolling_helper_) {
+        Write(key_str, serialized_value);
+        return;
+    }
+
+    if (!rolling_helper_->NeedToRoll(metadata) || Roll()) {
+        Write(key_str, serialized_value);
+        rolling_helper_->Update(metadata);
+        return;
+    }
+
+    LOG(ERROR) << __func__ << ": Failed to roll records, fallback to current db.";
+    Write(key_str, serialized_value);
+}
+
+bool RecordFile::Roll() {
+    const auto dirpath = rolling_helper_->GenerateFullRecordDirPath();
+    if (!MakeDirs(dirpath)) {
+        LOG(ERROR) << __func__ << "Failed to roll records.";
+        return false;
+    }
+
+    const auto path     = dirpath / filename_;
+    auto       path_str = path.native();
+
+    decltype(db_) new_db{OpenDB(path_str)};
+    if (new_db == nullptr) {
+        LOG(ERROR) << __func__ << ": Failed to open new db for rolling, path " << path;
+        return false;
+    }
+    Symlink(path, dirpath / linkname_);
+    CloseDB();
+
+    db_       = std::move(new_db);
+    filepath_ = std::move(path_str);
+
+    rolling_helper_->Reset();
+
+    return true;
+}
+
+void RecordFile::Write(const std::string& key, const std::string& value) const {
+    leveldb::Slice key_slice{key};
+    leveldb::Slice value_slice{value};
+    auto           status = db_->Put(leveldb::WriteOptions(), key_slice, value_slice);
     if (!status.ok()) [[unlikely]] {
-        LOG(ERROR) << __func__ << ": Failed to write to record file \"" << file_path_
+        LOG(ERROR) << __func__ << ": Failed to write to record file \"" << filepath_
                    << "\", status: " << status.ToString();
     }
 }
@@ -226,6 +304,30 @@ bool RecordFile::Empty() const {
 
 void RecordFile::Compact() {
     db_->CompactRange(nullptr, nullptr);
+}
+
+bool MakeDirs(const std::filesystem::path& path) {
+    std::error_code ec{};
+    if (!fs::create_directories(path, ec) && ec) {
+        LOG(ERROR) << __func__ << ": Failed to create dir " << path << "with error \"" << ec.message() << "\".";
+        return false;
+    }
+
+    return true;
+}
+
+bool Symlink(const std::filesystem::path& to, const std::filesystem::path& from) {
+    if (from.empty()) {
+        LOG(WARNING) << __func__ << ": Failed to create symlink since empty link name provided.";
+        return false;
+    }
+
+    std::error_code ec{};
+    fs::create_symlink(to, from, ec);
+    const bool has_error = ec.operator bool();
+    LOG_IF(WARNING, has_error) << __func__ << ": Failed to create symlink to " << to << "with error \"" << ec.message()
+                               << "\".";
+    return has_error;
 }
 
 }  // namespace cris::core

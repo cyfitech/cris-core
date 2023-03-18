@@ -187,6 +187,15 @@ cris_cc_test (
 )
 
 cris_cc_test (
+    name = "rolling_helper_test",
+    srcs = ["rolling_helper_test.cc"],
+    deps = [
+        "//:msg_recorder",
+        "@cris-core//tests:cris_gtest_main",
+    ],
+)
+
+cris_cc_test (
     name = "stacktrace_test",
     srcs = ["stacktrace_test.cc"],
     deps = [

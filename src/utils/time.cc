@@ -92,6 +92,10 @@ std::string GetCurrentUtcHour() {
     return fmt::format("{}{:02}", to_iso_string(utc_time.date()), utc_time.time_of_day().hours());
 }
 
+std::string GetCurrentUtcTime() {
+    return boost::posix_time::to_iso_string(boost::posix_time::second_clock::universal_time());
+}
+
 bool SameUtcDay(const std::chrono::system_clock::time_point x, const std::chrono::system_clock::time_point y) noexcept {
     using std::chrono::days;
     using std::chrono::duration_cast;

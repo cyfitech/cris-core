@@ -1,6 +1,8 @@
 #include "cris/core/msg_recorder/recorder.h"
 
+#include "cris/core/msg_recorder/recorder_config.h"
 #include "cris/core/utils/logging.h"
+#include "cris/core/utils/time.h"
 
 #include "fmt/chrono.h"
 #include "fmt/core.h"
@@ -9,6 +11,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <exception>
 #include <filesystem>
 #include <memory>
 #include <mutex>
@@ -21,22 +24,26 @@
 
 namespace cris::core {
 
-MessageRecorder::MessageRecorder(RecorderConfig recorder_config, std::shared_ptr<JobRunner> runner)
-    : Base(std::move(runner))
-    , recorder_config_(std::move(recorder_config))
-    , record_strand_(MakeStrand())
-    , snapshot_thread_(std::thread([this] { SnapshotWorker(); })) {
-}
-
 MessageRecorder::MessageRecorder(
     RecorderConfig             recorder_config,
     std::shared_ptr<JobRunner> runner,
-    FullRecordDirMaker&&       dir_maker)
+    RecordDirPathGenerator     dir_path_generator)
     : Base(std::move(runner))
     , recorder_config_(std::move(recorder_config))
-    , full_record_dir_maker_(std::move(dir_maker))
+    , full_record_dir_path_generator_(std::move(dir_path_generator))
     , record_strand_(MakeStrand())
     , snapshot_thread_(std::thread([this] { SnapshotWorker(); })) {
+    CHECK(CheckRollingSettings()) << "Dir path generator MUST be valid when rolling enabled!";
+
+    if (!full_record_dir_path_generator_) {  // Rolling is not enabled
+        full_record_dir_path_generator_ = [this] {
+            return GetRecordDir() / GetRecordSubDirName(RecorderConfig::Rolling::kNone);
+        };
+    }
+}
+
+bool MessageRecorder::CheckRollingSettings() const noexcept {
+    return recorder_config_.rolling_ == RecorderConfig::Rolling::kNone || !full_record_dir_path_generator_;
 }
 
 void MessageRecorder::SetSnapshotJobPreStartCallback(
@@ -210,10 +217,6 @@ void MessageRecorder::MaintainMaxNumOfSnapshots(const RecorderConfig::IntervalCo
     }
 }
 
-std::string MessageRecorder::RecordDirNameGenerator() {
-    return fmt::format("record.{:%Y%m%d-%H%M%S.%Z}.pid.{}", std::chrono::system_clock::now(), getpid());
-}
-
 std::string MessageRecorder::SnapshotDirNameGenerator() {
     using print_duration_t            = std::chrono::nanoseconds;
     constexpr auto print_tick_per_sec = print_duration_t::period::den / print_duration_t::period::num;
@@ -248,32 +251,44 @@ RecordFile* MessageRecorder::CreateFile(
     const std::string&                     alias) {
     namespace fs = std::filesystem;
 
-    const auto filename = impl::GetMessageRecordFileName(message_type, subid);
-    const auto dir      = full_record_dir_maker_ ? full_record_dir_maker_() : GetRecordDir() / RecordDirNameGenerator();
+    const auto filename       = impl::GetMessageRecordFileName(message_type, subid);
+    const auto dir            = full_record_dir_path_generator_();
+    auto       rolling_helper = CreateRollingHelper(recorder_config_.rolling_, &full_record_dir_path_generator_);
 
-    {
-        std::error_code ec{};
-        if (!fs::create_directories(dir, ec) && ec) {
-            LOG(ERROR) << __func__ << ": Failed to create directory " << dir << ", error \"" << ec.message() << "\".";
+    std::lock_guard lck(snapshot_mtx_);
+    return files_.emplace_back(std::make_unique<RecordFile>(dir / filename, alias, std::move(rolling_helper))).get();
+}
+
+std::unique_ptr<RollingHelper> CreateRollingHelper(
+    const RecorderConfig::Rolling                rolling,
+    const RollingHelper::RecordDirPathGenerator* dir_path_generator) {
+    switch (rolling) {
+        case RecorderConfig::Rolling::kNone:
             return nullptr;
-        }
+        case RecorderConfig::Rolling::kDay:
+            return std::make_unique<RollingByDayHelper>(dir_path_generator);
+        case RecorderConfig::Rolling::kHour:
+            return std::make_unique<RollingByHourHelper>(dir_path_generator);
+        case RecorderConfig::Rolling::kSize:
+            // Not supported currently
+        default:
+            throw std::logic_error{fmt::format("Unsupported record rolling strategy={}.", static_cast<int>(rolling))};
     }
+}
 
-    const auto  path        = dir / filename;
-    RecordFile* record_file = nullptr;
-    {
-        std::lock_guard lck(snapshot_mtx_);
-        record_file = files_.emplace_back(std::make_unique<RecordFile>(path)).get();
+std::string GetRecordSubDirName(const RecorderConfig::Rolling rolling) {
+    switch (rolling) {
+        case RecorderConfig::Rolling::kNone:
+            return fmt::format("{}.pid.{}", GetCurrentUtcTime(), getpid());
+        case RecorderConfig::Rolling::kDay:
+            return GetCurrentUtcDate();
+        case RecorderConfig::Rolling::kHour:
+            return GetCurrentUtcHour();
+        case RecorderConfig::Rolling::kSize:
+            // Not supported currently
+        default:
+            throw std::logic_error{fmt::format("Unsupported record rolling strategy={}.", static_cast<int>(rolling))};
     }
-
-    if (!alias.empty()) {
-        std::error_code ec{};
-        fs::create_symlink(path, dir / alias, ec);
-        LOG_IF(WARNING, ec) << __func__ << ": Failed to create symlink to " << dir << ", error \"" << ec.message()
-                            << "\".";
-    }
-
-    return record_file;
 }
 
 }  // namespace cris::core
