@@ -82,7 +82,8 @@ RecordFileIterator MessageReplayer::GetRecordItr(const std::string& message_type
     const auto filename = impl::GetMessageRecordFileName(message_type, subid);
 
     const auto matched_files = impl::FindMatchedSubdirs(GetRecordDir(), filename);
-    LOG_IF(ERROR, matched_files.empty()) << "No record file found, record dir=" << GetRecordDir();
+    LOG_IF(ERROR, matched_files.empty()) << "Record file \"" << filename << "\" not found, record dir "
+                                         << GetRecordDir();
 
     // TODO(yanglu1225): Support rolled (multiple) record dirs
     LOG_IF(WARNING, matched_files.size() > 1)
