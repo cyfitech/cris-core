@@ -100,6 +100,8 @@ class RecordFile {
 
     bool IsOpen() const;
 
+    const std::string& GetFilePath() const;
+
     void Compact();
 
     bool OpenDB();
@@ -116,8 +118,8 @@ class RecordFile {
     void Write(const std::string& key, const std::string& value) const;
 
     std::string                    filepath_;
-    std::string                    filename_;
-    std::string                    linkname_;
+    const std::string              filename_;
+    const std::string              linkname_;
     std::unique_ptr<RollingHelper> rolling_helper_;
     std::unique_ptr<leveldb::DB>   db_;
     bool                           legacy_{false};
