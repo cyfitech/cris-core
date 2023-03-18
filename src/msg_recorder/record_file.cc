@@ -145,15 +145,19 @@ RecordFile::RecordFile(std::string filepath, std::string linkname, std::unique_p
 RecordFile::~RecordFile() {
     const auto is_empty = Empty();
     CloseDB();
-    if (is_empty) {
-        if (!linkname_.empty()) {
-            const auto symlink_path = fs::path{filepath_}.parent_path() / linkname_;
-            fs::remove(symlink_path);
-        }
-
-        LOG(INFO) << "Record \"" << filepath_ << "\" is empty, removing.";
-        fs::remove_all(filepath_);
+    if (!is_empty) {
+        return;
     }
+
+    if (!linkname_.empty()) {
+        const auto linkpath = fs::path{filepath_}.parent_path() / linkname_;
+        if (fs::is_symlink(linkpath)) {
+            fs::remove(linkpath);
+        }
+    }
+
+    LOG(INFO) << "Record \"" << filepath_ << "\" is empty, removing.";
+    fs::remove_all(filepath_);
 }
 
 bool RecordFile::OpenDB() {
@@ -200,9 +204,9 @@ leveldb::DB* RecordFile::OpenDB(const std::string& path) {
         return nullptr;
     }
 
-    const auto symlink_path = dir / linkname_;
-    if (!fs::exists(symlink_path)) {
-        Symlink(filepath, symlink_path);
+    const auto linkpath = dir / linkname_;
+    if (!fs::exists(linkpath)) {
+        Symlink(filepath, linkpath);
     }
 
     return db;
