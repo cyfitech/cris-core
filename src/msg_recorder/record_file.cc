@@ -145,15 +145,19 @@ RecordFile::RecordFile(std::string filepath, std::string linkname, std::unique_p
 RecordFile::~RecordFile() {
     const auto is_empty = Empty();
     CloseDB();
-    if (is_empty) {
-        if (!linkname_.empty()) {
-            const auto symlink_path = fs::path{filepath_}.parent_path() / linkname_;
-            fs::remove(symlink_path);
-        }
-
-        LOG(INFO) << "Record \"" << filepath_ << "\" is empty, removing.";
-        fs::remove_all(filepath_);
+    if (!is_empty) {
+        return;
     }
+
+    if (!linkname_.empty()) {
+        const auto linkpath = fs::path{filepath_}.parent_path() / linkname_;
+        if (fs::is_symlink(linkpath)) {
+            fs::remove(linkpath);
+        }
+    }
+
+    LOG(INFO) << "Record \"" << filepath_ << "\" is empty, removing.";
+    fs::remove_all(filepath_);
 }
 
 bool RecordFile::OpenDB() {
@@ -180,7 +184,7 @@ leveldb::DB* RecordFile::OpenDB(const std::string& path) {
     const fs::path filepath{path};
     const fs::path dir{filepath.parent_path()};
     if (!MakeDirs(dir)) {
-        LOG(ERROR) << __func__ << ": Failed to OpenDB().";
+        LOG(ERROR) << __func__ << ": Failed to OpenDB(), failed to create dirs.";
         return nullptr;
     }
 
@@ -200,9 +204,9 @@ leveldb::DB* RecordFile::OpenDB(const std::string& path) {
         return nullptr;
     }
 
-    const auto symlink_path = dir / linkname_;
-    if (!fs::exists(symlink_path)) {
-        Symlink(filepath, symlink_path);
+    const auto linkpath = dir / linkname_;
+    if (!fs::exists(linkpath)) {
+        Symlink(filepath, linkpath);
     }
 
     return db;
@@ -247,13 +251,7 @@ void RecordFile::Write(RecordFileKey key, std::string serialized_value) {
 }
 
 bool RecordFile::Roll() {
-    const auto dirpath = rolling_helper_->GenerateFullRecordDirPath();
-    if (!MakeDirs(dirpath)) {
-        LOG(ERROR) << __func__ << "Failed to roll records.";
-        return false;
-    }
-
-    const auto path     = dirpath / filename_;
+    const auto path     = rolling_helper_->GenerateFullRecordDirPath() / filename_;
     auto       path_str = path.native();
 
     decltype(db_) new_db{OpenDB(path_str)};
@@ -261,9 +259,8 @@ bool RecordFile::Roll() {
         LOG(ERROR) << __func__ << ": Failed to open new db for rolling, path " << path;
         return false;
     }
-    Symlink(path, dirpath / linkname_);
-    CloseDB();
 
+    CloseDB();
     db_       = std::move(new_db);
     filepath_ = std::move(path_str);
 
@@ -302,6 +299,10 @@ bool RecordFile::Empty() const {
     return !Iterate().Valid();
 }
 
+const std::string& RecordFile::GetFilePath() const {
+    return filepath_;
+}
+
 void RecordFile::Compact() {
     db_->CompactRange(nullptr, nullptr);
 }
@@ -325,7 +326,7 @@ bool Symlink(const std::filesystem::path& to, const std::filesystem::path& from)
     std::error_code ec{};
     fs::create_symlink(to, from, ec);
     const bool has_error = ec.operator bool();
-    LOG_IF(WARNING, has_error) << __func__ << ": Failed to create symlink to " << to << "with error \"" << ec.message()
+    LOG_IF(WARNING, has_error) << __func__ << ": Failed to create symlink to " << to << " with error \"" << ec.message()
                                << "\".";
     return has_error;
 }
