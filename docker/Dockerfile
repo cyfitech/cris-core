@@ -211,14 +211,16 @@ RUN set -e; \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-20\.04$' >/dev/null || echo libc++{,abi}-12-dev lldb-12) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$' >/dev/null || echo libc++{,abi}-14-dev lldb-14) \
                 liblz4-dev liblz4-tool \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-20\.04$' >/dev/null || echo libomp5-10) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-20\.04$' >/dev/null || echo libomp-10-dev) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^debian\-11$'     >/dev/null || echo libomp-13-dev) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$' >/dev/null || echo libomp-14-dev) \
                 libpapi-dev papi-tools \
                 libtool \
                 llvm-11{,-tools} {clang{,-{format,tidy,tools}},lld}-11 \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[02]\.04$' >/dev/null || echo llvm-12{,-tools} {clang{,-{format,tidy,tools}},lld}-12) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[02]\.04$'  >/dev/null || echo llvm-12{,-tools} {clang{,-{format,tidy,tools}},lld}-12) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[024]\.04$' >/dev/null || echo llvm-13{,-tools} {clang{,-{format,tidy,tools}},lld}-13) \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^debian\-1[12]$' >/dev/null || echo llvm-13{,-tools} {clang{,-{format,tidy,tools}},lld}-13) \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$' >/dev/null || echo llvm-14{,-tools} {clang{,-{format,tidy,tools}},lld}-14) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^debian\-1[12]$'      >/dev/null || echo llvm-13{,-tools} {clang{,-{format,tidy,tools}},lld}-13) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$'  >/dev/null || echo llvm-14{,-tools} {clang{,-{format,tidy,tools}},lld}-14) \
                 locales \
                 locate \
                 lshw \
@@ -226,6 +228,7 @@ RUN set -e; \
                 liblz4-dev liblz4-tool \
                 m4 \
                 make \
+                man \
                 moreutils \
                 mtr \
                 net-tools \
@@ -234,6 +237,7 @@ RUN set -e; \
                 openssh-{client,server} \
                 pigz \
                 pkg-config \
+                privoxy \
                 procps \
                 pv \
                 python3{,-pip} \
@@ -247,6 +251,7 @@ RUN set -e; \
                 sysstat \
                 tar \
                 time \
+                traceroute \
                 tree \
                 util-linux \
                 uuid-{dev,runtime} \
