@@ -31,7 +31,7 @@ class RecordFileTestFixture : public ::testing::Test {
 
     ~RecordFileTestFixture() override { fs::remove_all(GetTopDir()); }
 
-    const fs::path& GetTopDir() const noexcept { return temp_test_dir_; }
+    const fs::path& GetTopDir() const { return temp_test_dir_; }
 
    protected:
     const fs::path                              temp_test_dir_;
@@ -53,11 +53,11 @@ TEST_F(RecordFileTestFixture, Symlink_OK) {
 
 class MockRollingHelper : public RollingHelper {
    public:
-    MockRollingHelper(const RecordDirPathGenerator* const dir_path_maker) noexcept : RollingHelper{dir_path_maker} {}
+    explicit MockRollingHelper(const RecordDirPathGenerator* const dir_path_maker) : RollingHelper{dir_path_maker} {}
 
-    MOCK_METHOD(bool, NeedToRoll, (const Metadata metadata), (const, override));
-    MOCK_METHOD(void, Update, (const Metadata metadata), (override));
-    MOCK_METHOD(void, Reset, (), (noexcept, override));
+    MOCK_METHOD(bool, NeedToRoll, (const Metadata& metadata), (const, override));
+    MOCK_METHOD(void, Update, (const Metadata& metadata), (override));
+    MOCK_METHOD(void, Reset, (), (override));
     MOCK_METHOD(std::filesystem::path, GenerateFullRecordDirPath, (), (const));
 };
 
@@ -75,7 +75,7 @@ TEST_F(RecordFileTestFixture, NoNeedToRoll_OK) {
     EXPECT_CALL(mock_rolling_helper, GenerateFullRecordDirPath()).Times(0);
 
     RecordFile record_file{filepath.native(), linkname, std::move(mock_rolling_helper_ptr)};
-    record_file.Write("hah");
+    record_file.Write("abc");
     EXPECT_EQ(filepath.native(), record_file.GetFilePath());
 }
 
@@ -93,7 +93,7 @@ TEST_F(RecordFileTestFixture, Roll_OK) {
     EXPECT_CALL(mock_rolling_helper, Reset()).Times(1);
     EXPECT_CALL(mock_rolling_helper, GenerateFullRecordDirPath()).Times(1).WillOnce(Return(next_dirpath));
 
-    constexpr std::string_view value{"haha"};
+    constexpr std::string_view value{"abc"};
     RecordFile                 record_file{filepath.native(), linkname, std::move(mock_rolling_helper_ptr)};
     const auto                 key = RecordFileKey::Make();
     record_file.Write(key, std::string{value});

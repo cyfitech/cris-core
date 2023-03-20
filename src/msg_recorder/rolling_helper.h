@@ -23,9 +23,9 @@ class RollingHelper {
     explicit RollingHelper(const RecordDirPathGenerator* const dir_path_generator);
     virtual ~RollingHelper() = default;
 
-    virtual bool NeedToRoll(const Metadata metadata) const = 0;
+    virtual bool NeedToRoll(const Metadata& metadata) const = 0;
 
-    virtual void Update(const Metadata metadata) = 0;
+    virtual void Update(const Metadata& metadata) = 0;
 
     virtual void Reset();
 
@@ -40,9 +40,9 @@ class RollingByDayHelper : public RollingHelper {
     explicit RollingByDayHelper(const RecordDirPathGenerator* const dir_path_generator);
     ~RollingByDayHelper() override = default;
 
-    bool NeedToRoll(const Metadata metadata) const override;
+    bool NeedToRoll(const Metadata& metadata) const override;
 
-    void Update(const Metadata metadata) override;
+    void Update(const Metadata& metadata) override;
 
    protected:
     Metadata::TimePoint last_write_time_{};
@@ -53,7 +53,7 @@ class RollingByHourHelper : public RollingByDayHelper {
     explicit RollingByHourHelper(const RecordDirPathGenerator* const dir_path_generator);
     ~RollingByHourHelper() override = default;
 
-    bool NeedToRoll(const Metadata metadata) const override;
+    bool NeedToRoll(const Metadata& metadata) const override;
 };
 
 class RollingBySizeHelper : public RollingHelper {
@@ -63,9 +63,9 @@ class RollingBySizeHelper : public RollingHelper {
         const std::uint64_t                 size_limit_mb);
     ~RollingBySizeHelper() override = default;
 
-    bool NeedToRoll(const Metadata metadata) const override;
+    bool NeedToRoll(const Metadata& metadata) const override;
 
-    void Update(const Metadata metadata) override;
+    void Update(const Metadata& metadata) override;
 
     void Reset() override;
 
