@@ -65,6 +65,15 @@ cris_cc_test (
     ],
 )
 
+cris_cc_test (
+    name = "record_file_rolling_test",
+    srcs = ["record_file_rolling_test.cc"],
+    deps = [
+        "//:msg_recorder",
+        "@cris-core//tests:cris_gtest_main",
+    ],
+)
+
 # Temporarily disble this test to unblock CI since it is broken.
 # Related issue:
 #   - https://github.com/cyfitech/cris-core/issues/154

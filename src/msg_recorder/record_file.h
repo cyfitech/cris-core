@@ -115,7 +115,7 @@ class RecordFile {
 
     bool Roll();
 
-    void Write(const std::string& key, const std::string& value) const;
+    bool Write(const std::string& key, const std::string& value) const;
 
     std::string                    filepath_;
     const std::string              filename_;

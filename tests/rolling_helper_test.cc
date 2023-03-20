@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <memory>
+#include <stdexcept>
 
 using namespace std::chrono;
 
@@ -15,23 +16,22 @@ static const RollingHelper::RecordDirPathGenerator dir_path_generator = [] {
 
 class DummyRollingHelper : public RollingHelper {
    public:
-    explicit DummyRollingHelper(const RecordDirPathGenerator* dirpath_generator) noexcept
-        : RollingHelper{dirpath_generator} {}
+    explicit DummyRollingHelper(const RecordDirPathGenerator* dirpath_generator) : RollingHelper{dirpath_generator} {}
 
-    bool NeedToRoll([[maybe_unused]] const Metadata metadata) const override { return false; }
+    bool NeedToRoll([[maybe_unused]] const Metadata& metadata) const override { return false; }
 
-    void Update([[maybe_unused]] const Metadata metadata) override {}
+    void Update([[maybe_unused]] const Metadata& metadata) override {}
 };
 
 TEST(RollingHelperTest, NullDirPathGenerator_Crash) {
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
-    EXPECT_DEATH(DummyRollingHelper{nullptr}, "Dir path generator MUST be not null for rolling!");
+    EXPECT_THROW(DummyRollingHelper{nullptr}, std::logic_error);
 }
 
 TEST(RollingHelperTest, NonCallableDirPathGenerator_Crash) {
     const RollingHelper::RecordDirPathGenerator invalid_dir_path_generator;
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
-    EXPECT_DEATH(DummyRollingHelper{&invalid_dir_path_generator}, "Dir path generator MUST be callable for rolling!");
+    EXPECT_THROW(DummyRollingHelper{&invalid_dir_path_generator}, std::logic_error);
 }
 
 TEST(RollingHelperTest, InitOK) {

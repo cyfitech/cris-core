@@ -184,7 +184,7 @@ leveldb::DB* RecordFile::OpenDB(const std::string& path) {
     const fs::path filepath{path};
     const fs::path dir{filepath.parent_path()};
     if (!MakeDirs(dir)) {
-        LOG(ERROR) << __func__ << ": Failed to OpenDB(), failed to create dirs.";
+        LOG(ERROR) << __func__ << ": Failed to OpenDB(), failed to create dir " << dir << ".";
         return nullptr;
     }
 
@@ -235,19 +235,14 @@ void RecordFile::Write(RecordFileKey key, std::string serialized_value) {
     const RollingHelper::Metadata metadata{
         .time       = std::chrono::system_clock::now(),
         .value_size = serialized_value.size()};
-    if (!rolling_helper_) {
-        Write(key_str, serialized_value);
-        return;
+
+    if (rolling_helper_ && rolling_helper_->NeedToRoll(metadata) && !Roll()) {
+        LOG(ERROR) << __func__ << ": Failed to roll records, fallback to current db.";
     }
 
-    if (!rolling_helper_->NeedToRoll(metadata) || Roll()) {
-        Write(key_str, serialized_value);
+    if (Write(key_str, serialized_value) && rolling_helper_) {
         rolling_helper_->Update(metadata);
-        return;
     }
-
-    LOG(ERROR) << __func__ << ": Failed to roll records, fallback to current db.";
-    Write(key_str, serialized_value);
 }
 
 bool RecordFile::Roll() {
@@ -269,14 +264,16 @@ bool RecordFile::Roll() {
     return true;
 }
 
-void RecordFile::Write(const std::string& key, const std::string& value) const {
+bool RecordFile::Write(const std::string& key, const std::string& value) const {
     leveldb::Slice key_slice{key};
     leveldb::Slice value_slice{value};
-    auto           status = db_->Put(leveldb::WriteOptions(), key_slice, value_slice);
-    if (!status.ok()) [[unlikely]] {
+    const auto     status = db_->Put(leveldb::WriteOptions(), key_slice, value_slice);
+    const bool     ok     = status.ok();
+    if (!ok) [[unlikely]] {
         LOG(ERROR) << __func__ << ": Failed to write to record file \"" << filepath_
                    << "\", status: " << status.ToString();
     }
+    return ok;
 }
 
 RecordFileIterator RecordFile::Iterate() const {
@@ -326,8 +323,8 @@ bool Symlink(const std::filesystem::path& to, const std::filesystem::path& from)
     std::error_code ec{};
     fs::create_symlink(to, from, ec);
     const bool has_error = ec.operator bool();
-    LOG_IF(WARNING, has_error) << __func__ << ": Failed to create symlink to " << to << " with error \"" << ec.message()
-                               << "\".";
+    LOG_IF(WARNING, has_error) << __func__ << ": Failed to create symlink from " << from << " -> " << to
+                               << " with error \"" << ec.message() << "\".";
     return has_error;
 }
 
