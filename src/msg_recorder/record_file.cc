@@ -235,14 +235,16 @@ void RecordFile::Write(RecordFileKey key, std::string serialized_value) {
     const RollingHelper::Metadata metadata{
         .time       = std::chrono::system_clock::now(),
         .value_size = serialized_value.size()};
+
     if (!rolling_helper_) {
         Write(key_str, serialized_value);
         return;
     }
 
     if (!rolling_helper_->NeedToRoll(metadata) || Roll()) {
-        Write(key_str, serialized_value);
-        rolling_helper_->Update(metadata);
+        if (Write(key_str, serialized_value)) {
+            rolling_helper_->Update(metadata);
+        }
         return;
     }
 
@@ -269,14 +271,16 @@ bool RecordFile::Roll() {
     return true;
 }
 
-void RecordFile::Write(const std::string& key, const std::string& value) const {
+bool RecordFile::Write(const std::string& key, const std::string& value) const {
     leveldb::Slice key_slice{key};
     leveldb::Slice value_slice{value};
-    auto           status = db_->Put(leveldb::WriteOptions(), key_slice, value_slice);
-    if (!status.ok()) [[unlikely]] {
+    const auto     status = db_->Put(leveldb::WriteOptions(), key_slice, value_slice);
+    const bool     ok     = status.ok();
+    if (!ok) [[unlikely]] {
         LOG(ERROR) << __func__ << ": Failed to write to record file \"" << filepath_
                    << "\", status: " << status.ToString();
     }
+    return ok;
 }
 
 RecordFileIterator RecordFile::Iterate() const {
