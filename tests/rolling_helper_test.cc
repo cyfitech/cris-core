@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <memory>
+#include <stdexcept>
 
 using namespace std::chrono;
 

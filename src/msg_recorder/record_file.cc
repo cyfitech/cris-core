@@ -236,15 +236,11 @@ void RecordFile::Write(RecordFileKey key, std::string serialized_value) {
         .time       = std::chrono::system_clock::now(),
         .value_size = serialized_value.size()};
 
-    if (!rolling_helper_) {
-        Write(key_str, serialized_value);
-        return;
-    }
-
-    if (rolling_helper_->NeedToRoll(metadata) && !Roll()) {
+    if (rolling_helper_ && rolling_helper_->NeedToRoll(metadata) && !Roll()) {
         LOG(ERROR) << __func__ << ": Failed to roll records, fallback to current db.";
     }
-    if (Write(key_str, serialized_value)) {
+
+    if (Write(key_str, serialized_value) && rolling_helper_) {
         rolling_helper_->Update(metadata);
     }
 }
