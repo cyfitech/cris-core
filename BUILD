@@ -166,10 +166,6 @@ selects.config_setting_group(
         "use_clang",
     ]
 )
-# By default, treat as GCC since `--compiler=gcc` is not supported until Bazel 6.0,
-# but `--compiler=clang` is set by the `./scripts/bazel_wrapper.sh` when building by Clang.
-#
-# TODO(chenhao94): When we complete the Bazel upgrade, we should stop treat default as GCC.
 
 cris_cc_library (
     name = "signal",
@@ -183,16 +179,17 @@ cris_cc_library (
     }),
     linkopts = select({
         "@platforms//os:macos": [],
-        "linux_use_clang":      ["-ldl"],
-        "//conditions:default": ["-ldl", "-lbacktrace"],
+        "use_gcc":              ["-ldl", "-lbacktrace"],
+        "//conditions:default": ["-ldl"],
     }),
     deps = [
         ":utils",
         ":timer",
         "@com_github_google_glog//:glog",
     ] + select({
-        "linux_use_clang":      ["@libbacktrace//:libbacktrace"],
-        "//conditions:default": [],
+        "@platforms//os:macos": [],
+        "use_gcc":              [],
+        "//conditions:default": ["@libbacktrace//:libbacktrace"],
     }),
 )
 
