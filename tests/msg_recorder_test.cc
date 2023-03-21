@@ -234,6 +234,22 @@ TEST_F(RecorderTest, RecorderTest) {
     TestReplayCanceled();
 }
 
+TEST(MessageRecorder, CheckRollingSettings_NoRollingOK) {
+    RecorderConfig recorder_config;
+    recorder_config.record_dir_ = std::filesystem::temp_directory_path();
+    const MessageRecorder recorder{std::move(recorder_config), nullptr};
+    EXPECT_EQ(std::filesystem::temp_directory_path(), recorder.GetRecordDir());
+}
+
+TEST(MessageRecorder, CheckRollingSettings_InvalidRollingSetting) {
+    RecorderConfig recorder_config;
+    recorder_config.rolling_ = RecorderConfig::Rolling::kDay;
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
+    EXPECT_DEATH(
+        MessageRecorder(std::move(recorder_config), nullptr),
+        "Dir path generator must be callable when rolling enabled");
+}
+
 TEST(RecorderUtilsTest, FindMatchedSubdirsOK) {
     namespace fs = std::filesystem;
     constexpr std::array dirs{"a/b/c", "a/d/c", "e", "f"};
