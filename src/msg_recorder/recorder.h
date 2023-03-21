@@ -112,6 +112,4 @@ std::unique_ptr<RollingHelper> CreateRollingHelper(
 
 std::string GetRecordSubDirName(const RecorderConfig::Rolling rolling);
 
-std::string RecordDirNameGenerator();
-
 }  // namespace cris::core
