@@ -1,6 +1,18 @@
-[submodule "external/rules_foreign_cc"]
-	path = external/rules_foreign_cc
-	url = https://github.com/bazelbuild/rules_foreign_cc.git
+[submodule "external/bazel_clang_tidy"]
+	path = external/bazel_clang_tidy
+	url = https://github.com/erenon/bazel_clang_tidy.git
+[submodule "external/bazel-skylib"]
+	path = external/bazel-skylib
+	url = https://github.com/bazelbuild/bazel-skylib.git
+[submodule "external/com_github_protocolbuffers_protobuf/protobuf"]
+	path = external/com_github_protocolbuffers_protobuf/protobuf
+	url = https://github.com/protocolbuffers/protobuf.git
+[submodule "external/cmake"]
+	path = external/cmake
+	url = https://github.com/Kitware/CMake.git
+[submodule "external/fmt"]
+	path = external/fmt
+	url = https://github.com/fmtlib/fmt.git
 [submodule "external/gflags"]
 	path = external/gflags
 	url = https://github.com/gflags/gflags.git
@@ -10,15 +22,33 @@
 [submodule "external/googletest"]
 	path = external/googletest
 	url = https://github.com/google/googletest.git
-[submodule "external/fmt"]
-	path = external/fmt
-	url = https://github.com/fmtlib/fmt.git
-[submodule "external/simdjson"]
-	path = external/simdjson
-	url = https://github.com/simdjson/simdjson.git
-[submodule "external/bazel_clang_tidy"]
-	path = external/bazel_clang_tidy
-	url = https://github.com/erenon/bazel_clang_tidy.git
 [submodule "external/libbacktrace"]
 	path = external/libbacktrace
 	url = https://github.com/ianlancetaylor/libbacktrace.git
+[submodule "external/make"]
+	path = external/make
+	url = https://git.savannah.gnu.org/git/make.git
+[submodule "external/ninja"]
+	path = external/ninja
+	url = https://github.com/ninja-build/ninja.git
+[submodule "external/rules_cc"]
+	path = external/rules_cc
+	url = https://github.com/bazelbuild/rules_cc.git
+[submodule "external/rules_foreign_cc"]
+	path = external/rules_foreign_cc
+	url = https://github.com/bazelbuild/rules_foreign_cc.git
+[submodule "external/rules_java"]
+	path = external/rules_java
+	url = https://github.com/bazelbuild/rules_java.git
+[submodule "external/rules_pkg"]
+	path = external/rules_pkg
+	url = https://github.com/bazelbuild/rules_pkg.git
+[submodule "external/rules_proto"]
+	path = external/rules_proto
+	url = https://github.com/bazelbuild/rules_proto.git
+[submodule "external/rules_python"]
+	path = external/rules_python
+	url = https://github.com/bazelbuild/rules_python.git
+[submodule "external/simdjson"]
+	path = external/simdjson
+	url = https://github.com/simdjson/simdjson.git

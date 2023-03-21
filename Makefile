@@ -5,12 +5,13 @@ export DIR = $(shell pwd)
 export MKDIR = mkdir -p
 export RM = rm -rf
 
-export DOCKER_IMAGE ?= cajunhotpot/cris-build-debian11:20230223
+export DOCKER_IMAGE ?= cajunhotpot/cris-build-debian11:20230321
 
 export PYTHON_EXECUTABLE ?= python3
 
 export CMD ?= "$(PYTHON_EXECUTABLE)" -m pip config --user set global.index-url "$$(set -e; ROOT_DIR=/etc/roaster/scripts . /etc/roaster/scripts/geo/pip-mirror.sh >&2; printf "%s" "$$PIP_INDEX_URL")"; bash -i
 
+export OPT ?=
 export BAZEL_OPTS ?=
 
 .PHONY: all
@@ -74,15 +75,51 @@ lint: scripts/format_all.sh
 
 .PHONY: tidy
 tidy: scripts/bazel_wrapper.sh | lint
+	PYTHON_BIN_PATH="$$(set -e;                 \
+	    printf '%s' "$(PYTHON_EXECUTABLE)"      \
+	    | grep '/' >/dev/null                   \
+	    && [ -x "$(PYTHON_EXECUTABLE)" ]        \
+	    && realpath -e "$(PYTHON_EXECUTABLE)"   \
+	    || which "$(PYTHON_EXECUTABLE)")"       \
 	$< build --config=prof --config=lint //...
 
 .PHONY: build
 build: scripts/bazel_wrapper.sh scripts/distro_cc.sh
-	$< build --config=prof --config=rel $(BAZEL_OPTS) //...
+	PYTHON_BIN_PATH="$$(set -e;                 \
+	    printf '%s' "$(PYTHON_EXECUTABLE)"      \
+	    | grep '/' >/dev/null                   \
+	    && [ -x "$(PYTHON_EXECUTABLE)" ]        \
+	    && realpath -e "$(PYTHON_EXECUTABLE)"   \
+	    || which "$(PYTHON_EXECUTABLE)")"       \
+	$< build --config=prof --config=rel $(OPT) $(BAZEL_OPTS) //...
 
 .PHONY: test
 test: scripts/bazel_wrapper.sh scripts/distro_cc.sh
-	$< test --config=prof --config=rel --test_output=errors $(BAZEL_OPTS) //...
+	PYTHON_BIN_PATH="$$(set -e;                 \
+	    printf '%s' "$(PYTHON_EXECUTABLE)"      \
+	    | grep '/' >/dev/null                   \
+	    && [ -x "$(PYTHON_EXECUTABLE)" ]        \
+	    && realpath -e "$(PYTHON_EXECUTABLE)"   \
+	    || which "$(PYTHON_EXECUTABLE)")"       \
+	$< test                                             \
+	    --config=prof                                   \
+	    --config=rel                                    \
+	    --test_output=errors                            \
+	    $$(set -e;                                      \
+	            printf '%s ' $(OPT) "$(BAZEL_OPTS)"     \
+	            | grep                                  \
+	                -e{'[[:space:]]','^'}'\-t'{'[[:space:]]','$$'}  \
+	                -e{'[[:space:]]','^'}'\-\-'{,'no'}'cache_test_results'{'[[:space:]]','$$'}  \
+	            > /dev/null                             \
+	            || printf '%s' '--nocache_test_results' \
+	        )                                           \
+	    $(OPT)                                          \
+	    $(BAZEL_OPTS)                                   \
+	    //...
+
+.PHONY: quicktest
+quicktest:
+	@make test BAZEL_OPTS='--cache_test_results $(BAZEL_OPTS)'
 
 .PHONY: sync
 sync: scripts/bazel_pull.sh
