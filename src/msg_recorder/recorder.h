@@ -55,7 +55,7 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
         const std::filesystem::path&                        snapshot_dir,
         const std::optional<RecorderConfig::IntervalConfig> interval_config = std::nullopt);
 
-    const std::filesystem::path& GetRecordDir() const noexcept;
+    const std::filesystem::path& GetRecordDir() const;
 
     // Mapping from interval names to snapshot lists. Snapshots are ordered from old to new in the lists.
     std::map<std::string, std::vector<std::filesystem::path>> GetSnapshotPaths();
@@ -71,7 +71,7 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
 
     RecordFile* CreateFile(const std::string& message_type, const channel_subid_t subid, const std::string& alias);
 
-    bool CheckRollingSettings() const noexcept;
+    bool CheckRollingSettings() const;
 
     bool GenerateSnapshotImpl(const std::filesystem::path& snapshot_dir);
     void MaintainMaxNumOfSnapshots(const RecorderConfig::IntervalConfig& interval_config);

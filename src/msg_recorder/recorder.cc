@@ -11,11 +11,11 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
-#include <exception>
 #include <filesystem>
 #include <memory>
 #include <mutex>
 #include <queue>
+#include <stdexcept>
 #include <string>
 #include <system_error>
 #include <thread>
@@ -33,7 +33,7 @@ MessageRecorder::MessageRecorder(
     , full_record_dir_path_generator_(std::move(dir_path_generator))
     , record_strand_(MakeStrand())
     , snapshot_thread_(std::thread([this] { SnapshotWorker(); })) {
-    CHECK(CheckRollingSettings()) << "Dir path generator MUST be valid when rolling enabled!";
+    CHECK(CheckRollingSettings()) << ": Dir path generator must be callable when rolling enabled.";
 
     if (!full_record_dir_path_generator_) {  // Rolling is not enabled
         full_record_dir_path_generator_ = [this] {
@@ -42,8 +42,8 @@ MessageRecorder::MessageRecorder(
     }
 }
 
-bool MessageRecorder::CheckRollingSettings() const noexcept {
-    return recorder_config_.rolling_ == RecorderConfig::Rolling::kNone || !full_record_dir_path_generator_;
+bool MessageRecorder::CheckRollingSettings() const {
+    return recorder_config_.rolling_ == RecorderConfig::Rolling::kNone || full_record_dir_path_generator_;
 }
 
 void MessageRecorder::SetSnapshotJobPreStartCallback(
@@ -231,7 +231,7 @@ std::string MessageRecorder::SnapshotDirNameGenerator() {
         now);
 }
 
-const std::filesystem::path& MessageRecorder::GetRecordDir() const noexcept {
+const std::filesystem::path& MessageRecorder::GetRecordDir() const {
     return recorder_config_.record_dir_;
 }
 
