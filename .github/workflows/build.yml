@@ -15,14 +15,12 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20230223
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20230321
     steps:
     - uses: actions/checkout@v3
     - uses: ./.github/actions/ci-lint-env-setup
       with:
         key: ${{ github.job }}
-        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Config
       run: export HOME=/root && git config --global --add safe.directory "$(pwd)"
     - name: Check gitignore
@@ -38,14 +36,18 @@ jobs:
         | tr '\v' '\t'                                          \
         | grep .
     - name: Run linter
-      run: export HOME=/root && make -j lint tidy
+      run: export HOME=/root && make -j lint
+    - name: Check diff
+      run: export HOME=/root && git --no-pager diff --exit-code
+    - name: Run tidy
+      run: export HOME=/root && make -j tidy -o lint
     - name: Check diff
       run: export HOME=/root && git --no-pager diff --exit-code
 
   llvm11-debian11:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230223
+      image: ghcr.io/cyfitech/cris-build-debian11:20230321
     env:
       CC: clang-11
       CXX: clang++-11
@@ -54,16 +56,16 @@ jobs:
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
-        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
-    - name: Build and Test
-      run: export HOME=/root && make test BAZEL_OPTS="--nocache_test_results --test_output=all -s"
+    - name: Build
+      run: export HOME=/root && make build OPT="-s"
+    - name: Test
+      run: export HOME=/root && make test OPT="--test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
   llvm12-ubuntu2004:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20230223
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20230321
     env:
       CC: clang-12
       CXX: clang++-12
@@ -72,16 +74,16 @@ jobs:
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
-        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
-    - name: Build and Test
-      run: export HOME=/root && make test BAZEL_OPTS="--nocache_test_results --test_output=all -s"
+    - name: Build
+      run: export HOME=/root && make build OPT="-s"
+    - name: Test
+      run: export HOME=/root && make test OPT="--test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
   llvm13-debian11:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230223
+      image: ghcr.io/cyfitech/cris-build-debian11:20230321
     env:
       CC: clang-13
       CXX: clang++-13
@@ -90,16 +92,16 @@ jobs:
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
-        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
-    - name: Build and Test
-      run: export HOME=/root && make test BAZEL_OPTS="--nocache_test_results --test_output=all -s"
+    - name: Build
+      run: export HOME=/root && make build OPT="-s"
+    - name: Test
+      run: export HOME=/root && make test OPT="--test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
   llvm14-ubuntu2204:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20230223
+      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20230321
     env:
       CC: clang-14
       CXX: clang++-14
@@ -108,16 +110,16 @@ jobs:
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
-        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
-    - name: Build and Test
-      run: export HOME=/root && make test BAZEL_OPTS="--nocache_test_results --test_output=all -s"
+    - name: Build
+      run: export HOME=/root && make build OPT="-s"
+    - name: Test
+      run: export HOME=/root && make test OPT="--test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
   gcc10-debian11:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230223
+      image: ghcr.io/cyfitech/cris-build-debian11:20230321
     env:
       CC: gcc-10
       CXX: g++-10
@@ -126,16 +128,16 @@ jobs:
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
-        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
-    - name: Build and Test
-      run: export HOME=/root && make test BAZEL_OPTS="--nocache_test_results --test_output=all -s"
+    - name: Build
+      run: export HOME=/root && make build OPT="-s"
+    - name: Test
+      run: export HOME=/root && make test OPT="--test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
   gcc10-ubuntu2004:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20230223
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20230321
     env:
       CC: gcc-10
       CXX: g++-10
@@ -144,16 +146,16 @@ jobs:
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
-        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
-    - name: Build and Test
-      run: export HOME=/root && make test BAZEL_OPTS="--nocache_test_results --test_output=all -s"
+    - name: Build
+      run: export HOME=/root && make build OPT="-s"
+    - name: Test
+      run: export HOME=/root && make test OPT="--test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
   gcc11-ubuntu2204:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20230223
+      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20230321
     env:
       # Cannot use gcc-12 because of https://github.com/protocolbuffers/protobuf/issues/9948 (requires protobuf v3.21.0 or gcc 12.2)
       # https://github.com/protocolbuffers/protobuf/pull/10118 is needed for upgrading protobuf
@@ -164,16 +166,16 @@ jobs:
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
-        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
-    - name: Build and Test
-      run: export HOME=/root && make test BAZEL_OPTS="--nocache_test_results --test_output=all -s"
+    - name: Build
+      run: export HOME=/root && make build OPT="-s"
+    - name: Test
+      run: export HOME=/root && make test OPT="--test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
   asan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230223
+      image: ghcr.io/cyfitech/cris-build-debian11:20230321
     env:
       CC: clang-13
       CXX: clang++-13
@@ -182,8 +184,6 @@ jobs:
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
-        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
       run: export HOME=/root && scripts/bazel_wrapper.sh test --config=asan --config=prof --nocache_test_results --test_output=all -s //...
     - uses: ./.github/actions/ci-env-cleanup
@@ -191,7 +191,7 @@ jobs:
   ubsan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230223
+      image: ghcr.io/cyfitech/cris-build-debian11:20230321
     env:
       CC: clang-13
       CXX: clang++-13
@@ -200,8 +200,6 @@ jobs:
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
-        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
       run: export HOME=/root && scripts/bazel_wrapper.sh test --config=ubsan --config=prof --nocache_test_results --test_output=all -s //...
     - uses: ./.github/actions/ci-env-cleanup
@@ -209,7 +207,7 @@ jobs:
   tsan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230223
+      image: ghcr.io/cyfitech/cris-build-debian11:20230321
     env:
       CC: clang-13
       CXX: clang++-13
@@ -218,44 +216,6 @@ jobs:
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
-        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
     - name: Build and Test
       run: export HOME=/root && scripts/bazel_wrapper.sh test --config=tsan --config=prof --nocache_test_results --test_output=all -s //...
-    - uses: ./.github/actions/ci-env-cleanup
-
-  make-llvm:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230223
-    env:
-      CC: clang-13
-      CXX: clang++-13
-    steps:
-    - uses: actions/checkout@v3
-    - uses: ./.github/actions/ci-build-env-setup
-      with:
-        key: ${{ github.job }}
-        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
-    - name: Build
-      run: export HOME=/root && make build
-    - uses: ./.github/actions/ci-env-cleanup
-
-  make-gcc:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230223
-    env:
-      CC: gcc-10
-      CXX: g++-10
-    steps:
-    - uses: actions/checkout@v3
-    - uses: ./.github/actions/ci-build-env-setup
-      with:
-        key: ${{ github.job }}
-        cris_base_ssh_token : ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        cris_xchg_ssh_token : ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
-    - name: Build
-      run: export HOME=/root && make build
     - uses: ./.github/actions/ci-env-cleanup
