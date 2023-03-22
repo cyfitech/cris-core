@@ -173,7 +173,7 @@ RUN set -e; \
                 auto{conf{,-archive},make,point} \
                 axel \
                 bash-completion \
-                $( [ "_$CRIS_IMG_ARCH" != '_amd64' ] || echo 'bazel=6.0.*')\
+                $( [ "_$CRIS_IMG_ARCH" != '_amd64' ] || echo 'bazel=6.1.*')\
                 bc \
                 bind9-dnsutils \
                 binutils \
@@ -339,7 +339,7 @@ RUN set -e; \
         esac)"; \
     if [ "_$CRIS_IMG_ARCH" = '_arm64' ] ; then \
         BAZEL_INSTALL_DIR='/usr/local/bin'; \
-        BAZEL_VERSION='6.0.0'; \
+        BAZEL_VERSION='6.1.1'; \
         for retry in $(seq 30 -1 1); do \
             curl \
                 -fsSL \
