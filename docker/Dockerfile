@@ -282,7 +282,7 @@ RUN set -e; \
     truncate -s0 ~/.bash_history;
 
 RUN set -e; \
-    PIP_INDEX_URL="$(cd '/etc/roaster/scripts' >/dev/null && bash -c '. geo/pip-mirror.sh >/dev/null && echo "$PIP_INDEX_URL"')"; \
+    PIP_INDEX_URL="$(ROOT_DIR=/etc/roaster/scripts . /etc/roaster/scripts/geo/pip-mirror.sh >&2 && printf '%s' "$PIP_INDEX_URL")"; \
     export PIP_MAX_ATTEMPT=3; \
     for attempt in $(seq "$PIP_MAX_ATTEMPT" -1 0); do \
         [ "$attempt" -gt 0 ]; \
