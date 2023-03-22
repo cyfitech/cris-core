@@ -233,8 +233,7 @@ def cris_deps_bazel_clang_tidy(prefix = "."):
 
 def cris_core_deps(prefix = "."):
     cris_deps_bazel_skylib(prefix)
-    # TODO: Enable when ready.
-    # cris_deps_rules_cc(prefix)
+    cris_deps_rules_cc(prefix)
     cris_deps_rules_foreign_cc(prefix)
     cris_deps_rules_java(prefix)
     cris_deps_rules_pkg(prefix)
