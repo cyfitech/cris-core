@@ -7,6 +7,8 @@
 #include "leveldb/db.h"
 #include "leveldb/slice.h"
 
+#include "boost/date_time/posix_time/posix_time.hpp"
+
 #include <filesystem>
 #include <string>
 #include <string_view>
@@ -233,7 +235,7 @@ void RecordFile::Write(RecordFileKey key, std::string serialized_value) {
     const auto key_str = key.ToBytes();
 
     const RollingHelper::Metadata metadata{
-        .time       = std::chrono::system_clock::now(),
+        .time       = boost::posix_time::second_clock::universal_time(),
         .value_size = serialized_value.size()};
 
     if (rolling_helper_ && rolling_helper_->NeedToRoll(metadata) && !Roll()) {

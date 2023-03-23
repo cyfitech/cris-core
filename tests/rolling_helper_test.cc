@@ -2,11 +2,13 @@
 
 #include <gtest/gtest.h>
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 #include <chrono>
 #include <memory>
 #include <stdexcept>
 
-using namespace std::chrono;
+using namespace boost::posix_time;
 
 namespace cris::core {
 
@@ -40,17 +42,17 @@ TEST(RollingHelperTest, InitOK) {
 
 class RollingByDayTestHelper : public RollingByDayHelper {
    public:
-    explicit RollingByDayTestHelper(const RecordDirPathGenerator* dirpath_generator) noexcept
+    explicit RollingByDayTestHelper(const RecordDirPathGenerator* dirpath_generator)
         : RollingByDayHelper{dirpath_generator} {}
 
-    void SetTime(const system_clock::time_point time) noexcept { last_write_time_ = time; }
+    void SetTime(const ptime time) { last_write_time_ = time; }
 
-    system_clock::time_point GetTime() const noexcept { return last_write_time_; }
+    ptime GetTime() const { return last_write_time_; }
 };
 
 TEST(RollingByDayHelperTest, NeedToRoll) {
     RollingByDayTestHelper        rolling{&dir_path_generator};
-    const RollingHelper::Metadata metadata{.time = rolling.GetTime() + days{1}, .value_size{}};
+    const RollingHelper::Metadata metadata{.time = rolling.GetTime() + hours{24}, .value_size{}};
     EXPECT_TRUE(rolling.NeedToRoll(metadata));
 }
 
@@ -61,10 +63,8 @@ TEST(RollingByDayHelperTest, NoNeedToRoll_PreviousTimestamp) {
 }
 
 TEST(RollingByDayHelperTest, NoNeedToRoll_InSameUtcDay) {
-    const std::time_t time{days::period::num * 10};
-
     RollingByDayTestHelper rolling{&dir_path_generator};
-    rolling.SetTime(system_clock::from_time_t(time));
+    rolling.SetTime(from_iso_string("20020131T000000"));
 
     const RollingHelper::Metadata metadata{.time = rolling.GetTime() + seconds{1000}, .value_size{}};
     EXPECT_FALSE(rolling.NeedToRoll(metadata));
@@ -72,7 +72,7 @@ TEST(RollingByDayHelperTest, NoNeedToRoll_InSameUtcDay) {
 
 TEST(RollingByDayHelperTest, Update) {
     RollingByDayTestHelper rolling{&dir_path_generator};
-    rolling.SetTime(system_clock::now());
+    rolling.SetTime(from_iso_string("20020131T000000"));
 
     const RollingHelper::Metadata metadata{.time = rolling.GetTime() + seconds{10}, .value_size{}};
 
@@ -82,7 +82,7 @@ TEST(RollingByDayHelperTest, Update) {
 
 TEST(RollingByDayHelperTest, NoUpdate_PreviousTime) {
     RollingByDayTestHelper rolling{&dir_path_generator};
-    const auto             now = system_clock::now();
+    const auto             now{second_clock::universal_time()};
     rolling.SetTime(now);
 
     const RollingHelper::Metadata metadata{.time = rolling.GetTime() - seconds{1}, .value_size{}};
@@ -94,17 +94,17 @@ TEST(RollingByDayHelperTest, NoUpdate_PreviousTime) {
 
 class RollingByHourTestHelper : public RollingByHourHelper {
    public:
-    explicit RollingByHourTestHelper(const RecordDirPathGenerator* dirpath_generator) noexcept
+    explicit RollingByHourTestHelper(const RecordDirPathGenerator* dirpath_generator)
         : RollingByHourHelper{dirpath_generator} {}
 
-    void SetTime(const system_clock::time_point time) noexcept { last_write_time_ = time; }
+    void SetTime(const ptime time) { last_write_time_ = time; }
 
-    system_clock::time_point GetTime() const noexcept { return last_write_time_; }
+    ptime GetTime() const { return last_write_time_; }
 };
 
 TEST(RollingByHourTestHelper, NeedToRoll) {
     RollingByHourTestHelper rolling{&dir_path_generator};
-    const auto              now = system_clock::now();
+    const auto              now = second_clock::universal_time();
     rolling.SetTime(now - hours{1});
 
     const RollingHelper::Metadata metadata{.time = now, .value_size{}};
@@ -112,10 +112,8 @@ TEST(RollingByHourTestHelper, NeedToRoll) {
 }
 
 TEST(RollingByHourTestHelper, NoNeedToRoll_InSameUtcHour) {
-    const std::time_t time{hours::period::num * 10};
-
     RollingByHourTestHelper rolling{&dir_path_generator};
-    rolling.SetTime(system_clock::from_time_t(time));
+    rolling.SetTime(from_iso_string("20020131T000000"));
 
     const RollingHelper::Metadata metadata{.time = rolling.GetTime() + seconds{100}, .value_size{}};
     EXPECT_FALSE(rolling.NeedToRoll(metadata));
@@ -184,6 +182,30 @@ TEST(RollingBySizeTestHelper, Update) {
 
     rolling.Update({.time{}, .value_size = kIncBytesize});
     EXPECT_EQ(kInitBytesize + kIncBytesize, rolling.GetCurrentBytesize());
+}
+
+TEST(TimeTest, IsNotSameDay) {
+    const auto start = boost::posix_time::from_iso_string("20020131T235959");
+    const auto end   = boost::posix_time::from_iso_string("20020201T000000");
+    EXPECT_FALSE(SameDay(start, end));
+}
+
+TEST(TimeTest, IsSameDay) {
+    const auto start = boost::posix_time::from_iso_string("20020131T000000");
+    const auto end   = boost::posix_time::from_iso_string("20020131T235959");
+    EXPECT_TRUE(SameDay(start, end));
+}
+
+TEST(TimeTest, IsNotSameHour) {
+    const auto start = boost::posix_time::from_iso_string("20020131T225959");
+    const auto end   = boost::posix_time::from_iso_string("20020131T235959");
+    EXPECT_FALSE(SameHour(start, end));
+}
+
+TEST(TimeTest, IsSameHour) {
+    const auto start = boost::posix_time::from_iso_string("20020131T230000");
+    const auto end   = boost::posix_time::from_iso_string("20020131T235959");
+    EXPECT_TRUE(SameHour(start, end));
 }
 
 }  // namespace cris::core

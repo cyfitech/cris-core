@@ -11,21 +11,6 @@
 #include <x86intrin.h>
 #endif
 
-#if defined(__clang__) || defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wconversion"
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-
-#include <boost/date_time/gregorian/gregorian.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
-
-#if defined(__clang__) || defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
-
-#include <fmt/core.h>
-
 #include <chrono>
 #include <cstdint>
 #include <thread>
@@ -86,44 +71,6 @@ cr_timestamp_nsec_t GetUnixTimestampNsec() {
     using std::chrono::nanoseconds;
     using std::chrono::system_clock;
     return static_cast<cr_timestamp_nsec_t>(duration_cast<nanoseconds>(system_clock::now().time_since_epoch()).count());
-}
-
-std::string GetCurrentUtcDate() {
-    using namespace boost::gregorian;
-
-    return to_iso_string(day_clock::universal_day());
-}
-
-std::string GetCurrentUtcHour() {
-    using namespace boost::gregorian;
-    using namespace boost::posix_time;
-
-    const auto utc_time = second_clock::universal_time();
-    return fmt::format("{}{:02}", to_iso_string(utc_time.date()), utc_time.time_of_day().hours());
-}
-
-std::string GetCurrentUtcTime() {
-    return boost::posix_time::to_iso_string(boost::posix_time::second_clock::universal_time());
-}
-
-bool SameUtcDay(const std::chrono::system_clock::time_point x, const std::chrono::system_clock::time_point y) noexcept {
-    using std::chrono::days;
-    using std::chrono::duration_cast;
-
-    const auto days_x = duration_cast<days>(x.time_since_epoch()).count();
-    const auto days_y = duration_cast<days>(y.time_since_epoch()).count();
-    return days_x == days_y;
-}
-
-bool SameUtcHour(
-    const std::chrono::system_clock::time_point x,
-    const std::chrono::system_clock::time_point y) noexcept {
-    using std::chrono::duration_cast;
-    using std::chrono::hours;
-
-    const auto hours_x = duration_cast<hours>(x.time_since_epoch()).count();
-    const auto hours_y = duration_cast<hours>(y.time_since_epoch()).count();
-    return hours_x == hours_y;
 }
 
 }  // namespace cris::core

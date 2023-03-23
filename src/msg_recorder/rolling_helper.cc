@@ -3,10 +3,26 @@
 #include "cris/core/utils/logging.h"
 #include "cris/core/utils/time.h"
 
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wconversion"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
+#include <boost/date_time/gregorian/gregorian.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
+
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+
+#include <fmt/core.h>
+
 #include <algorithm>
 #include <chrono>
 #include <ratio>
 #include <stdexcept>
+#include <string>
 
 namespace cris::core {
 
@@ -29,11 +45,11 @@ std::filesystem::path RollingHelper::GenerateFullRecordDirPath() const {
 
 RollingByDayHelper::RollingByDayHelper(const RecordDirPathGenerator* const dir_path_generator)
     : RollingHelper{dir_path_generator}
-    , last_write_time_{std::chrono::system_clock::now()} {
+    , last_write_time_{boost::posix_time::second_clock::universal_time()} {
 }
 
 bool RollingByDayHelper::NeedToRoll(const Metadata& metadata) const {
-    return metadata.time > last_write_time_ && !SameUtcDay(last_write_time_, metadata.time);
+    return metadata.time > last_write_time_ && !SameDay(last_write_time_, metadata.time);
 }
 
 void RollingByDayHelper::Update(const Metadata& metadata) {
@@ -45,7 +61,7 @@ RollingByHourHelper::RollingByHourHelper(const RecordDirPathGenerator* const dir
 }
 
 bool RollingByHourHelper::NeedToRoll(const Metadata& metadata) const {
-    return metadata.time > last_write_time_ && !SameUtcHour(last_write_time_, metadata.time);
+    return metadata.time > last_write_time_ && !SameHour(last_write_time_, metadata.time);
 }
 
 RollingBySizeHelper::RollingBySizeHelper(
@@ -69,6 +85,27 @@ void RollingBySizeHelper::Update(const Metadata& metadata) {
 
 void RollingBySizeHelper::Reset() {
     current_bytesize_ = 0;
+}
+
+std::string GetCurrentUtcDate() {
+    return boost::gregorian::to_iso_string(boost::gregorian::day_clock::universal_day());
+}
+
+std::string GetCurrentUtcHour() {
+    const auto utc_time = boost::posix_time::second_clock::universal_time();
+    return fmt::format("{}{:02}", boost::gregorian::to_iso_string(utc_time.date()), utc_time.time_of_day().hours());
+}
+
+std::string GetCurrentUtcTime() {
+    return boost::posix_time::to_iso_string(boost::posix_time::second_clock::universal_time());
+}
+
+bool SameDay(const boost::posix_time::ptime x, const boost::posix_time::ptime y) {
+    return x.date().operator==(y.date());
+}
+
+bool SameHour(const boost::posix_time::ptime x, const boost::posix_time::ptime y) {
+    return SameDay(x, y) && x.time_of_day().hours() == y.time_of_day().hours();
 }
 
 }  // namespace cris::core
