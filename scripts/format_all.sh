@@ -51,6 +51,7 @@ done
 | tr '\n' '\0'                                                                                          \
 | $(which parallel >/dev/null 2>&1 && echo "parallel -j$(nproc) -m" || echo 'xargs -r'   ) -0           \
     grep -HI "$(printf '\r$')"                                                                          \
+| grep "$(printf ':.*\r$')"                                                                             \
 | cut -d: -f1                                                                                           \
 | grep -v $(set -e;                                                                                     \
     which git >/dev/null                                                                                \
