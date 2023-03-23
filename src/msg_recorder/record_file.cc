@@ -321,7 +321,7 @@ bool Symlink(const std::filesystem::path& to, const std::filesystem::path& from)
     }
 
     std::error_code ec{};
-    fs::create_symlink(to, from, ec);
+    fs::create_symlink(to.filename(), from, ec);
     const bool has_error = ec.operator bool();
     LOG_IF(WARNING, has_error) << __func__ << ": Failed to create symlink from " << from << " -> " << to
                                << " with error \"" << ec.message() << "\".";
