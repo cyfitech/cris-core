@@ -100,7 +100,7 @@ class RecordFile {
 
     bool IsOpen() const;
 
-    const std::filesystem::path& GetFilePath() const;
+    std::string GetFilePath() const;
 
     void Compact();
 
@@ -110,7 +110,13 @@ class RecordFile {
 
     std::atomic_bool compact_before_close{false};
 
+    static std::string UnfinishedPath(std::string path);
+
    protected:
+    void CheckoutDB();
+
+    void CommitDB();
+
     [[nodiscard]] leveldb::DB* OpenDB(const std::string& path);
 
     bool Roll();
