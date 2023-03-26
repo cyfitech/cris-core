@@ -3,12 +3,15 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <ctime>
 #include <memory>
 #include <stdexcept>
 
 using namespace std::chrono;
 
 namespace cris::core {
+
+using TimePoint = RollingHelper::Metadata::TimePoint;
 
 static const RollingHelper::RecordDirPathGenerator dir_path_generator = [] {
     return "record-dir";
@@ -18,9 +21,11 @@ class DummyRollingHelper : public RollingHelper {
    public:
     explicit DummyRollingHelper(const RecordDirPathGenerator* dirpath_generator) : RollingHelper{dirpath_generator} {}
 
-    bool NeedToRoll([[maybe_unused]] const Metadata& metadata) const override { return false; }
+    bool NeedToRoll(const Metadata&) const override { return false; }
 
-    void Update([[maybe_unused]] const Metadata& metadata) override {}
+    void Update(const Metadata&) override {}
+
+    void Reset() override {}
 };
 
 TEST(RollingHelperTest, NullDirPathGenerator_Crash) {
@@ -40,56 +45,50 @@ TEST(RollingHelperTest, InitOK) {
 
 class RollingByDayTestHelper : public RollingByDayHelper {
    public:
-    explicit RollingByDayTestHelper(const RecordDirPathGenerator* dirpath_generator) noexcept
+    explicit RollingByDayTestHelper(const RecordDirPathGenerator* dirpath_generator)
         : RollingByDayHelper{dirpath_generator} {}
 
-    void SetTime(const system_clock::time_point time) noexcept { last_write_time_ = time; }
+    void SetRollingTime(const TimePoint time) { time_to_roll_ = time; }
 
-    system_clock::time_point GetTime() const noexcept { return last_write_time_; }
+    TimePoint GetRollingTime() const { return time_to_roll_; }
+
+    TimePoint CalcRollingTime(const TimePoint time, const int offset_seconds) {
+        return CalcNextRollingTime(time, days::period::num, offset_seconds);
+    }
 };
 
 TEST(RollingByDayHelperTest, NeedToRoll) {
     RollingByDayTestHelper        rolling{&dir_path_generator};
-    const RollingHelper::Metadata metadata{.time = rolling.GetTime() + days{1}, .value_size{}};
+    const RollingHelper::Metadata metadata{.time = rolling.GetRollingTime() + seconds{1}, .value_size{}};
     EXPECT_TRUE(rolling.NeedToRoll(metadata));
 }
 
-TEST(RollingByDayHelperTest, NoNeedToRoll_PreviousTimestamp) {
+TEST(RollingByDayHelperTest, NoNeedToRoll) {
     RollingByDayTestHelper        rolling{&dir_path_generator};
-    const RollingHelper::Metadata metadata{.time = rolling.GetTime() - seconds{1}, .value_size{}};
+    const RollingHelper::Metadata metadata{.time = rolling.GetRollingTime() - seconds{1}, .value_size{}};
     EXPECT_FALSE(rolling.NeedToRoll(metadata));
 }
 
-TEST(RollingByDayHelperTest, NoNeedToRoll_InSameUtcDay) {
-    const std::time_t time{days::period::num * 10};
-
+TEST(RollingByDayHelperTest, Day_CalcNextRollingTime_BeforeOffset) {
     RollingByDayTestHelper rolling{&dir_path_generator};
-    rolling.SetTime(system_clock::from_time_t(time));
 
-    const RollingHelper::Metadata metadata{.time = rolling.GetTime() + seconds{1000}, .value_size{}};
-    EXPECT_FALSE(rolling.NeedToRoll(metadata));
+    constexpr int     kOffsetSeconds        = 60;
+    const std::time_t unix_time             = 100 * days::period::num;
+    const auto        time                  = system_clock::from_time_t(unix_time);
+    const auto        time_to_roll          = rolling.CalcRollingTime(time, kOffsetSeconds);
+    const auto        expected_rolling_time = time + days{1} + seconds{kOffsetSeconds};
+    EXPECT_EQ(expected_rolling_time, time_to_roll);
 }
 
-TEST(RollingByDayHelperTest, Update) {
+TEST(RollingByDayHelperTest, Day_CalcNextRollingTime_AfterOffset) {
     RollingByDayTestHelper rolling{&dir_path_generator};
-    rolling.SetTime(system_clock::now());
 
-    const RollingHelper::Metadata metadata{.time = rolling.GetTime() + seconds{10}, .value_size{}};
-
-    rolling.Update(metadata);
-    EXPECT_EQ(rolling.GetTime(), metadata.time);
-}
-
-TEST(RollingByDayHelperTest, NoUpdate_PreviousTime) {
-    RollingByDayTestHelper rolling{&dir_path_generator};
-    const auto             now = system_clock::now();
-    rolling.SetTime(now);
-
-    const RollingHelper::Metadata metadata{.time = rolling.GetTime() - seconds{1}, .value_size{}};
-
-    rolling.Update(metadata);
-    EXPECT_NE(rolling.GetTime(), metadata.time);
-    EXPECT_EQ(rolling.GetTime(), now);
+    constexpr int     kOffsetSeconds        = 60;
+    const std::time_t unix_time             = 100 * days::period::num + kOffsetSeconds;
+    const auto        time                  = system_clock::from_time_t(unix_time);
+    const auto        time_to_roll          = rolling.CalcRollingTime(time, kOffsetSeconds);
+    const auto        expected_rolling_time = time + days{1};
+    EXPECT_EQ(expected_rolling_time, time_to_roll);
 }
 
 class RollingByHourTestHelper : public RollingByHourHelper {
@@ -97,28 +96,47 @@ class RollingByHourTestHelper : public RollingByHourHelper {
     explicit RollingByHourTestHelper(const RecordDirPathGenerator* dirpath_generator) noexcept
         : RollingByHourHelper{dirpath_generator} {}
 
-    void SetTime(const system_clock::time_point time) noexcept { last_write_time_ = time; }
+    void SetRollingTime(const TimePoint time) { time_to_roll_ = time; }
 
-    system_clock::time_point GetTime() const noexcept { return last_write_time_; }
+    TimePoint GetRollingTime() const { return time_to_roll_; }
+
+    TimePoint CalcRollingTime(const TimePoint time, const int offset_seconds) {
+        return CalcNextRollingTime(time, hours::period::num, offset_seconds);
+    }
 };
 
 TEST(RollingByHourTestHelper, NeedToRoll) {
-    RollingByHourTestHelper rolling{&dir_path_generator};
-    const auto              now = system_clock::now();
-    rolling.SetTime(now - hours{1});
-
-    const RollingHelper::Metadata metadata{.time = now, .value_size{}};
+    RollingByHourTestHelper       rolling{&dir_path_generator};
+    const RollingHelper::Metadata metadata{.time = rolling.GetRollingTime() + seconds{1}, .value_size{}};
     EXPECT_TRUE(rolling.NeedToRoll(metadata));
 }
 
-TEST(RollingByHourTestHelper, NoNeedToRoll_InSameUtcHour) {
-    const std::time_t time{hours::period::num * 10};
-
-    RollingByHourTestHelper rolling{&dir_path_generator};
-    rolling.SetTime(system_clock::from_time_t(time));
-
-    const RollingHelper::Metadata metadata{.time = rolling.GetTime() + seconds{100}, .value_size{}};
+TEST(RollingByHourTestHelper, NoNeedToRoll) {
+    RollingByHourTestHelper       rolling{&dir_path_generator};
+    const RollingHelper::Metadata metadata{.time = rolling.GetRollingTime() - seconds{1}, .value_size{}};
     EXPECT_FALSE(rolling.NeedToRoll(metadata));
+}
+
+TEST(RollingByHourTestHelper, Day_CalcNextRollingTime_BeforeOffset) {
+    RollingByHourTestHelper rolling{&dir_path_generator};
+
+    constexpr int     kOffsetSeconds        = 60;
+    const std::time_t unix_time             = 100 * days::period::num;
+    const auto        time                  = system_clock::from_time_t(unix_time);
+    const auto        time_to_roll          = rolling.CalcRollingTime(time, kOffsetSeconds);
+    const auto        expected_rolling_time = time + hours{1} + seconds{kOffsetSeconds};
+    EXPECT_EQ(expected_rolling_time, time_to_roll);
+}
+
+TEST(RollingByHourTestHelper, Day_CalcNextRollingTime_AfterOffset) {
+    RollingByHourTestHelper rolling{&dir_path_generator};
+
+    constexpr int     kOffsetSeconds        = 60;
+    const std::time_t unix_time             = 100 * days::period::num + hours::period::num + kOffsetSeconds;
+    const auto        time                  = system_clock::from_time_t(unix_time);
+    const auto        time_to_roll          = rolling.CalcRollingTime(time, kOffsetSeconds);
+    const auto        expected_rolling_time = time + hours{1};
+    EXPECT_EQ(expected_rolling_time, time_to_roll);
 }
 
 class RollingBySizeTestHelper : public RollingBySizeHelper {

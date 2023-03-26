@@ -270,24 +270,24 @@ std::unique_ptr<RollingHelper> CreateRollingHelper(
         case RecorderConfig::Rolling::kHour:
             return std::make_unique<RollingByHourHelper>(dir_path_generator);
         case RecorderConfig::Rolling::kSize:
-            // Not supported currently
+            throw std::logic_error{"Record rolling by size is unsupported at present."};
         default:
-            throw std::logic_error{fmt::format("Unsupported record rolling strategy={}.", static_cast<int>(rolling))};
+            throw std::logic_error{
+                std::string{"Unknown record rolling strategy "} + std::to_string(static_cast<int>(rolling))};
     }
 }
 
 std::string GetRecordSubDirName(const RecorderConfig::Rolling rolling) {
     switch (rolling) {
         case RecorderConfig::Rolling::kNone:
-            return fmt::format("{}.pid.{}", GetCurrentUtcTime(), getpid());
         case RecorderConfig::Rolling::kDay:
-            return GetCurrentUtcDate();
         case RecorderConfig::Rolling::kHour:
-            return GetCurrentUtcHour();
+            return GetCurrentUtcTime() + ".UTC.pid." + std::to_string(getpid());
         case RecorderConfig::Rolling::kSize:
-            // Not supported currently
+            throw std::logic_error{"Record rolling by size is unsupported at present."};
         default:
-            throw std::logic_error{fmt::format("Unsupported record rolling strategy={}.", static_cast<int>(rolling))};
+            throw std::logic_error{
+                std::string{"Unknown record rolling strategy "} + std::to_string(static_cast<int>(rolling))};
     }
 }
 

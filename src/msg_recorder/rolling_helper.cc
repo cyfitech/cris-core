@@ -10,6 +10,8 @@
 
 namespace cris::core {
 
+using TimePoint = RollingHelper::Metadata::TimePoint;
+
 RollingHelper::RollingHelper(const RecordDirPathGenerator* const dir_path_generator)
     : dir_path_generator_{dir_path_generator} {
     if (dir_path_generator_ == nullptr) {
@@ -28,24 +30,37 @@ std::filesystem::path RollingHelper::GenerateFullRecordDirPath() const {
 }
 
 RollingByDayHelper::RollingByDayHelper(const RecordDirPathGenerator* const dir_path_generator)
-    : RollingHelper{dir_path_generator}
-    , last_write_time_{std::chrono::system_clock::now()} {
+    : RollingHelper{dir_path_generator} {
+    time_to_roll_ = CalcNextRollingTime(std::chrono::system_clock::now(), kSecondsPerDay, 60);
 }
 
 bool RollingByDayHelper::NeedToRoll(const Metadata& metadata) const {
-    return metadata.time > last_write_time_ && !SameUtcDay(last_write_time_, metadata.time);
+    return metadata.time >= time_to_roll_;
 }
 
-void RollingByDayHelper::Update(const Metadata& metadata) {
-    last_write_time_ = std::max(metadata.time, last_write_time_);
+void RollingByDayHelper::Update(const Metadata&) {
+}
+
+void RollingByDayHelper::Reset() {
+    time_to_roll_ = CalcNextRollingTime(std::chrono::system_clock::now(), kSecondsPerDay, 60);
+}
+
+TimePoint RollingByDayHelper::CalcNextRollingTime(
+    const TimePoint now,
+    const int       interval_len,
+    const int       offset_seconds) {
+    const auto unix_time         = std::chrono::system_clock::to_time_t(now);
+    const auto unix_time_to_roll = unix_time - unix_time % interval_len + interval_len + offset_seconds;
+    return std::chrono::system_clock::from_time_t(unix_time_to_roll);
 }
 
 RollingByHourHelper::RollingByHourHelper(const RecordDirPathGenerator* const dir_path_generator)
     : RollingByDayHelper{dir_path_generator} {
+    time_to_roll_ = CalcNextRollingTime(std::chrono::system_clock::now(), kSecondsPerHour, 60);
 }
 
-bool RollingByHourHelper::NeedToRoll(const Metadata& metadata) const {
-    return metadata.time > last_write_time_ && !SameUtcHour(last_write_time_, metadata.time);
+void RollingByHourHelper::Reset() {
+    time_to_roll_ = CalcNextRollingTime(std::chrono::system_clock::now(), kSecondsPerHour, 60);
 }
 
 RollingBySizeHelper::RollingBySizeHelper(
