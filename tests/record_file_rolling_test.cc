@@ -47,7 +47,7 @@ TEST_F(RecordFileTestFixture, Symlink_OK) {
     EXPECT_TRUE(fs::is_directory(filepath));
     EXPECT_TRUE(record_file.IsOpen());
 
-    const fs::path linkpath = daily_rolling_dir_path_generator_() / linkname;
+    const fs::path linkpath = filepath.parent_path() / linkname;
     EXPECT_TRUE(fs::is_symlink(linkpath));
 }
 
