@@ -1,9 +1,10 @@
 export SHELL = /bin/bash
-export OS = $(shell uname)
+export OS = $(shell uname -s)
 export DIR = $(shell pwd)
 
 export MKDIR = mkdir -p
 export RM = rm -rf
+export REALPATH = $(shell [ "_$(OS)" != '_Darwin' ] || printf g)realpath
 
 export DOCKER_IMAGE ?= cajunhotpot/cris-build-debian11:20230321
 
@@ -26,7 +27,7 @@ env:
 	set -e;                                                                 \
 	! which git >/dev/null 2>&1                                             \
 	|| ! git rev-parse --git-dir >/dev/null 2>&1                            \
-	|| repo="$$(realpath -e "$$(git rev-parse --git-dir)" | sed 's/$$/\//' | sed 's/\(.*\)\/\.git\/.*/\1/')";   \
+	|| repo="$$($(REALPATH) -e "$$(git rev-parse --git-dir)" | sed 's/$$/\//' | sed 's/\(.*\)\/\.git\/.*/\1/')";    \
 	[ "$$repo" ] || repo="$$(pwd)";                                         \
 	vol_cache="cache_$$(tr '[:punct:]' '_' <<< '$(DOCKER_IMAGE)')";         \
 	sudo_docker="$$([ -w '/var/run/docker.sock' ] || echo sudo) docker";    \
@@ -39,7 +40,7 @@ env:
 	    --cap-add=SYS_PTRACE                                                \
 	    --rm                                                                \
 	    --security-opt seccomp=unconfined                                   \
-	    $$([ ! -d "$$repo/.git/modules" ] || pwd | grep '[[:space:]]' >/dev/null || find "$$(realpath -e "$$repo")/.git/modules" -name 'lfs' -type d | xargs -rI{} printf '%s %s' '--tmpfs' {}) \
+	    $$([ ! -d "$$repo/.git/modules" ] || pwd | grep '[[:space:]]' >/dev/null || find "$$($(REALPATH) -e "$$repo")/.git/modules" -name 'lfs' -type d | xargs -rI{} printf '%s %s' '--tmpfs' {})  \
 	    $$([ ! "$$HTTP_PROXY"  ] || grep '[[:space:]]' <<< "$$HTTP_PROXY"  >/dev/null || echo "-e  HTTP_PROXY=$$HTTP_PROXY" )   \
 	    $$([ ! "$$HTTPS_PROXY" ] || grep '[[:space:]]' <<< "$$HTTPS_PROXY" >/dev/null || echo "-e HTTPS_PROXY=$$HTTPS_PROXY")   \
 	    $$([ ! "$$http_proxy"  ] || grep '[[:space:]]' <<< "$$http_proxy"  >/dev/null || echo "-e  http_proxy=$$http_proxy" )   \
@@ -50,16 +51,16 @@ env:
 	    -v  "bazel_$$vol_cache:/root/.cache/bazel"                          \
 	    -v "ccache_$$vol_cache:/root/.ccache"                               \
 	    -v    "pip_$$vol_cache:/root/.cache/pip"                            \
-	    -v "$$(realpath -e "$$repo"):$$(realpath -e "$$repo"):ro"           \
-	    $$([ ! -d 'run' ] || pwd | grep '[[:space:]]' >/dev/null || echo "-v $$(realpath -e .)/run:$$(realpath -e .)/run")  \
-	    $$([ ! -d 'tmp' ] || pwd | grep '[[:space:]]' >/dev/null || echo "-v $$(realpath -e .)/tmp:$$(realpath -e .)/tmp")  \
-	    -w "$$(realpath -e .)"                                              \
+	    -v "$$($(REALPATH) -e "$$repo"):$$($(REALPATH) -e "$$repo"):ro"     \
+	    $$([ ! -d 'run' ] || pwd | grep '[[:space:]]' >/dev/null || echo "-v $$($(REALPATH) -e .)/run:$$($(REALPATH) -e .)/run")    \
+	    $$([ ! -d 'tmp' ] || pwd | grep '[[:space:]]' >/dev/null || echo "-v $$($(REALPATH) -e .)/tmp:$$($(REALPATH) -e .)/tmp")    \
+	    -w "$$($(REALPATH) -e .)"                                           \
 	    '$(DOCKER_IMAGE)'                                                   \
 	    bash -cl ":;                                                        \
 	            set -e;                                                     \
 	            if [ '$$([ ! -L "$$(pwd)" ] || printf 'symlink')' ]; then   \
 	                mkdir -p "$$(dirname "$$(pwd)")";                       \
-	                ln -sf '$$(realpath -e .)' '$$(pwd)';                   \
+	                ln -sf '$$($(REALPATH) -e .)' '$$(pwd)';                \
 	            fi;                                                         \
 	            cd '$$(pwd)';                                               \
 	            cd .;                                                       \
@@ -75,32 +76,32 @@ lint: scripts/format_all.sh
 
 .PHONY: tidy
 tidy: scripts/bazel_wrapper.sh | lint
-	PYTHON_BIN_PATH="$$(set -e;                 \
-	    printf '%s' "$(PYTHON_EXECUTABLE)"      \
-	    | grep '/' >/dev/null                   \
-	    && [ -x "$(PYTHON_EXECUTABLE)" ]        \
-	    && realpath -e "$(PYTHON_EXECUTABLE)"   \
-	    || which "$(PYTHON_EXECUTABLE)")"       \
+	PYTHON_BIN_PATH="$$(set -e;                     \
+	    printf '%s' "$(PYTHON_EXECUTABLE)"          \
+	    | grep '/' >/dev/null                       \
+	    && [ -x "$(PYTHON_EXECUTABLE)" ]            \
+	    && $(REALPATH) -e "$(PYTHON_EXECUTABLE)"    \
+	    || which "$(PYTHON_EXECUTABLE)")"           \
 	$< build --config=prof --config=lint //...
 
 .PHONY: build
 build: scripts/bazel_wrapper.sh scripts/distro_cc.sh
-	PYTHON_BIN_PATH="$$(set -e;                 \
-	    printf '%s' "$(PYTHON_EXECUTABLE)"      \
-	    | grep '/' >/dev/null                   \
-	    && [ -x "$(PYTHON_EXECUTABLE)" ]        \
-	    && realpath -e "$(PYTHON_EXECUTABLE)"   \
-	    || which "$(PYTHON_EXECUTABLE)")"       \
+	PYTHON_BIN_PATH="$$(set -e;                     \
+	    printf '%s' "$(PYTHON_EXECUTABLE)"          \
+	    | grep '/' >/dev/null                       \
+	    && [ -x "$(PYTHON_EXECUTABLE)" ]            \
+	    && $(REALPATH) -e "$(PYTHON_EXECUTABLE)"    \
+	    || which "$(PYTHON_EXECUTABLE)")"           \
 	$< build --config=prof --config=rel $(OPT) $(BAZEL_OPTS) //...
 
 .PHONY: test
 test: scripts/bazel_wrapper.sh scripts/distro_cc.sh
-	PYTHON_BIN_PATH="$$(set -e;                 \
-	    printf '%s' "$(PYTHON_EXECUTABLE)"      \
-	    | grep '/' >/dev/null                   \
-	    && [ -x "$(PYTHON_EXECUTABLE)" ]        \
-	    && realpath -e "$(PYTHON_EXECUTABLE)"   \
-	    || which "$(PYTHON_EXECUTABLE)")"       \
+	PYTHON_BIN_PATH="$$(set -e;                         \
+	    printf '%s' "$(PYTHON_EXECUTABLE)"              \
+	    | grep '/' >/dev/null                           \
+	    && [ -x "$(PYTHON_EXECUTABLE)" ]                \
+	    && $(REALPATH) -e "$(PYTHON_EXECUTABLE)"        \
+	    || which "$(PYTHON_EXECUTABLE)")"               \
 	$< test                                             \
 	    --config=prof                                   \
 	    --config=rel                                    \

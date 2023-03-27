@@ -17,7 +17,7 @@ pushd "$(dirname "$0")/.." >/dev/null
 if which ccache >/dev/null 2>&1 && ([ -d 'run' ] && [ -w 'run' ] || [ -w '.' ]); then
     rm -rf 'run/toolchain'
     mkdir -p 'run/toolchain'
-    CR_CCACHE_CC_DIR="$(realpath -e "run/toolchain")"
+    CR_CCACHE_CC_DIR="$("$(! uname -s | grep '^Darwin$' >/dev/null || printf 'g')realpath" -e "run/toolchain")"
 
     for compiler_varname in "CC" "CXX"; do
         compiler="$(eval echo "\$$compiler_varname")"

@@ -12,7 +12,7 @@ for cmd in base64 diff git grep sed xargs; do
 done
 
 git submodule foreach --recursive -q pwd            \
-| xargs -rI{} realpath --relative-to="$(pwd)" {}    \
+| xargs -rI{} "$(! uname -s | grep '^Darwin$' >/dev/null || printf 'g')realpath" --relative-to="$(pwd)" {}  \
 | sed 's/\/*$//'                                    \
 | grep -e'cris-'{base,xchg}'$'                      \
 | sort                                              \
