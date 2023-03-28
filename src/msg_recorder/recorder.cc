@@ -1,12 +1,16 @@
 #include "cris/core/msg_recorder/recorder.h"
 
+#include "cris/core/msg_recorder/record_file.h"
 #include "cris/core/msg_recorder/recorder_config.h"
+#include "cris/core/msg_recorder/rolling_helper.h"
 #include "cris/core/utils/logging.h"
 #include "cris/core/utils/time.h"
 
 #include "fmt/chrono.h"
 #include "fmt/core.h"
 #include "impl/utils.h"
+
+#include <unistd.h>
 
 #include <algorithm>
 #include <chrono>
@@ -24,26 +28,11 @@
 
 namespace cris::core {
 
-MessageRecorder::MessageRecorder(
-    RecorderConfig             recorder_config,
-    std::shared_ptr<JobRunner> runner,
-    RecordDirPathGenerator     dir_path_generator)
+MessageRecorder::MessageRecorder(RecorderConfig recorder_config, std::shared_ptr<JobRunner> runner)
     : Base(std::move(runner))
     , recorder_config_(std::move(recorder_config))
-    , full_record_dir_path_generator_(std::move(dir_path_generator))
     , record_strand_(MakeStrand())
     , snapshot_thread_(std::thread([this] { SnapshotWorker(); })) {
-    CHECK(CheckRollingSettings()) << ": Dir path generator must be callable when rolling enabled.";
-
-    if (!full_record_dir_path_generator_) {  // Rolling is not enabled
-        full_record_dir_path_generator_ = [this] {
-            return GetRecordDir() / GetRecordSubDirName(RecorderConfig::Rolling::kNone);
-        };
-    }
-}
-
-bool MessageRecorder::CheckRollingSettings() const {
-    return recorder_config_.rolling_ == RecorderConfig::Rolling::kNone || full_record_dir_path_generator_;
 }
 
 void MessageRecorder::SetSnapshotJobPreStartCallback(
@@ -232,7 +221,9 @@ std::string MessageRecorder::SnapshotDirNameGenerator() {
 }
 
 const std::filesystem::path& MessageRecorder::GetRecordDir() const {
-    return recorder_config_.record_dir_;
+    static const auto record_dir{
+        recorder_config_.record_dir_ / (GetCurrentUtcTime() + ".UTC.pid." + std::to_string(getpid()))};
+    return record_dir;
 }
 
 std::map<std::string, std::vector<std::filesystem::path>> MessageRecorder::GetSnapshotPaths() {
@@ -251,38 +242,23 @@ RecordFile* MessageRecorder::CreateFile(
     const std::string&                     alias) {
     namespace fs = std::filesystem;
 
-    const auto filename       = impl::GetMessageRecordFileName(message_type, subid);
-    const auto dir            = full_record_dir_path_generator_();
-    auto       rolling_helper = CreateRollingHelper(recorder_config_.rolling_, &full_record_dir_path_generator_);
+    const auto message_typename = impl::GetMessageFileName(message_type);
+    const auto dir            = GetRecordDir() / recorder_config_.hostname_ / message_typename / std::to_string(subid);
+    const auto filename       = DefaultLevelDBDir();
+    auto       rolling_helper = CreateRollingHelper(recorder_config_.rolling_);
 
     std::lock_guard lck(snapshot_mtx_);
     return files_.emplace_back(std::make_unique<RecordFile>(dir / filename, alias, std::move(rolling_helper))).get();
 }
 
-std::unique_ptr<RollingHelper> CreateRollingHelper(
-    const RecorderConfig::Rolling                rolling,
-    const RollingHelper::RecordDirPathGenerator* dir_path_generator) {
+std::unique_ptr<RollingHelper> CreateRollingHelper(const RecorderConfig::Rolling rolling) {
     switch (rolling) {
         case RecorderConfig::Rolling::kNone:
             return nullptr;
         case RecorderConfig::Rolling::kDay:
-            return std::make_unique<RollingByDayHelper>(dir_path_generator);
+            return std::make_unique<RollingByDayHelper>();
         case RecorderConfig::Rolling::kHour:
-            return std::make_unique<RollingByHourHelper>(dir_path_generator);
-        case RecorderConfig::Rolling::kSize:
-            throw std::logic_error{"Record rolling by size is unsupported at present."};
-        default:
-            throw std::logic_error{
-                std::string{"Unknown record rolling strategy "} + std::to_string(static_cast<int>(rolling))};
-    }
-}
-
-std::string GetRecordSubDirName(const RecorderConfig::Rolling rolling) {
-    switch (rolling) {
-        case RecorderConfig::Rolling::kNone:
-        case RecorderConfig::Rolling::kDay:
-        case RecorderConfig::Rolling::kHour:
-            return GetCurrentUtcTime() + ".UTC.pid." + std::to_string(getpid());
+            return std::make_unique<RollingByHourHelper>();
         case RecorderConfig::Rolling::kSize:
             throw std::logic_error{"Record rolling by size is unsupported at present."};
         default:

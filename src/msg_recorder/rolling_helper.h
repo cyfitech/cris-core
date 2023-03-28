@@ -11,8 +11,6 @@ namespace cris::core {
 
 class RollingHelper {
    public:
-    using RecordDirPathGenerator = std::function<std::filesystem::path()>;
-
     struct Metadata {
         using TimePoint = std::chrono::system_clock::time_point;
 
@@ -20,26 +18,23 @@ class RollingHelper {
         std::uint64_t value_size{};
     };
 
-    explicit RollingHelper(const RecordDirPathGenerator* const dir_path_generator);
+    RollingHelper()          = default;
     virtual ~RollingHelper() = default;
 
     virtual bool NeedToRoll(const Metadata& metadata) const = 0;
 
     virtual void Update(const Metadata& metadata) = 0;
 
-    virtual void Reset();
+    virtual void Reset() {}
 
-    virtual std::filesystem::path GenerateFullRecordDirPath() const;
-
-   private:
-    const RecordDirPathGenerator* dir_path_generator_;
+    virtual std::string MakeNewRecordDirName() const;
 };
 
 class RollingByDayHelper : public RollingHelper {
    public:
     using TimePoint = Metadata::TimePoint;
 
-    explicit RollingByDayHelper(const RecordDirPathGenerator* const dir_path_generator);
+    RollingByDayHelper();
     ~RollingByDayHelper() override = default;
 
     bool NeedToRoll(const Metadata& metadata) const override;
@@ -49,6 +44,8 @@ class RollingByDayHelper : public RollingHelper {
     void Reset() override;
 
    protected:
+    explicit RollingByDayHelper(const TimePoint time_to_roll);
+
     static TimePoint CalcNextRollingTime(const TimePoint now, const int interval_len, const int offset_seconds);
 
     TimePoint time_to_roll_{};
@@ -60,7 +57,7 @@ class RollingByDayHelper : public RollingHelper {
 
 class RollingByHourHelper : public RollingByDayHelper {
    public:
-    explicit RollingByHourHelper(const RecordDirPathGenerator* const dir_path_generator);
+    RollingByHourHelper();
     ~RollingByHourHelper() override = default;
 
     void Reset() override;
@@ -72,9 +69,7 @@ class RollingByHourHelper : public RollingByDayHelper {
 
 class RollingBySizeHelper : public RollingHelper {
    public:
-    explicit RollingBySizeHelper(
-        const RecordDirPathGenerator* const dir_path_generator,
-        const std::uint64_t                 size_limit_mb);
+    explicit RollingBySizeHelper(const std::uint64_t size_limit_mb);
     ~RollingBySizeHelper() override = default;
 
     bool NeedToRoll(const Metadata& metadata) const override;
@@ -87,5 +82,7 @@ class RollingBySizeHelper : public RollingHelper {
     const std::uint64_t limit_bytesize_;
     std::uint64_t       current_bytesize_{0u};
 };
+
+std::string DefaultLevelDBDir();
 
 }  // namespace cris::core

@@ -9,10 +9,12 @@
 
 namespace cris::core::impl {
 
-std::string GetMessageRecordFileName(const std::string& message_type, const CRMessageBase::channel_subid_t subid);
+constexpr std::string_view kLevelDbDirSuffix = ".ldb.d";
 
-std::vector<std::filesystem::path> FindMatchedSubdirs(
+std::string GetMessageFileName(const std::string& message_type);
+
+std::vector<std::filesystem::path> ListSubdirsWithSuffix(
     const std::filesystem::path& top_dir,
-    const std::string_view       dir_name);
+    const std::string_view       suffix);
 
 }  // namespace cris::core::impl

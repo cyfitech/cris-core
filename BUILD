@@ -84,6 +84,7 @@ cris_cc_library (
     include_prefix = "cris/core",
     strip_include_prefix = "src",
     deps = [
+        ":internal_msg_recorder_utils",
         ":utils",
     ],
     visibility = ["//visibility:private"],

@@ -13,40 +13,9 @@ namespace cris::core {
 
 using TimePoint = RollingHelper::Metadata::TimePoint;
 
-static const RollingHelper::RecordDirPathGenerator dir_path_generator = [] {
-    return "record-dir";
-};
-
-class DummyRollingHelper : public RollingHelper {
-   public:
-    explicit DummyRollingHelper(const RecordDirPathGenerator* dirpath_generator) : RollingHelper{dirpath_generator} {}
-
-    bool NeedToRoll(const Metadata&) const override { return false; }
-
-    void Update(const Metadata&) override {}
-
-    void Reset() override {}
-};
-
-TEST(RollingHelperTest, NullDirPathGenerator_Crash) {
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
-    EXPECT_THROW(DummyRollingHelper{nullptr}, std::logic_error);
-}
-
-TEST(RollingHelperTest, NonCallableDirPathGenerator_Crash) {
-    const RollingHelper::RecordDirPathGenerator invalid_dir_path_generator;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
-    EXPECT_THROW(DummyRollingHelper{&invalid_dir_path_generator}, std::logic_error);
-}
-
-TEST(RollingHelperTest, InitOK) {
-    EXPECT_NE(nullptr, std::make_unique<DummyRollingHelper>(&dir_path_generator));
-}
-
 class RollingByDayTestHelper : public RollingByDayHelper {
    public:
-    explicit RollingByDayTestHelper(const RecordDirPathGenerator* dirpath_generator)
-        : RollingByDayHelper{dirpath_generator} {}
+    RollingByDayTestHelper() = default;
 
     void SetRollingTime(const TimePoint time) { time_to_roll_ = time; }
 
@@ -58,19 +27,19 @@ class RollingByDayTestHelper : public RollingByDayHelper {
 };
 
 TEST(RollingByDayHelperTest, NeedToRoll) {
-    RollingByDayTestHelper        rolling{&dir_path_generator};
+    RollingByDayTestHelper        rolling{};
     const RollingHelper::Metadata metadata{.time = rolling.GetRollingTime() + seconds{1}, .value_size{}};
     EXPECT_TRUE(rolling.NeedToRoll(metadata));
 }
 
 TEST(RollingByDayHelperTest, NoNeedToRoll) {
-    RollingByDayTestHelper        rolling{&dir_path_generator};
+    RollingByDayTestHelper        rolling{};
     const RollingHelper::Metadata metadata{.time = rolling.GetRollingTime() - seconds{1}, .value_size{}};
     EXPECT_FALSE(rolling.NeedToRoll(metadata));
 }
 
 TEST(RollingByDayHelperTest, Day_CalcNextRollingTime_BeforeOffset) {
-    RollingByDayTestHelper rolling{&dir_path_generator};
+    RollingByDayTestHelper rolling{};
 
     constexpr int     kOffsetSeconds        = 60;
     const std::time_t unix_time             = 100 * days::period::num;
@@ -81,7 +50,7 @@ TEST(RollingByDayHelperTest, Day_CalcNextRollingTime_BeforeOffset) {
 }
 
 TEST(RollingByDayHelperTest, Day_CalcNextRollingTime_AfterOffset) {
-    RollingByDayTestHelper rolling{&dir_path_generator};
+    RollingByDayTestHelper rolling{};
 
     constexpr int     kOffsetSeconds        = 60;
     const std::time_t unix_time             = 100 * days::period::num + kOffsetSeconds;
@@ -93,8 +62,7 @@ TEST(RollingByDayHelperTest, Day_CalcNextRollingTime_AfterOffset) {
 
 class RollingByHourTestHelper : public RollingByHourHelper {
    public:
-    explicit RollingByHourTestHelper(const RecordDirPathGenerator* dirpath_generator) noexcept
-        : RollingByHourHelper{dirpath_generator} {}
+    explicit RollingByHourTestHelper() = default;
 
     void SetRollingTime(const TimePoint time) { time_to_roll_ = time; }
 
@@ -106,19 +74,19 @@ class RollingByHourTestHelper : public RollingByHourHelper {
 };
 
 TEST(RollingByHourTestHelper, NeedToRoll) {
-    RollingByHourTestHelper       rolling{&dir_path_generator};
+    RollingByHourTestHelper       rolling{};
     const RollingHelper::Metadata metadata{.time = rolling.GetRollingTime() + seconds{1}, .value_size{}};
     EXPECT_TRUE(rolling.NeedToRoll(metadata));
 }
 
 TEST(RollingByHourTestHelper, NoNeedToRoll) {
-    RollingByHourTestHelper       rolling{&dir_path_generator};
+    RollingByHourTestHelper       rolling{};
     const RollingHelper::Metadata metadata{.time = rolling.GetRollingTime() - seconds{1}, .value_size{}};
     EXPECT_FALSE(rolling.NeedToRoll(metadata));
 }
 
 TEST(RollingByHourTestHelper, Day_CalcNextRollingTime_BeforeOffset) {
-    RollingByHourTestHelper rolling{&dir_path_generator};
+    RollingByHourTestHelper rolling{};
 
     constexpr int     kOffsetSeconds        = 60;
     const std::time_t unix_time             = 100 * days::period::num;
@@ -129,7 +97,7 @@ TEST(RollingByHourTestHelper, Day_CalcNextRollingTime_BeforeOffset) {
 }
 
 TEST(RollingByHourTestHelper, Day_CalcNextRollingTime_AfterOffset) {
-    RollingByHourTestHelper rolling{&dir_path_generator};
+    RollingByHourTestHelper rolling{};
 
     constexpr int     kOffsetSeconds        = 60;
     const std::time_t unix_time             = 100 * days::period::num + hours::period::num + kOffsetSeconds;
@@ -141,10 +109,7 @@ TEST(RollingByHourTestHelper, Day_CalcNextRollingTime_AfterOffset) {
 
 class RollingBySizeTestHelper : public RollingBySizeHelper {
    public:
-    explicit RollingBySizeTestHelper(
-        const RecordDirPathGenerator* dirpath_generator,
-        const std::uint64_t           size_limit_mb) noexcept
-        : RollingBySizeHelper{dirpath_generator, size_limit_mb} {}
+    explicit RollingBySizeTestHelper(const std::uint64_t size_limit_mb) : RollingBySizeHelper{size_limit_mb} {}
 
     void SetCurrentBytesize(const std::uint64_t bytesize) noexcept { current_bytesize_ = bytesize; }
 
@@ -152,14 +117,14 @@ class RollingBySizeTestHelper : public RollingBySizeHelper {
 };
 
 TEST(RollingBySizeTestHelper, NeedToRoll_ValueSize) {
-    RollingBySizeTestHelper rolling{&dir_path_generator, 100};
+    RollingBySizeTestHelper rolling{100};
 
     const RollingHelper::Metadata metadata{.time{}, .value_size = 100 * std::mega::num};
     EXPECT_TRUE(rolling.NeedToRoll(metadata));
 }
 
 TEST(RollingBySizeTestHelper, NeedToRoll_TotalSize) {
-    RollingBySizeTestHelper rolling{&dir_path_generator, 100};
+    RollingBySizeTestHelper rolling{100};
 
     constexpr std::uint64_t kInitBytesize = 99 * std::mega::num;
     rolling.SetCurrentBytesize(99 * std::mega::num);
@@ -170,7 +135,7 @@ TEST(RollingBySizeTestHelper, NeedToRoll_TotalSize) {
 }
 
 TEST(RollingBySizeTestHelper, NoNeedToRoll) {
-    RollingBySizeTestHelper rolling{&dir_path_generator, 100};
+    RollingBySizeTestHelper rolling{100};
 
     constexpr std::uint64_t kInitBytesize = 99 * std::mega::num;
     rolling.SetCurrentBytesize(kInitBytesize);
@@ -181,7 +146,7 @@ TEST(RollingBySizeTestHelper, NoNeedToRoll) {
 }
 
 TEST(RollingBySizeTestHelper, Reset) {
-    RollingBySizeTestHelper rolling{&dir_path_generator, 100};
+    RollingBySizeTestHelper rolling{100};
 
     constexpr std::uint64_t kInitBytesize = 99 * std::mega::num;
     rolling.SetCurrentBytesize(kInitBytesize);
@@ -192,7 +157,7 @@ TEST(RollingBySizeTestHelper, Reset) {
 }
 
 TEST(RollingBySizeTestHelper, Update) {
-    RollingBySizeTestHelper rolling{&dir_path_generator, 100};
+    RollingBySizeTestHelper rolling{100};
 
     constexpr std::uint64_t kInitBytesize = 90 * std::mega::num;
     rolling.SetCurrentBytesize(kInitBytesize);

@@ -7,7 +7,9 @@
 #include "leveldb/db.h"
 #include "leveldb/slice.h"
 
+#include <algorithm>
 #include <filesystem>
+#include <iomanip>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -136,28 +138,13 @@ void RecordFileReverseIterator::ReadPrevValidKey() {
 
 RecordFile::RecordFile(std::string filepath, std::string linkname, std::unique_ptr<RollingHelper> rolling_helper)
     : filepath_{std::move(filepath)}
-    , filename_{fs::path{filepath_}.filename().native()}
     , linkname_{std::move(linkname)}
     , rolling_helper_{std::move(rolling_helper)} {
     OpenDB();
 }
 
 RecordFile::~RecordFile() {
-    const auto is_empty = Empty();
     CloseDB();
-    if (!is_empty) {
-        return;
-    }
-
-    if (!linkname_.empty()) {
-        const auto linkpath = fs::path{filepath_}.parent_path() / linkname_;
-        if (fs::is_symlink(linkpath)) {
-            fs::remove(linkpath);
-        }
-    }
-
-    LOG(INFO) << "Record \"" << filepath_ << "\" is empty, removing.";
-    fs::remove_all(filepath_);
 }
 
 bool RecordFile::OpenDB() {
@@ -171,12 +158,21 @@ bool RecordFile::OpenDB() {
         return false;
     }
 
-    leveldb::DB* db = OpenDB(filepath_);
+    leveldb::DB* db = OpenDB(filepath_.native());
     if (db == nullptr) {
         return false;
     }
 
     db_.reset(db);
+
+    if (!linkname_.empty()) {
+        const auto subchannel_dir = filepath_.parent_path();
+        const auto message_dir    = subchannel_dir.parent_path();
+        const auto linkpath       = message_dir.parent_path() / linkname_;
+        if (!fs::exists(linkpath)) {
+            Symlink(message_dir.filename() / subchannel_dir.filename(), linkpath);
+        }
+    }
     return true;
 }
 
@@ -204,11 +200,6 @@ leveldb::DB* RecordFile::OpenDB(const std::string& path) {
         return nullptr;
     }
 
-    const auto linkpath = dir / linkname_;
-    if (!fs::exists(linkpath)) {
-        Symlink(filepath, linkpath);
-    }
-
     return db;
 }
 
@@ -222,7 +213,12 @@ void RecordFile::CloseDB() {
         Compact();
     }
 
+    const bool is_empty = Empty();
     db_.reset();
+    if ((is_empty || IsEmptyDir(filepath_.native())) && IsLevelDBDir(filepath_.native())) {
+        LOG(INFO) << "Remove empty record DB " << filepath_ << ".";
+        fs::remove_all(filepath_);
+    }
 }
 
 void RecordFile::Write(std::string serialized_value) {
@@ -246,18 +242,16 @@ void RecordFile::Write(RecordFileKey key, std::string serialized_value) {
 }
 
 bool RecordFile::Roll() {
-    const auto path     = rolling_helper_->GenerateFullRecordDirPath() / filename_;
-    auto       path_str = path.native();
-
-    decltype(db_) new_db{OpenDB(path_str)};
+    const auto    new_filepath{filepath_.parent_path() / rolling_helper_->MakeNewRecordDirName()};
+    decltype(db_) new_db{OpenDB(new_filepath.native())};
     if (new_db == nullptr) {
-        LOG(ERROR) << __func__ << ": Failed to open new db for rolling, path " << path;
+        LOG(ERROR) << __func__ << ": Failed to open new db " << filepath_ << " for rolling.";
         return false;
     }
 
     CloseDB();
     db_       = std::move(new_db);
-    filepath_ = std::move(path_str);
+    filepath_ = new_filepath;
 
     rolling_helper_->Reset();
 
@@ -270,8 +264,7 @@ bool RecordFile::Write(const std::string& key, const std::string& value) const {
     const auto     status = db_->Put(leveldb::WriteOptions(), key_slice, value_slice);
     const bool     ok     = status.ok();
     if (!ok) [[unlikely]] {
-        LOG(ERROR) << __func__ << ": Failed to write to record file \"" << filepath_
-                   << "\", status: " << status.ToString();
+        LOG(ERROR) << __func__ << ": Failed to write to record file " << filepath_ << ", status: " << status.ToString();
     }
     return ok;
 }
@@ -296,7 +289,7 @@ bool RecordFile::Empty() const {
     return !Iterate().Valid();
 }
 
-const std::string& RecordFile::GetFilePath() const {
+const fs::path& RecordFile::GetFilePath() const {
     return filepath_;
 }
 
@@ -307,7 +300,8 @@ void RecordFile::Compact() {
 bool MakeDirs(const std::filesystem::path& path) {
     std::error_code ec{};
     if (!fs::create_directories(path, ec) && ec) {
-        LOG(ERROR) << __func__ << ": Failed to create dir " << path << "with error \"" << ec.message() << "\".";
+        LOG(ERROR) << __func__ << ": Failed to create dir " << path << "with error " << std::quoted(ec.message())
+                   << ".";
         return false;
     }
 
@@ -321,11 +315,33 @@ bool Symlink(const std::filesystem::path& to, const std::filesystem::path& from)
     }
 
     std::error_code ec{};
-    fs::create_symlink(to.filename(), from, ec);
+    fs::create_symlink(to, from, ec);
     const bool has_error = ec.operator bool();
     LOG_IF(WARNING, has_error) << __func__ << ": Failed to create symlink from " << from << " -> " << to
-                               << " with error \"" << ec.message() << "\".";
+                               << " with error " << std::quoted(ec.message()) << ".";
     return has_error;
+}
+
+bool IsEmptyDir(const std::string& path) {
+    const auto dir{fs::path{path}};
+    return fs::is_directory(dir) && fs::is_empty(dir);
+}
+
+bool IsLevelDBDir(const std::string& path) {
+    constexpr std::string_view kLevelDBCurrent{"CURRENT"};
+    constexpr std::string_view kLevelDBLock{"LOCK"};
+    constexpr std::string_view kLevelDBLog{"LOG"};
+
+    const auto dir{fs::path{path}};
+    if (!fs::exists(dir / kLevelDBCurrent) || !fs::exists(dir / kLevelDBLock) || !fs::exists(dir / kLevelDBLog)) {
+        return false;
+    }
+
+    const auto dir_iter = fs::directory_iterator{dir};
+    return std::any_of(fs::begin(dir_iter), fs::end(dir_iter), [](const auto& entry) {
+        constexpr std::string_view kLevelDBManifestPrefix{"MANIFEST-"};
+        return fs::is_regular_file(entry) && entry.path().filename().native().starts_with(kLevelDBManifestPrefix);
+    });
 }
 
 }  // namespace cris::core

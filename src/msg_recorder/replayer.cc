@@ -4,6 +4,7 @@
 
 #include "impl/utils.h"
 
+#include <stdexcept>
 #include <thread>
 
 namespace cris::core {
@@ -79,11 +80,13 @@ void MessageReplayer::StopMainLoop() {
 }
 
 RecordFileIterator MessageReplayer::GetRecordItr(const std::string& message_type, channel_subid_t subid) {
-    const auto filename = impl::GetMessageRecordFileName(message_type, subid);
+    const auto dir = GetRecordDir() / impl::GetMessageFileName(message_type) / std::to_string(subid);
 
-    const auto matched_files = impl::FindMatchedSubdirs(GetRecordDir(), filename);
-    LOG_IF(ERROR, matched_files.empty()) << "Record file \"" << filename << "\" not found, record dir "
-                                         << GetRecordDir();
+    const auto matched_files = impl::ListSubdirsWithSuffix(dir, impl::kLevelDbDirSuffix);
+    if (matched_files.empty()) {
+        LOG(ERROR) << "Record file with suffix \"" << impl::kLevelDbDirSuffix << "\" not found, record dir " << dir;
+        throw std::logic_error{"No matched record file found."};
+    }
 
     // TODO(yanglu1225): Support rolled (multiple) record dirs
     LOG_IF(WARNING, matched_files.size() > 1)

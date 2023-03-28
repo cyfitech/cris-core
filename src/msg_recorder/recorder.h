@@ -4,7 +4,6 @@
 #include "cris/core/msg/node.h"
 #include "cris/core/msg_recorder/record_file.h"
 #include "cris/core/msg_recorder/recorder_config.h"
-#include "cris/core/msg_recorder/rolling_helper.h"
 
 #include <atomic>
 #include <chrono>
@@ -31,13 +30,9 @@ struct SnapshotInfo {
 
 class MessageRecorder : public CRNamedNode<MessageRecorder> {
    public:
-    using Base                   = CRNamedNode<MessageRecorder>;
-    using RecordDirPathGenerator = RollingHelper::RecordDirPathGenerator;
+    using Base = CRNamedNode<MessageRecorder>;
 
-    explicit MessageRecorder(
-        RecorderConfig             recorder_config,
-        std::shared_ptr<JobRunner> runner,
-        RecordDirPathGenerator     dir_path_generator = {});
+    explicit MessageRecorder(RecorderConfig recorder_config, std::shared_ptr<JobRunner> runner);
 
     MessageRecorder(const MessageRecorder&) = delete;
     MessageRecorder(MessageRecorder&&)      = delete;
@@ -71,8 +66,6 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
 
     RecordFile* CreateFile(const std::string& message_type, const channel_subid_t subid, const std::string& alias);
 
-    bool CheckRollingSettings() const;
-
     bool GenerateSnapshotImpl(const std::filesystem::path& snapshot_dir);
     void MaintainMaxNumOfSnapshots(const RecorderConfig::IntervalConfig& interval_config);
 
@@ -82,7 +75,6 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
     static std::string SnapshotDirNameGenerator();
 
     const RecorderConfig                         recorder_config_;
-    RecordDirPathGenerator                       full_record_dir_path_generator_;
     std::vector<std::unique_ptr<RecordFile>>     files_;
     std::shared_ptr<cris::core::JobRunnerStrand> record_strand_;
 
@@ -106,10 +98,6 @@ void MessageRecorder::RegisterChannel(const MessageRecorder::channel_subid_t sub
         record_strand_);
 }
 
-std::unique_ptr<RollingHelper> CreateRollingHelper(
-    const RecorderConfig::Rolling                rolling,
-    const RollingHelper::RecordDirPathGenerator* dir_path_generator);
-
-std::string GetRecordSubDirName(const RecorderConfig::Rolling rolling);
+std::unique_ptr<RollingHelper> CreateRollingHelper(const RecorderConfig::Rolling rolling);
 
 }  // namespace cris::core
