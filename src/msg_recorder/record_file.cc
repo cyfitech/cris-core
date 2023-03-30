@@ -10,8 +10,10 @@
 #include <algorithm>
 #include <filesystem>
 #include <iomanip>
+#include <stdexcept>
 #include <string>
 #include <string_view>
+#include <system_error>
 #include <type_traits>
 #include <utility>
 
@@ -158,6 +160,8 @@ bool RecordFile::OpenDB() {
         return false;
     }
 
+    CheckoutDB();
+
     leveldb::DB* db = OpenDB(filepath_.native());
     if (db == nullptr) {
         return false;
@@ -177,7 +181,8 @@ bool RecordFile::OpenDB() {
 }
 
 leveldb::DB* RecordFile::OpenDB(const std::string& path) {
-    const fs::path filepath{path};
+    const auto     actual_filepath = UnfinishedPath(path);
+    const fs::path filepath{actual_filepath};
     const fs::path dir{filepath.parent_path()};
     if (!MakeDirs(dir)) {
         LOG(ERROR) << __func__ << ": Failed to OpenDB(), failed to create dir " << dir << ".";
@@ -188,11 +193,11 @@ leveldb::DB* RecordFile::OpenDB(const std::string& path) {
     options.create_if_missing = true;
 
     leveldb::DB* db     = nullptr;
-    auto         status = leveldb::DB::Open(options, path, &db);
+    auto         status = leveldb::DB::Open(options, actual_filepath, &db);
     if (!status.ok()) {
         static RecordFileKeyLdbCmp legacy_cmp;
         options.comparator = &legacy_cmp;
-        status             = leveldb::DB::Open(options, path, &db);
+        status             = leveldb::DB::Open(options, actual_filepath, &db);
         legacy_            = true;
     }
     if (!status.ok()) [[unlikely]] {
@@ -214,11 +219,50 @@ void RecordFile::CloseDB() {
     }
 
     const bool is_empty = Empty();
+
     db_.reset();
+    CommitDB();
+
     if ((is_empty || IsEmptyDir(filepath_.native())) && IsLevelDBDir(filepath_.native())) {
         LOG(INFO) << "Remove empty record DB " << filepath_ << ".";
         fs::remove_all(filepath_);
     }
+}
+
+void RecordFile::CheckoutDB() {
+    if (!fs::exists(filepath_)) {
+        return;
+    }
+
+    const auto actual_filepath = UnfinishedPath(filepath_.native());
+
+    std::error_code ec{};
+    fs::rename(filepath_, actual_filepath, ec);
+    if (ec) {
+        LOG(ERROR) << __func__ << ": Failed to rename " << filepath_ << " to " << actual_filepath << " with error "
+                   << std::quoted(ec.message()) << ".";
+        throw std::logic_error{ec.message()};
+    }
+}
+
+void RecordFile::CommitDB() {
+    const auto actual_filepath = UnfinishedPath(filepath_.native());
+
+    std::error_code ec{};
+    fs::rename(actual_filepath, filepath_, ec);
+    if (ec) {
+        LOG(ERROR) << __func__ << ": Failed to rename " << filepath_ << " to " << actual_filepath << " with error "
+                   << std::quoted(ec.message()) << ".";
+        return;
+    }
+}
+
+std::string RecordFile::UnfinishedPath(std::string path) {
+    static constexpr std::string_view kUnfinishedSuffix{".saving"};
+
+    std::string unfinished{std::move(path)};
+    unfinished.append(kUnfinishedSuffix);
+    return unfinished;
 }
 
 void RecordFile::Write(std::string serialized_value) {
@@ -289,8 +333,8 @@ bool RecordFile::Empty() const {
     return !Iterate().Valid();
 }
 
-const fs::path& RecordFile::GetFilePath() const {
-    return filepath_;
+std::string RecordFile::GetFilePath() const {
+    return IsOpen() ? UnfinishedPath(filepath_.string()) : filepath_.string();
 }
 
 void RecordFile::Compact() {

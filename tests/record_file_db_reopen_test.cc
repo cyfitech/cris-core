@@ -33,7 +33,6 @@ class RecordFileDbReopenTest : public testing::Test {
 };
 
 TEST_F(RecordFileDbReopenTest, RecordFileDbReopenTest) {
-    std::filesystem::create_directories(GetRecordFilePath());
     auto record_file = std::make_unique<RecordFile>(GetRecordFilePath());
 
     // repeatedly open and close the DB

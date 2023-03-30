@@ -7,7 +7,7 @@
 #include <algorithm>
 #include <chrono>
 #include <ratio>
-#include <stdexcept>
+#include <string>
 
 namespace cris::core {
 

@@ -3,9 +3,10 @@
 #include <gtest/gtest.h>
 
 #include <chrono>
+#include <cstdint>
 #include <ctime>
 #include <memory>
-#include <stdexcept>
+#include <ratio>
 
 using namespace std::chrono;
 
