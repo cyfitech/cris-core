@@ -1,5 +1,6 @@
 #include "cris/core/msg_recorder/rolling_helper.h"
 
+#include "cris/core/msg_recorder/impl/utils.h"
 #include "cris/core/utils/logging.h"
 #include "cris/core/utils/time.h"
 
@@ -12,26 +13,15 @@ namespace cris::core {
 
 using TimePoint = RollingHelper::Metadata::TimePoint;
 
-RollingHelper::RollingHelper(const RecordDirPathGenerator* const dir_path_generator)
-    : dir_path_generator_{dir_path_generator} {
-    if (dir_path_generator_ == nullptr) {
-        throw std::logic_error{"Dir path generator must be set for rolling."};
-    }
-    if (!*dir_path_generator_) {
-        throw std::logic_error{"Dir path generator must be callable for rolling."};
-    }
+std::string RollingHelper::MakeNewRecordDirName() const {
+    return DefaultLevelDBDir();
 }
 
-void RollingHelper::Reset() {
+RollingByDayHelper::RollingByDayHelper()
+    : RollingByDayHelper{CalcNextRollingTime(std::chrono::system_clock::now(), kSecondsPerDay, 60)} {
 }
 
-std::filesystem::path RollingHelper::GenerateFullRecordDirPath() const {
-    return (*dir_path_generator_)();
-}
-
-RollingByDayHelper::RollingByDayHelper(const RecordDirPathGenerator* const dir_path_generator)
-    : RollingHelper{dir_path_generator} {
-    time_to_roll_ = CalcNextRollingTime(std::chrono::system_clock::now(), kSecondsPerDay, 60);
+RollingByDayHelper::RollingByDayHelper(const TimePoint time_to_roll) : time_to_roll_{time_to_roll} {
 }
 
 bool RollingByDayHelper::NeedToRoll(const Metadata& metadata) const {
@@ -54,20 +44,16 @@ TimePoint RollingByDayHelper::CalcNextRollingTime(
     return std::chrono::system_clock::from_time_t(unix_time_to_roll);
 }
 
-RollingByHourHelper::RollingByHourHelper(const RecordDirPathGenerator* const dir_path_generator)
-    : RollingByDayHelper{dir_path_generator} {
-    time_to_roll_ = CalcNextRollingTime(std::chrono::system_clock::now(), kSecondsPerHour, 60);
+RollingByHourHelper::RollingByHourHelper()
+    : RollingByDayHelper{CalcNextRollingTime(std::chrono::system_clock::now(), kSecondsPerHour, 60)} {
 }
 
 void RollingByHourHelper::Reset() {
     time_to_roll_ = CalcNextRollingTime(std::chrono::system_clock::now(), kSecondsPerHour, 60);
 }
 
-RollingBySizeHelper::RollingBySizeHelper(
-    const RecordDirPathGenerator* const dir_path_generator,
-    const std::uint64_t                 size_limit_mb)
-    : RollingHelper{dir_path_generator}
-    , limit_bytesize_{size_limit_mb * std::mega::num} {
+RollingBySizeHelper::RollingBySizeHelper(const std::uint64_t size_limit_mb)
+    : limit_bytesize_{size_limit_mb * std::mega::num} {
 }
 
 bool RollingBySizeHelper::NeedToRoll(const Metadata& metadata) const {
@@ -84,6 +70,12 @@ void RollingBySizeHelper::Update(const Metadata& metadata) {
 
 void RollingBySizeHelper::Reset() {
     current_bytesize_ = 0;
+}
+
+std::string DefaultLevelDBDir() {
+    std::string dirname = GetCurrentUtcTime();
+    dirname.append(impl::kLevelDbDirSuffix);
+    return dirname;
 }
 
 }  // namespace cris::core

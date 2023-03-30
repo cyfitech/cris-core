@@ -20,6 +20,8 @@ using channel_subid_t = cris::core::CRMessageBase::channel_subid_t;
 
 namespace cris::core {
 
+static const std::string kTestHost = "test-host";
+
 class RecorderTest : public testing::Test {
    public:
     void SetUp() override { std::filesystem::create_directories(GetTestTempDir()); }
@@ -87,11 +89,7 @@ std::string MessageToStr(const TestMessage<T>& msg) {
 }
 
 RecorderConfig RecorderTest::GetTestConfig() const {
-    return RecorderConfig{
-        .snapshot_intervals_ = {},
-        .record_dir_         = GetTestTempDir(),
-        .hostname_{},
-    };
+    return RecorderConfig{.snapshot_intervals_{}, .record_dir_{GetTestTempDir()}, .hostname_{kTestHost}};
 }
 
 void RecorderTest::TestRecord() {
@@ -123,7 +121,7 @@ void RecorderTest::TestRecord() {
 
 void RecorderTest::TestReplay(double speed_up) {
     auto            runner = core::JobRunner::MakeJobRunner({});
-    MessageReplayer replayer(record_dir_);
+    MessageReplayer replayer(record_dir_ / kTestHost);
     core::CRNode    subscriber(runner);
 
     replayer.RegisterChannel<TestMessage<int>>(kTestIntChannelSubId);
@@ -196,7 +194,7 @@ void RecorderTest::TestReplay(double speed_up) {
 }
 
 void RecorderTest::TestReplayCanceled() {
-    MessageReplayer replayer(record_dir_);
+    MessageReplayer replayer(record_dir_ / kTestHost);
 
     bool run_post_start  = false;
     bool run_pre_finish  = false;
@@ -234,25 +232,9 @@ TEST_F(RecorderTest, RecorderTest) {
     TestReplayCanceled();
 }
 
-TEST(MessageRecorder, CheckRollingSettings_NoRollingOK) {
-    RecorderConfig recorder_config;
-    recorder_config.record_dir_ = std::filesystem::temp_directory_path();
-    const MessageRecorder recorder{std::move(recorder_config), nullptr};
-    EXPECT_EQ(std::filesystem::temp_directory_path(), recorder.GetRecordDir());
-}
-
-TEST(MessageRecorder, CheckRollingSettings_InvalidRollingSetting) {
-    RecorderConfig recorder_config;
-    recorder_config.rolling_ = RecorderConfig::Rolling::kDay;
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
-    EXPECT_DEATH(
-        MessageRecorder(std::move(recorder_config), nullptr),
-        "Dir path generator must be callable when rolling enabled");
-}
-
 TEST(RecorderUtilsTest, FindMatchedSubdirsOK) {
     namespace fs = std::filesystem;
-    constexpr std::array dirs{"a/b/c", "a/d/c", "e", "f"};
+    constexpr std::array dirs{"a/b/c.x", "e.x", "f.x"};
 
     const auto dir_deleter = [](fs::path* path) {
         fs::remove_all(*path);
@@ -265,11 +247,11 @@ TEST(RecorderUtilsTest, FindMatchedSubdirsOK) {
         EXPECT_TRUE(fs::create_directories(temp_dir / d));
     }
 
-    const std::string dir_name{"c"};
-    const auto        matches = impl::FindMatchedSubdirs(temp_dir, dir_name);
+    const std::string suffix{".x"};
+    const auto        matches = impl::ListSubdirsWithSuffix(temp_dir, suffix);
     EXPECT_EQ(2u, matches.size());
-    EXPECT_EQ((temp_dir / "a/b/c"), matches[0]);
-    EXPECT_EQ((temp_dir / "a/d/c"), matches[1]);
+    EXPECT_EQ((temp_dir / "e.x"), matches[0]);
+    EXPECT_EQ((temp_dir / "f.x"), matches[1]);
 }
 
 TEST(RecorderUtilsTest, FindMatchedSubdirsNone) {
@@ -287,8 +269,8 @@ TEST(RecorderUtilsTest, FindMatchedSubdirsNone) {
         EXPECT_TRUE(fs::create_directories(temp_dir / d));
     }
 
-    const std::string dir_name{"h"};
-    const auto        matches = impl::FindMatchedSubdirs(temp_dir, dir_name);
+    const std::string suffix{".txt"};
+    const auto        matches = impl::ListSubdirsWithSuffix(temp_dir, suffix);
     EXPECT_TRUE(matches.empty());
 }
 

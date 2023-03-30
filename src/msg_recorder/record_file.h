@@ -100,7 +100,7 @@ class RecordFile {
 
     bool IsOpen() const;
 
-    const std::string& GetFilePath() const;
+    const std::filesystem::path& GetFilePath() const;
 
     void Compact();
 
@@ -117,8 +117,7 @@ class RecordFile {
 
     bool Write(const std::string& key, const std::string& value) const;
 
-    std::string                    filepath_;
-    const std::string              filename_;
+    std::filesystem::path          filepath_;
     const std::string              linkname_;
     std::unique_ptr<RollingHelper> rolling_helper_;
     std::unique_ptr<leveldb::DB>   db_;
@@ -128,5 +127,9 @@ class RecordFile {
 bool MakeDirs(const std::filesystem::path& path);
 
 bool Symlink(const std::filesystem::path& to, const std::filesystem::path& from);
+
+bool IsEmptyDir(const std::string& path);
+
+bool IsLevelDBDir(const std::string& path);
 
 }  // namespace cris::core
