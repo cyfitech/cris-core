@@ -237,7 +237,7 @@ void RecordFile::CheckoutDB() {
         return;
     }
 
-    const auto actual_filepath = fs::path{UnfinishedPath(filepath_.native())};
+    const fs::path actual_filepath{UnfinishedPath(filepath_.native())};
     if (fs::exists(actual_filepath)) {
         LOG(ERROR) << __func__ << ": Failed to checkout db, dir " << actual_filepath << " already exists.";
         throw std::runtime_error{actual_filepath.native() + " already exists."};
@@ -253,7 +253,7 @@ void RecordFile::CheckoutDB() {
 }
 
 void RecordFile::CommitDB() {
-    const auto actual_filepath = fs::path{UnfinishedPath(filepath_.native())};
+    const fs::path actual_filepath{UnfinishedPath(filepath_.native())};
 
     if (!fs::exists(actual_filepath)) {
         LOG(ERROR) << __func__ << ": Failed to commit db, dir " << actual_filepath << " does not exist.";
@@ -299,8 +299,8 @@ void RecordFile::Write(RecordFileKey key, std::string serialized_value) {
 }
 
 bool RecordFile::Roll() {
-    const auto    new_filepath{filepath_.parent_path() / rolling_helper_->MakeNewRecordDirName()};
-    decltype(db_) new_db{OpenDB(new_filepath.native())};
+    const fs::path new_filepath{filepath_.parent_path() / rolling_helper_->MakeNewRecordDirName()};
+    decltype(db_)  new_db{OpenDB(new_filepath.native())};
     if (new_db == nullptr) {
         LOG(ERROR) << __func__ << ": Failed to open new db " << filepath_ << " for rolling.";
         return false;
@@ -379,18 +379,14 @@ bool Symlink(const std::filesystem::path& to, const std::filesystem::path& from)
     return has_error;
 }
 
-bool IsEmptyDir(const std::string& path) {
-    const auto dir{fs::path{path}};
+bool IsEmptyDir(const std::string& dir_path) {
+    const fs::path dir{dir_path};
     return fs::is_directory(dir) && fs::is_empty(dir);
 }
 
-bool IsLevelDBDir(const std::string& path) {
-    constexpr std::string_view kLevelDBCurrent{"CURRENT"};
-    constexpr std::string_view kLevelDBLock{"LOCK"};
-    constexpr std::string_view kLevelDBLog{"LOG"};
-
-    const auto dir{fs::path{path}};
-    if (!fs::exists(dir / kLevelDBCurrent) || !fs::exists(dir / kLevelDBLock) || !fs::exists(dir / kLevelDBLog)) {
+bool IsLevelDBDir(const std::string& dir_path) {
+    const fs::path dir{dir_path};
+    if (!fs::exists(dir / "CURRENT")) {
         return false;
     }
 
