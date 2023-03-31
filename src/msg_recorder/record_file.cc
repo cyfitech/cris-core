@@ -234,35 +234,45 @@ void RecordFile::CheckoutDB() {
         return;
     }
 
-    const auto actual_filepath = UnfinishedPath(filepath_.native());
+    const auto actual_filepath = fs::path{UnfinishedPath(filepath_.native())};
+    if (fs::exists(actual_filepath)) {
+        LOG(ERROR) << __func__ << ": Failed to checkout db, dir " << actual_filepath << " already exists.";
+        throw std::runtime_error{actual_filepath.native() + " already exists."};
+    }
 
-    std::error_code ec{};
-    fs::rename(filepath_, actual_filepath, ec);
-    if (ec) {
+    try {
+        fs::rename(filepath_, actual_filepath);
+    } catch (const fs::filesystem_error& e) {
         LOG(ERROR) << __func__ << ": Failed to rename " << filepath_ << " to " << actual_filepath << " with error "
-                   << std::quoted(ec.message()) << ".";
-        throw std::logic_error{ec.message()};
+                   << std::quoted(e.what()) << ".";
+        throw;
     }
 }
 
 void RecordFile::CommitDB() {
-    const auto actual_filepath = UnfinishedPath(filepath_.native());
+    const auto actual_filepath = fs::path{UnfinishedPath(filepath_.native())};
 
-    std::error_code ec{};
-    fs::rename(actual_filepath, filepath_, ec);
-    if (ec) {
-        LOG(ERROR) << __func__ << ": Failed to rename " << filepath_ << " to " << actual_filepath << " with error "
-                   << std::quoted(ec.message()) << ".";
-        return;
+    if (!fs::exists(actual_filepath)) {
+        LOG(ERROR) << __func__ << ": Failed to commit db, dir " << actual_filepath << " does not exist.";
+        throw std::runtime_error{actual_filepath.native() + " does not exists."};
+    }
+
+    if (fs::exists(filepath_)) {
+        LOG(ERROR) << __func__ << ": Failed to commit db, dir " << filepath_ << " already exists.";
+        throw std::runtime_error{filepath_.native() + " already exists."};
+    }
+
+    try {
+        fs::rename(actual_filepath, filepath_);
+    } catch (const fs::filesystem_error& e) {
+        LOG(ERROR) << __func__ << ": Failed to rename " << actual_filepath << " to " << filepath_ << " with error "
+                   << std::quoted(e.what()) << ".";
+        throw;
     }
 }
 
-std::string RecordFile::UnfinishedPath(std::string path) {
-    static constexpr std::string_view kUnfinishedSuffix{".saving"};
-
-    std::string unfinished{std::move(path)};
-    unfinished.append(kUnfinishedSuffix);
-    return unfinished;
+std::string RecordFile::UnfinishedPath(const std::string& path_str) {
+    return path_str + ".saving";
 }
 
 void RecordFile::Write(std::string serialized_value) {

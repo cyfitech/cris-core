@@ -110,7 +110,7 @@ class RecordFile {
 
     std::atomic_bool compact_before_close{false};
 
-    static std::string UnfinishedPath(std::string path);
+    static std::string UnfinishedPath(const std::string& path);
 
    protected:
     void CheckoutDB();
