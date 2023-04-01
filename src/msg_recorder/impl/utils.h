@@ -1,7 +1,5 @@
 #pragma once
 
-#include "cris/core/msg/message.h"
-
 #include <filesystem>
 #include <string>
 #include <string_view>
