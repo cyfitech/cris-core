@@ -74,7 +74,7 @@ void RollingBySizeHelper::Reset() {
 
 std::string DefaultLevelDBDir() {
     std::string dirname = GetCurrentUtcTime();
-    dirname.append(impl::kLevelDbDirSuffix);
+    dirname.append(impl::kLevelDBDirSuffix);
     return dirname;
 }
 

@@ -7,7 +7,7 @@
 
 namespace cris::core::impl {
 
-constexpr std::string_view kLevelDbDirSuffix = ".ldb.d";
+constexpr std::string_view kLevelDBDirSuffix = ".ldb.d";
 
 std::string GetMessageFileName(const std::string& message_type);
 
