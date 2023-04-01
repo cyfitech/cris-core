@@ -1,5 +1,6 @@
 #include "cris/core/msg_recorder/record_file.h"
 
+#include "cris/core/msg_recorder/impl/utils.h"
 #include "cris/core/utils/defs.h"
 #include "cris/core/utils/logging.h"
 
@@ -8,6 +9,7 @@
 #include "leveldb/slice.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <filesystem>
 #include <iomanip>
 #include <stdexcept>
@@ -16,6 +18,7 @@
 #include <system_error>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 namespace fs = std::filesystem;
 
@@ -396,6 +399,15 @@ bool IsLevelDBDir(const std::string& path) {
         constexpr std::string_view kLevelDBManifestPrefix{"MANIFEST-"};
         return fs::is_regular_file(entry) && entry.path().filename().native().starts_with(kLevelDBManifestPrefix);
     });
+}
+
+std::vector<fs::path> ListLevelDBDirs(
+    const std::string&  dir_path,
+    const std::string&  msg_type,
+    const std::uint64_t subid) {
+    const auto msg_name       = impl::GetMessageFileName(msg_type);
+    const auto subchannel_dir = fs::path{dir_path} / msg_name / std::to_string(subid);
+    return impl::ListSubdirsWithSuffix(subchannel_dir, impl::kLevelDbDirSuffix);
 }
 
 }  // namespace cris::core

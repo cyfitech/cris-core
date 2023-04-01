@@ -71,9 +71,7 @@ cris_cc_library (
     hdrs = glob(["src/msg_recorder/impl/**/*.h"]),
     include_prefix = "cris/core",
     strip_include_prefix = "src",
-    deps = [
-        ":msg",
-    ],
+    deps = [],
     visibility = ["//visibility:private"],
 )
 

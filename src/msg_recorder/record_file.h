@@ -6,11 +6,13 @@
 #include "leveldb/db.h"
 
 #include <atomic>
+#include <cstdint>
 #include <filesystem>
 #include <memory>
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace cris::core {
 
@@ -137,5 +139,10 @@ bool Symlink(const std::filesystem::path& to, const std::filesystem::path& from)
 bool IsEmptyDir(const std::string& path);
 
 bool IsLevelDBDir(const std::string& path);
+
+std::vector<std::filesystem::path> ListLevelDBDirs(
+    const std::string&  dir_path,
+    const std::string&  msg_type,
+    const std::uint64_t subid);
 
 }  // namespace cris::core
