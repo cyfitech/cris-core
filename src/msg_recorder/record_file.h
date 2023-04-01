@@ -136,9 +136,9 @@ bool MakeDirs(const std::filesystem::path& path);
 
 bool Symlink(const std::filesystem::path& to, const std::filesystem::path& from);
 
-bool IsEmptyDir(const std::string& path);
+bool IsEmptyDir(const std::string& dir_path);
 
-bool IsLevelDBDir(const std::string& path);
+bool IsLevelDBDir(const std::string& dir_path);
 
 std::vector<std::filesystem::path> ListLevelDBDirs(
     const std::string&  dir_path,
