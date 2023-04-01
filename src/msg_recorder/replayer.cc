@@ -82,9 +82,9 @@ void MessageReplayer::StopMainLoop() {
 RecordFileIterator MessageReplayer::GetRecordItr(const std::string& message_type, channel_subid_t subid) {
     const auto dir = GetRecordDir() / impl::GetMessageFileName(message_type) / std::to_string(subid);
 
-    const auto matched_files = impl::ListSubdirsWithSuffix(dir, impl::kLevelDbDirSuffix);
+    const auto matched_files = impl::ListSubdirsWithSuffix(dir, impl::kLevelDBDirSuffix);
     if (matched_files.empty()) {
-        LOG(ERROR) << "Record file with suffix \"" << impl::kLevelDbDirSuffix << "\" not found, record dir " << dir;
+        LOG(ERROR) << "Record file with suffix \"" << impl::kLevelDBDirSuffix << "\" not found, record dir " << dir;
         throw std::logic_error{"No matched record file found."};
     }
 

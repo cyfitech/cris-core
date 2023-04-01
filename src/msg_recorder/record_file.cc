@@ -407,7 +407,7 @@ std::vector<fs::path> ListLevelDBDirs(
     const std::uint64_t subid) {
     const auto msg_name       = impl::GetMessageFileName(msg_type);
     const auto subchannel_dir = fs::path{dir_path} / msg_name / std::to_string(subid);
-    return impl::ListSubdirsWithSuffix(subchannel_dir, impl::kLevelDbDirSuffix);
+    return impl::ListSubdirsWithSuffix(subchannel_dir, impl::kLevelDBDirSuffix);
 }
 
 }  // namespace cris::core
