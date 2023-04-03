@@ -153,6 +153,7 @@ cmake(
     cache_entries = {
         "CMAKE_C_FLAGS" : "-Wno-fuse-ld-path",
         "CMAKE_CXX_FLAGS" : "-Wno-fuse-ld-path",
+        "CMAKE_POSITION_INDEPENDENT_CODE": "ON",
         "FMT_MASTER_PROJECT": "OFF",
         "FMT_INSTALL": "ON",
     },
