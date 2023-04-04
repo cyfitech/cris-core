@@ -68,7 +68,6 @@ CheckOptions:
 
 WarningsAsErrors: >
     *,
-    -bugprone-exception-escape,
     -clang-diagnostic-deprecated-builtins,
     -clang-diagnostic-deprecated-declarations,
     -clang-diagnostic-sign-conversion,
