@@ -254,15 +254,14 @@ void RecordFile::CheckoutDB() {
 
 void RecordFile::CommitDB() {
     const fs::path actual_filepath{UnfinishedPath(filepath_.native())};
-
     if (!fs::exists(actual_filepath)) {
         LOG(ERROR) << __func__ << ": Failed to commit db, dir " << actual_filepath << " does not exist.";
-        throw std::runtime_error{actual_filepath.native() + " does not exists."};
+        return;
     }
 
     if (fs::exists(filepath_)) {
         LOG(ERROR) << __func__ << ": Failed to commit db, dir " << filepath_ << " already exists.";
-        throw std::runtime_error{filepath_.native() + " already exists."};
+        return;
     }
 
     try {
@@ -270,7 +269,6 @@ void RecordFile::CommitDB() {
     } catch (const fs::filesystem_error& e) {
         LOG(ERROR) << __func__ << ": Failed to rename " << actual_filepath << " to " << filepath_ << " with error "
                    << std::quoted(e.what()) << ".";
-        throw;
     }
 }
 
