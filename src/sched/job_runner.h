@@ -100,7 +100,9 @@ class JobRunner : public std::enable_shared_from_this<JobRunner> {
     /// @return true if any job was stolen
     bool Steal();
 
-    void Stop();
+    JobRunner& Stop();
+
+    void Join();
 
     void NotifyOneWorker();
 
