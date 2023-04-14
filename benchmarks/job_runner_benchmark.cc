@@ -12,7 +12,7 @@ static void BM_AddJob(benchmark::State& state) {
     for ([[maybe_unused]] const auto s : state) {
         job_runner->AddJob([]() {});
     }
-    job_runner->Stop();
+    job_runner->Stop().Join();
 }
 
 static void BM_AddJobBatch(benchmark::State& state) {
@@ -28,7 +28,7 @@ static void BM_AddJobBatch(benchmark::State& state) {
 
         job_runner->AddJobs(std::move(job_batch));
     }
-    job_runner->Stop();
+    job_runner->Stop().Join();
 }
 
 static void BM_AddJobWithStrand(benchmark::State& state) {
@@ -37,7 +37,7 @@ static void BM_AddJobWithStrand(benchmark::State& state) {
     for ([[maybe_unused]] const auto s : state) {
         job_runner->AddJob([]() {}, strand);
     }
-    job_runner->Stop();
+    job_runner->Stop().Join();
 }
 
 static void BM_AddJobTryImmediately(benchmark::State& state) {
@@ -46,7 +46,7 @@ static void BM_AddJobTryImmediately(benchmark::State& state) {
     for ([[maybe_unused]] const auto s : state) {
         job_runner->AddJob([]() {}, strand, JobRunner::TryRunImmediately());
     }
-    job_runner->Stop();
+    job_runner->Stop().Join();
 }
 
 BENCHMARK(BM_AddJob)->ThreadRange(1, 4);

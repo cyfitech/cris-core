@@ -231,7 +231,7 @@ JobRunner::JobRunner(JobRunner::Config config) : config_(config) {
 
 JobRunner::~JobRunner() {
     ready_for_stealing_.store(false);
-    Stop();
+    Stop().Join();
 }
 
 JobRunnerStrandPtr JobRunner::MakeStrand() {
@@ -354,12 +354,21 @@ bool JobRunner::Steal() {
     return false;
 }
 
-void JobRunner::Stop() {
+JobRunner& JobRunner::Stop() {
     for (auto& worker : workers_) {
         if (!worker) {
             continue;
         }
         worker->Stop();
+    }
+    return *this;
+}
+
+void JobRunner::Join() {
+    for (auto& worker : workers_) {
+        if (!worker) {
+            continue;
+        }
         worker->Join();
     }
 }
