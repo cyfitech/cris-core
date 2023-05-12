@@ -173,7 +173,7 @@ RUN set -e; \
                 auto{conf{,-archive},make,point} \
                 axel \
                 bash-completion \
-                $( [ "_$CRIS_IMG_ARCH" != '_amd64' ] || echo 'bazel=6.1.*')\
+                $( [ "_$CRIS_IMG_ARCH" != '_amd64' ] || echo 'bazel=6.2.*')\
                 bc \
                 bind9-dnsutils \
                 binutils \
