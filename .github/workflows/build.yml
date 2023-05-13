@@ -15,7 +15,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20230321
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20230512
     steps:
     - uses: actions/checkout@v3
     - uses: ./.github/actions/ci-lint-env-setup
@@ -47,7 +47,7 @@ jobs:
   llvm11-debian11:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230321
+      image: ghcr.io/cyfitech/cris-build-debian11:20230512
     env:
       CC: clang-11
       CXX: clang++-11
@@ -65,7 +65,7 @@ jobs:
   llvm12-ubuntu2004:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20230321
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20230512
     env:
       CC: clang-12
       CXX: clang++-12
@@ -83,7 +83,7 @@ jobs:
   llvm13-debian11:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230321
+      image: ghcr.io/cyfitech/cris-build-debian11:20230512
     env:
       CC: clang-13
       CXX: clang++-13
@@ -101,7 +101,7 @@ jobs:
   llvm14-ubuntu2204:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20230321
+      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20230512
     env:
       CC: clang-14
       CXX: clang++-14
@@ -119,7 +119,7 @@ jobs:
   gcc10-debian11:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230321
+      image: ghcr.io/cyfitech/cris-build-debian11:20230512
     env:
       CC: gcc-10
       CXX: g++-10
@@ -137,7 +137,7 @@ jobs:
   gcc10-ubuntu2004:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20230321
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20230512
     env:
       CC: gcc-10
       CXX: g++-10
@@ -155,7 +155,7 @@ jobs:
   gcc11-ubuntu2204:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20230321
+      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20230512
     env:
       # Cannot use gcc-12 because of https://github.com/protocolbuffers/protobuf/issues/9948 (requires protobuf v3.21.0 or gcc 12.2)
       # https://github.com/protocolbuffers/protobuf/pull/10118 is needed for upgrading protobuf
@@ -175,7 +175,7 @@ jobs:
   asan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230321
+      image: ghcr.io/cyfitech/cris-build-debian11:20230512
     env:
       CC: clang-13
       CXX: clang++-13
@@ -191,7 +191,7 @@ jobs:
   ubsan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230321
+      image: ghcr.io/cyfitech/cris-build-debian11:20230512
     env:
       CC: clang-13
       CXX: clang++-13
@@ -207,7 +207,7 @@ jobs:
   tsan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230321
+      image: ghcr.io/cyfitech/cris-build-debian11:20230512
     env:
       CC: clang-13
       CXX: clang++-13
