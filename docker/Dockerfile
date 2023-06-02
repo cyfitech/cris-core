@@ -339,7 +339,7 @@ RUN set -e; \
         esac)"; \
     if [ "_$CRIS_IMG_ARCH" = '_arm64' ] ; then \
         BAZEL_INSTALL_DIR='/usr/local/bin'; \
-        BAZEL_VERSION='6.1.1'; \
+        BAZEL_VERSION='6.2.0'; \
         for retry in $(seq 30 -1 1); do \
             curl \
                 -fsSL \
