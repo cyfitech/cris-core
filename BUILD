@@ -23,6 +23,14 @@ cris_cc_library (
     hdrs = glob(["src/utils/**/*.h"]),
     include_prefix = "cris/core",
     strip_include_prefix = "src",
+    copts = select({
+        "@platforms//os:macos": [""],
+        "//conditions:default": ["-DCRIS_USE_PAPI"],
+    }),
+    linkopts = select({
+        "@platforms//os:macos": [],
+        "//conditions:default": ["-lpapi"],
+    }),
     deps = [
         "@com_github_google_glog//:glog",
         "@fmt//:libfmt",
