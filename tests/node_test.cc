@@ -376,6 +376,6 @@ TEST(NodeTest, SubscribeWhenPublishing) {
         /* allow_concurrency = */ false);
 
     producer_thread.join();
-    runner->Stop();
+    runner->Stop().Join();
 }
 }  // namespace cris::core
