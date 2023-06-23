@@ -69,6 +69,25 @@ RUN set -e; \
         esac)"; \
     . <(sed 's/^\(..*\)/export DISTRO_\1/' '/etc/os-release'); \
     case "$DISTRO_ID-$DISTRO_VERSION_ID" in \
+    'debian-12') \
+        export DEB_SRC_LIST=/etc/apt/sources.list; \
+        [ -e "$DEB_SRC_LIST" ] || \
+        echo 'deb http://deb.debian.org/debian bookworm main contrib non-free'                        >> "$DEB_SRC_LIST" && \
+        echo 'deb-src http://deb.debian.org/debian bookworm main contrib non-free'                    >> "$DEB_SRC_LIST" && \
+        echo 'deb http://deb.debian.org/debian-security/ bookworm-security main contrib non-free'     >> "$DEB_SRC_LIST" && \
+        echo 'deb-src http://deb.debian.org/debian-security/ bookworm-security main contrib non-free' >> "$DEB_SRC_LIST" && \
+        echo 'deb http://deb.debian.org/debian bookworm-updates main contrib non-free'                >> "$DEB_SRC_LIST" && \
+        echo 'deb-src http://deb.debian.org/debian bookworm-updates main contrib non-free'            >> "$DEB_SRC_LIST" && \
+        for attempt in $(seq "$DEB_MAX_ATTEMPT" -1 0); do \
+            [ "$attempt" -gt 0 ]; \
+            ( \
+                set -e; \
+                sudo apt-get update -y; \
+                sudo apt-get upgrade -y; \
+            ) && break; \
+            echo "Retrying... $(expr "$attempt" - 1) chance(s) left."; \
+        done; \
+        ;; \
     'debian-'*) \
         for attempt in $(seq "$DEB_MAX_ATTEMPT" -1 0); do \
             [ "$attempt" -gt 0 ]; \
