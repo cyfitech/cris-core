@@ -89,7 +89,7 @@ RUN set -e; \
                 ) && break; \
                 echo "Retrying... $(expr "$attempt" - 1) chance(s) left."; \
             done; \
-        fi;
+        fi; \
         ;; \
     'debian-'*) \
         for attempt in $(seq "$DEB_MAX_ATTEMPT" -1 0); do \
