@@ -73,13 +73,13 @@ RUN set -e; \
         export DEB_SRC_LIST=/etc/apt/sources.list; \
         export DEB_SRC_DEFAULT_LIST=/etc/apt/sources.list.d/debian.sources; \
         if [ ! -e "$DEB_SRC_LIST" ] && [ -e "$DEB_SRC_DEFAULT_LIST" ]; then \
-            sudo rm -f "$DEB_SRC_DEFAULT_LIST" \
-            echo 'deb http://deb.debian.org/debian bookworm main contrib non-free'                        >> "$DEB_SRC_LIST" \
-            echo 'deb-src http://deb.debian.org/debian bookworm main contrib non-free'                    >> "$DEB_SRC_LIST" \
-            echo 'deb http://deb.debian.org/debian-security/ bookworm-security main contrib non-free'     >> "$DEB_SRC_LIST" \
-            echo 'deb-src http://deb.debian.org/debian-security/ bookworm-security main contrib non-free' >> "$DEB_SRC_LIST" \
-            echo 'deb http://deb.debian.org/debian bookworm-updates main contrib non-free'                >> "$DEB_SRC_LIST" \
-            echo 'deb-src http://deb.debian.org/debian bookworm-updates main contrib non-free'            >> "$DEB_SRC_LIST" \
+            sudo rm -f "$DEB_SRC_DEFAULT_LIST"; \
+            echo 'deb http://deb.debian.org/debian bookworm main contrib non-free'                        >> "$DEB_SRC_LIST"; \
+            echo 'deb-src http://deb.debian.org/debian bookworm main contrib non-free'                    >> "$DEB_SRC_LIST"; \
+            echo 'deb http://deb.debian.org/debian-security/ bookworm-security main contrib non-free'     >> "$DEB_SRC_LIST"; \
+            echo 'deb-src http://deb.debian.org/debian-security/ bookworm-security main contrib non-free' >> "$DEB_SRC_LIST"; \
+            echo 'deb http://deb.debian.org/debian bookworm-updates main contrib non-free'                >> "$DEB_SRC_LIST"; \
+            echo 'deb-src http://deb.debian.org/debian bookworm-updates main contrib non-free'            >> "$DEB_SRC_LIST"; \
             for attempt in $(seq "$DEB_MAX_ATTEMPT" -1 0); do \
                 [ "$attempt" -gt 0 ]; \
                 ( \
