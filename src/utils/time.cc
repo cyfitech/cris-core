@@ -32,7 +32,7 @@
 
 namespace cris::core {
 
-static const double kTscToNsecRatio = []() {
+const double kTscToNsecRatio = []() {
     constexpr auto kCalibrationDuration = std::chrono::seconds(1);
 
     unsigned cpuid = 0;
