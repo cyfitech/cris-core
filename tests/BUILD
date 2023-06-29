@@ -214,6 +214,15 @@ cris_cc_test (
 )
 
 cris_cc_test (
+    name = "timeline_test",
+    srcs = ["timeline_test.cc"],
+    deps = [
+        "//:utils",
+        "@cris-core//tests:cris_gtest_main",
+    ],
+)
+
+cris_cc_test (
     name = "timer_test",
     srcs = ["timer_test.cc"],
     deps = [
