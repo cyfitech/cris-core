@@ -277,7 +277,7 @@ template<class T>
 #define CRIS_CONF_JSON_ENTRY_IMPL(var, obj, key, conf, extra_message)    \
     /* NOLINTNEXTLINE(bugprone-macro-parentheses,-warnings-as-errors) */ \
     if (const auto ec = obj[key].get(var)) {                             \
-        FailToParseConfig(conf, extra_message, ec);                      \
+        ::cris::core::FailToParseConfig(conf, extra_message, ec);        \
     }
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage,-warnings-as-errors)
