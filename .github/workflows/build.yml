@@ -49,8 +49,6 @@ jobs:
       labels: [ ubuntu, cpu, 4ht ]
     container:
       image: ghcr.io/cyfitech/cris-build-ubuntu2004:20230512
-    needs: path-filter
-    if: ${{ (always() && github.event_name != 'pull_request' && github.event_name != 'push' || fromJSON(needs.path-filter.outputs.cpp)) && ! cancelled() }}
     steps:
     - uses: actions/checkout@v3
     - uses: ./.github/actions/ci-lint-env-setup
