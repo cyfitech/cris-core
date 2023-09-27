@@ -12,8 +12,13 @@ if [ -d 'run' ] && [ -w 'run' ] || [ -w '.' ]; then
 
         build --compiler=clang
 
-        build:rel --config="lto"
+        build:rel   --config="lto"
+        build:norel --config="nolto"
+
         build:lto --copt="-flto=thin"
         build:lto --linkopt="-flto=thin"
+
+        build:nolto --copt="-fno-lto"
+        build:nolto --linkopt="-fno-lto"
 ________EOF
 fi

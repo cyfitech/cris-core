@@ -43,6 +43,21 @@ jobs:
       run: export HOME=/root && make -j lint
     - name: Check diff
       run: export HOME=/root && git --no-pager diff --exit-code
+
+  tidy:
+    runs-on:
+      labels: [ ubuntu, cpu, 4ht ]
+    container:
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20230512
+    needs: path-filter
+    if: ${{ (always() && github.event_name != 'pull_request' && github.event_name != 'push' || fromJSON(needs.path-filter.outputs.cpp)) && ! cancelled() }}
+    steps:
+    - uses: actions/checkout@v3
+    - uses: ./.github/actions/ci-lint-env-setup
+      with:
+        key: ${{ github.job }}
+    - name: Config
+      run: export HOME=/root && git config --global --add safe.directory "$(pwd)"
     - name: Run tidy
       run: export HOME=/root && make -j tidy -o lint
     - name: Check diff
@@ -60,8 +75,9 @@ jobs:
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
+    # Offline build with non-existing proxy on 53 (DNS/UDP).
     - name: Build
-      run: export HOME=/root && make build OPT="-s"
+      run: export HOME=/root && make build HTTPS_PROXY='http://127.0.0.1:53' OPT="-s"
     - name: Test
       run: export HOME=/root && make test OPT="--test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
@@ -189,7 +205,7 @@ jobs:
       with:
         key: ${{ github.job }}
     - name: Build and Test
-      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=asan --config=prof --nocache_test_results --test_output=all -s //...
+      run: export HOME=/root && make test OPT="--config=asan --test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
   ubsan:
@@ -205,7 +221,7 @@ jobs:
       with:
         key: ${{ github.job }}
     - name: Build and Test
-      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=ubsan --config=prof --nocache_test_results --test_output=all -s //...
+      run: export HOME=/root && make test OPT="--config=ubsan --test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
   tsan:
@@ -221,5 +237,5 @@ jobs:
       with:
         key: ${{ github.job }}
     - name: Build and Test
-      run: export HOME=/root && scripts/bazel_wrapper.sh test --config=tsan --config=prof --nocache_test_results --test_output=all -s //...
+      run: export HOME=/root && make test OPT="--config=tsan --test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
