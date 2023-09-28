@@ -22,20 +22,7 @@ if [ ! "$CC" ] && [ ! "$CXX" ]; then
 fi
 
 if [ ! "$CC" ] || [ ! "$CXX" ]; then
-    export DISTRO_ID='<UNKNOWN_DISTRO>'
-    export DISTRO_VERSION_ID='<UNKNOWN_VER>'
-    case "$(uname -s)" in
-    'Darwin')
-        export DISTRO_ID='Darwin'
-        if which sw_vers >/dev/null; then
-            export DISTRO_ID="$(sw_vers -productName)"
-            export DISTRO_VERSION_ID="$(sw_vers -productVersion)"
-        fi
-        ;;
-    'Linux')
-        [ ! -e '/etc/os-release' ] || . <(sed 's/^\(..*\)/export DISTRO_\1/' '/etc/os-release')
-        ;;
-    esac
+    . scripts/detect_distro.sh
     printf '\033[31m[ERROR] Failed to detect toolchain on distro %s.\033[0m\n' "$DISTRO_ID-$DISTRO_VERSION_ID" >&2
     if [ "$CC" ] || [ "$CXX" ]; then
         printf '\033[33m[WARNING] Provide a consistent pair of $CC and $CXX, or leave them empty for auto detection.\033[0m\n' >&2

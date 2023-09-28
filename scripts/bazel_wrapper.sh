@@ -6,7 +6,7 @@ cd "$(dirname "$0")/.."
 
 . scripts/toolchain.sh
 
-! which ccache >/dev/null 2>&1 || ccache -z
+! which ccache >/dev/null 2>&1 || ccache -z >&2
 
 if [ "$#" -lt 1 ]; then
     bazel help
@@ -42,4 +42,4 @@ bazel "$BAZEL_CMD"                                                              
         || printf '/dev/null')"                                                     \
     "$@"
 
-! which ccache >/dev/null 2>&1 || ccache -s
+! which ccache >/dev/null 2>&1 || ccache -s >&2

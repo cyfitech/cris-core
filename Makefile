@@ -40,20 +40,20 @@ env:
 	    --cap-add=SYS_PTRACE                                                \
 	    --rm                                                                \
 	    --security-opt seccomp=unconfined                                   \
-	    $$([ ! -d "$$repo/.git/modules" ] || pwd | grep '[[:space:]]' >/dev/null || find "$$($(REALPATH) -e "$$repo")/.git/modules" -name 'lfs' -type d | xargs -rI{} printf '%s %s' '--tmpfs' {})  \
+	    $$([ ! -d "$$repo/.git/modules" ] || find "$$($(REALPATH) -e "$$repo")/.git/modules" -name 'lfs' -type d | grep -v '[[:space:]]' | xargs -rI{} printf '%s %s' '--tmpfs' {}) \
 	    $$([ ! "$$HTTP_PROXY"  ] || grep '[[:space:]]' <<< "$$HTTP_PROXY"  >/dev/null || echo "-e  HTTP_PROXY=$$HTTP_PROXY" )   \
 	    $$([ ! "$$HTTPS_PROXY" ] || grep '[[:space:]]' <<< "$$HTTPS_PROXY" >/dev/null || echo "-e HTTPS_PROXY=$$HTTPS_PROXY")   \
 	    $$([ ! "$$http_proxy"  ] || grep '[[:space:]]' <<< "$$http_proxy"  >/dev/null || echo "-e  http_proxy=$$http_proxy" )   \
 	    $$([ ! "$$https_proxy" ] || grep '[[:space:]]' <<< "$$https_proxy" >/dev/null || echo "-e https_proxy=$$https_proxy")   \
 	    $$([ ! "$$ALL_PROXY"   ] || grep '[[:space:]]' <<< "$$ALL_PROXY"   >/dev/null || echo "-e   ALL_PROXY=$$ALL_PROXY"  )   \
 	    -it                                                                 \
-	    $$([ ! -d ~/.ssh       ] || grep '[[:space:]]' <<< "$$HOME"        >/dev/null || echo "-v $$HOME/.ssh:/root/.ssh:ro")   \
+	    $$([ -d ~/.ssh ] && printf '%s' '-v ' || printf '%s' '-l UNUSED_VOL_SSH=')"$$(printf '%s:%s:ro' {"$$HOME",'/root'}'/.ssh')" \
 	    -v  "bazel_$$vol_cache:/root/.cache/bazel"                          \
 	    -v "ccache_$$vol_cache:/root/.ccache"                               \
 	    -v    "pip_$$vol_cache:/root/.cache/pip"                            \
-	    -v "$$($(REALPATH) -e "$$repo"):$$($(REALPATH) -e "$$repo"):ro"     \
-	    $$([ ! -d 'run' ] || pwd | grep '[[:space:]]' >/dev/null || echo "-v $$($(REALPATH) -e .)/run:$$($(REALPATH) -e .)/run")    \
-	    $$([ ! -d 'tmp' ] || pwd | grep '[[:space:]]' >/dev/null || echo "-v $$($(REALPATH) -e .)/tmp:$$($(REALPATH) -e .)/tmp")    \
+	    -v "$$(printf '%s:%s:ro' {,}"$$($(REALPATH) -e "$$repo")")"         \
+	    $$([ -d 'run' ] && printf '%s' '-v ' || printf '%s' '-l UNUSED_VOL_RUN=')"$$(printf '%s:%s' {,}"$$($(REALPATH) -m 'run')")" \
+	    $$([ -d 'tmp' ] && printf '%s' '-v ' || printf '%s' '-l UNUSED_VOL_TMP=')"$$(printf '%s:%s' {,}"$$($(REALPATH) -m 'tmp')")" \
 	    -w "$$($(REALPATH) -e .)"                                           \
 	    '$(DOCKER_IMAGE)'                                                   \
 	    bash -cl ":;                                                        \
@@ -82,7 +82,18 @@ tidy: scripts/bazel_wrapper.sh | lint
 	    && [ -x "$(PYTHON_EXECUTABLE)" ]            \
 	    && $(REALPATH) -e "$(PYTHON_EXECUTABLE)"    \
 	    || which "$(PYTHON_EXECUTABLE)")"           \
-	$< build --config=prof --config=lint //...
+	$< build                                        \
+	    --config=prof                               \
+	    --config=lint                               \
+	    $(OPT)                                      \
+	    $(BAZEL_OPTS)                               \
+	    $$(set -e;                                  \
+	            printf '%s ' $(OPT) "$(BAZEL_OPTS)" \
+	            | grep                              \
+	                -e{'[[:space:]]','^'}{,'@[[:alnum:]_\.\-][[:alnum:]_\.\-]*'}'//[[:alnum:]/:_\.\-][[:alnum:]/:_\.\-]*'{'[[:space:]]','$$'}   \
+	            > /dev/null                         \
+	            || printf '//...'                   \
+	        )
 
 .PHONY: build
 build: scripts/bazel_wrapper.sh scripts/distro_cc.sh
@@ -92,7 +103,18 @@ build: scripts/bazel_wrapper.sh scripts/distro_cc.sh
 	    && [ -x "$(PYTHON_EXECUTABLE)" ]            \
 	    && $(REALPATH) -e "$(PYTHON_EXECUTABLE)"    \
 	    || which "$(PYTHON_EXECUTABLE)")"           \
-	$< build --config=prof --config=rel $(OPT) $(BAZEL_OPTS) //...
+	$< build                                        \
+	    --config=prof                               \
+	    --config=rel                                \
+	    $(OPT)                                      \
+	    $(BAZEL_OPTS)                               \
+	    $$(set -e;                                  \
+	            printf '%s ' $(OPT) "$(BAZEL_OPTS)" \
+	            | grep                              \
+	                -e{'[[:space:]]','^'}{,'@[[:alnum:]_\.\-][[:alnum:]_\.\-]*'}'//[[:alnum:]/:_\.\-][[:alnum:]/:_\.\-]*'{'[[:space:]]','$$'}   \
+	            > /dev/null                         \
+	            || printf '//...'                   \
+	        )
 
 .PHONY: test
 test: scripts/bazel_wrapper.sh scripts/distro_cc.sh
@@ -116,7 +138,13 @@ test: scripts/bazel_wrapper.sh scripts/distro_cc.sh
 	        )                                           \
 	    $(OPT)                                          \
 	    $(BAZEL_OPTS)                                   \
-	    //...
+	    $$(set -e;                                      \
+	            printf '%s ' $(OPT) "$(BAZEL_OPTS)"     \
+	            | grep                                  \
+	                -e{'[[:space:]]','^'}{,'@[[:alnum:]_\.\-][[:alnum:]_\.\-]*'}'//[[:alnum:]/:_\.\-][[:alnum:]/:_\.\-]*'{'[[:space:]]','$$'}   \
+	            > /dev/null                             \
+	            || printf '//...'                       \
+	        )
 
 .PHONY: quicktest
 quicktest:

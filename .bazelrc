@@ -8,6 +8,7 @@ try-import %workspace%/run/toolchain.bazelrc
 build:_zlib64 --copt="-D_FILE_OFFSET_BITS=64"
 build:_zlib64 --copt="-D_LARGEFILE64_SOURCE"
 
+build:asan --config=nolto
 build:asan --copt="-fsanitize=address"
 build:asan --copt="-fsanitize=leak"
 build:asan --linkopt="-fsanitize=address"
@@ -25,11 +26,17 @@ build:pednatic --linkopt="-pedantic"
 build:prof --cxxopt="-DENABLE_PROFILING"
 
 build:rel --copt="-O3"
+build:norel --copt="-O0"
 
+build:dbg --config=norel
+build:dbg -c dbg
+
+build:tsan --config=nolto
 build:tsan --copt="-fsanitize=thread"
 build:tsan --linkopt="-fsanitize=thread"
 build:tsan --linkopt="-fsanitize-link-c++-runtime"
 
+build:ubsan --config=nolto
 build:ubsan --copt="-fsanitize=undefined"
 build:ubsan --linkopt="-fsanitize=undefined"
 build:ubsan --linkopt="-fsanitize-link-c++-runtime"
