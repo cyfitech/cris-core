@@ -28,6 +28,23 @@ runs:
       printf "%s" "${{ inputs.cache_paths }}" >> "$GITHUB_ENV"
       echo 'EOF' >> "$GITHUB_ENV"
   - uses: actions/cache@v3
+  # PR should not save to shared cache.
+    if: ${{ always() && inputs.enable_cache == 'true' && github.event_name != 'pull_request' && ! cancelled() }}
+    with:
+      key: ${{ inputs.key }}:${{ steps.date.outputs.date-0 }}
+      path: ${{ env.CRIS_CACHE_PATHS }}
+      restore-keys: |
+        ${{ inputs.key }}:${{ steps.date.outputs.date-1 }}
+        ${{ inputs.key }}:${{ steps.date.outputs.date-2 }}
+        ${{ inputs.key }}:${{ steps.date.outputs.date-3 }}
+        ${{ inputs.key }}:${{ steps.date.outputs.date-4 }}
+        ${{ inputs.key }}:${{ steps.date.outputs.date-5 }}
+        ${{ inputs.key }}:${{ steps.date.outputs.date-6 }}
+        ${{ inputs.key }}:${{ steps.date.outputs.date-7 }}
+        ${{ inputs.key }}:${{ steps.date.outputs.date-8 }}
+        ${{ inputs.key }}:${{ steps.date.outputs.date-9 }}
+  - uses: actions/cache/restore@v3
+    if: ${{ always() && inputs.enable_cache == 'true' && github.event_name == 'pull_request' && ! cancelled() }}
     with:
       path: ${{ env.CRIS_CACHE_PATHS }}
       key: ${{ inputs.key }}:${{ steps.date.outputs.date-0 }}
