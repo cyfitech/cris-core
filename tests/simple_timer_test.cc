@@ -39,7 +39,7 @@ TEST(ScopedTimerTest, Duration) {
     microseconds time_elapsed_us{0};
 
     {
-        ScopedTimer timer{[&time_elapsed_us](const SimpleTimer& timer) {
+        ScopedTimer scoped_timer{[&time_elapsed_us](const SimpleTimer& timer) {
             time_elapsed_us = timer.DurationCast<decltype(time_elapsed_us)>();
         }};
         std::this_thread::sleep_for(1ms);
