@@ -26,9 +26,6 @@ def __add_opts(attrs):
     else:
         attrs["linkopts"] = CRIS_LINKOPTS
 
-    if "linkstatic" not in attrs:
-        attrs["linkstatic"] = True
-
     return attrs
 
 def cris_cc_library(**attrs):
@@ -38,4 +35,6 @@ def cris_cc_binary(**attrs):
     native.cc_binary(**__add_opts(attrs))
 
 def cris_cc_test(**attrs):
+    if "linkstatic" not in attrs:
+        attrs["linkstatic"] = False
     native.cc_test(**__add_opts(attrs))
