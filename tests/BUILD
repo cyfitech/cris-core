@@ -5,6 +5,7 @@ cris_cc_library(
     srcs = ["utils/cris_gtest_main.cc"],
     deps = [
         "//:signal",
+        "@com_github_gflags_gflags//:gflags",
         "@gtest//:gtest",
     ],
     visibility = ["//visibility:public"],
