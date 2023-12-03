@@ -38,20 +38,8 @@ jobs:
         | sed 's/^/BASE_IMAGE=/' >> "$GITHUB_OUTPUT"
         echo "ARCH=$(cut -d- -f3 <<< "$JOB")" >> "$GITHUB_OUTPUT"
     - name: Auth
-      env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
       run: |
-        for repo in 'cris-base' 'cris-xchg'; do
-            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
-            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
-        done
         scripts/auth_github_ssh.sh
-        # Re-route public access to HTTPS and private to SSH.
-        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
-        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
-        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
     - name: Fetch submodules
       run: |
         GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
@@ -109,20 +97,8 @@ jobs:
         | sed 's/^/BASE_IMAGE=/' >> "$GITHUB_OUTPUT"
         echo "ARCH=$(cut -d- -f3 <<< "$JOB")" >> "$GITHUB_OUTPUT"
     - name: Auth
-      env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
       run: |
-        for repo in 'cris-base' 'cris-xchg'; do
-            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
-            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
-        done
         scripts/auth_github_ssh.sh
-        # Re-route public access to HTTPS and private to SSH.
-        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
-        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
-        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
     - name: Fetch submodules
       run: |
         GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
@@ -181,20 +157,8 @@ jobs:
         | sed 's/^/BASE_IMAGE=/' >> "$GITHUB_OUTPUT"
         echo "ARCH=$(cut -d- -f3 <<< "$JOB")" >> "$GITHUB_OUTPUT"
     - name: Auth
-      env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
       run: |
-        for repo in 'cris-base' 'cris-xchg'; do
-            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
-            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
-        done
         scripts/auth_github_ssh.sh
-        # Re-route public access to HTTPS and private to SSH.
-        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
-        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
-        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
     - name: Fetch submodules
       run: |
         GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
@@ -252,20 +216,8 @@ jobs:
         | sed 's/^/BASE_IMAGE=/' >> "$GITHUB_OUTPUT"
         echo "ARCH=$(cut -d- -f3 <<< "$JOB")" >> "$GITHUB_OUTPUT"
     - name: Auth
-      env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
       run: |
-        for repo in 'cris-base' 'cris-xchg'; do
-            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
-            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
-        done
         scripts/auth_github_ssh.sh
-        # Re-route public access to HTTPS and private to SSH.
-        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
-        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
-        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
     - name: Fetch submodules
       run: |
         GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
@@ -324,20 +276,8 @@ jobs:
         | sed 's/^/BASE_IMAGE=/' >> "$GITHUB_OUTPUT"
         echo "ARCH=$(cut -d- -f3 <<< "$JOB")" >> "$GITHUB_OUTPUT"
     - name: Auth
-      env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
       run: |
-        for repo in 'cris-base' 'cris-xchg'; do
-            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
-            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
-        done
         scripts/auth_github_ssh.sh
-        # Re-route public access to HTTPS and private to SSH.
-        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
-        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
-        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
     - name: Fetch submodules
       run: |
         GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
@@ -395,20 +335,8 @@ jobs:
         | sed 's/^/BASE_IMAGE=/' >> "$GITHUB_OUTPUT"
         echo "ARCH=$(cut -d- -f3 <<< "$JOB")" >> "$GITHUB_OUTPUT"
     - name: Auth
-      env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
       run: |
-        for repo in 'cris-base' 'cris-xchg'; do
-            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
-            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
-        done
         scripts/auth_github_ssh.sh
-        # Re-route public access to HTTPS and private to SSH.
-        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
-        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
-        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
     - name: Fetch submodules
       run: |
         GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
@@ -467,20 +395,8 @@ jobs:
         | sed 's/^/BASE_IMAGE=/' >> "$GITHUB_OUTPUT"
         echo "ARCH=$(cut -d- -f3 <<< "$JOB")" >> "$GITHUB_OUTPUT"
     - name: Auth
-      env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
       run: |
-        for repo in 'cris-base' 'cris-xchg'; do
-            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
-            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
-        done
         scripts/auth_github_ssh.sh
-        # Re-route public access to HTTPS and private to SSH.
-        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
-        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
-        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
     - name: Fetch submodules
       run: |
         GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
@@ -538,20 +454,8 @@ jobs:
         | sed 's/^/BASE_IMAGE=/' >> "$GITHUB_OUTPUT"
         echo "ARCH=$(cut -d- -f3 <<< "$JOB")" >> "$GITHUB_OUTPUT"
     - name: Auth
-      env:
-        CRIS_BASE_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_BASE_CI_SSH_PRIVKEY_ED25519 }}
-        CRIS_XCHG_CI_SSH_PRIVKEY_ED25519: ${{ secrets.CRIS_XCHG_CI_SSH_PRIVKEY_ED25519 }}
       run: |
-        for repo in 'cris-base' 'cris-xchg'; do
-            mkdir -p ~/".ssh/github_deploy_cyfitech/$repo"
-            sh -c 'echo "$'"$(echo "$repo" | tr 'a-z' 'A-Z' | sed 's/[^[:alnum:]]/_/g')_CI_SSH_PRIVKEY_ED25519"'"' > ~/".ssh/github_deploy_cyfitech/$repo/id_ed25519"
-            chmod -R go-rwx ~/".ssh/github_deploy_cyfitech/$repo"
-        done
         scripts/auth_github_ssh.sh
-        # Re-route public access to HTTPS and private to SSH.
-        git config --global 'url.https://github.com/cyfitech/cris-core.insteadOf' 'git@github.com:cyfitech/cris-core'
-        git config --global 'url.git@github.com:cyfitech/cris-base.insteadOf' 'https://github.com/cyfitech/cris-base'
-        git config --global 'url.git@github.com:cyfitech/cris-xchg.insteadOf' 'https://github.com/cyfitech/cris-xchg'
     - name: Fetch submodules
       run: |
         GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive

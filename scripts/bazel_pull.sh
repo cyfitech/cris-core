@@ -14,7 +14,7 @@ done
 git submodule foreach --recursive -q pwd            \
 | xargs -rI{} "$(! uname -s | grep '^Darwin$' >/dev/null || printf 'g')realpath" --relative-to="$(pwd)" {}  \
 | sed 's/\/*$//'                                    \
-| grep -e'cris-'{base,xchg}'$'                      \
+| grep -e'cris-[[:alnum:]_\-]*$'                    \
 | sort                                              \
 | xargs -rI{} bash -c 'git -C "$(dirname "{}")" submodule update --remote "$(basename "{}")" && git -C "{}" submodule update --init --recursive'
 

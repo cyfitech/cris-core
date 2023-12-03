@@ -4,12 +4,10 @@ inputs:
   key:
     required: true
     type: string
-  cris_base_ssh_token:
-    required: true
-    type: string
-  cris_xchg_ssh_token:
-    required: true
-    type: string
+  enable_cache:
+    required: false
+    default: true
+    type: boolean
 
 runs:
   using: "composite"
@@ -21,5 +19,4 @@ runs:
         /root/.cache/ccache
         /root/.cache/pip
         /root/.ccache
-      cris_base_ssh_token: ${{ inputs.cris_base_ssh_token }}
-      cris_xchg_ssh_token: ${{ inputs.cris_xchg_ssh_token }}
+      enable_cache: ${{ inputs.enable_cache }}
