@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <thread>
 
 namespace cris::core {
 
@@ -40,4 +41,28 @@ void ConfigDataParser(JobRunner::Config& config, simdjson::ondemand::value& val)
     }
 }
 
+JobRunner::Config GetCoreRunConfig(ConfigFile& runner_config_file) {
+    const unsigned total_cpu_threads = std::max(std::thread::hardware_concurrency(), 1u);
+    LOG(INFO) << __func__ << ": Detected " << total_cpu_threads << " CPU threads.";
+
+    const unsigned default_core_node_threads = std::max(total_cpu_threads - 2, std::min(4u, total_cpu_threads));
+    return runner_config_file
+        .Get<cris::core::JobRunner::Config>(
+            "core",
+            cris::core::JobRunner::Config{
+                .thread_num_  = default_core_node_threads,
+                .active_time_ = std::chrono::seconds(10),
+            })
+        ->GetValue();
+}
+
+JobRunner::Config GetPeripheralRunConfig(ConfigFile& runner_config_file) {
+    return runner_config_file
+        .Get<cris::core::JobRunner::Config>(
+            "peripheral",
+            cris::core::JobRunner::Config{
+                .thread_num_ = 1,
+            })
+        ->GetValue();
+}
 }  // namespace cris::core
