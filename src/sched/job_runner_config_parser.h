@@ -1,7 +1,7 @@
 #pragma once
 
-#include "cris/core/sched/job_runner.h"
 #include "cris/core/config/config.h"
+#include "cris/core/sched/job_runner.h"
 
 #include <simdjson.h>
 
