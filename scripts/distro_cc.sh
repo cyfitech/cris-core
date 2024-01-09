@@ -3,14 +3,14 @@
 set -e
 
 if [ ! "$CC" ] && [ ! "$CXX" ]; then
-    for ver in -1{5,4,3,2,1} ''; do
+    for ver in -{2,1}{9,8,7,6,5,4,3,2,1,0} ''; do
         which "clang$ver"   >/dev/null 2>&1 || continue
         which "clang++$ver" >/dev/null 2>&1 || continue
         if ! "clang$ver" --version                                                          \
             | sed -n 's/.*clang version \([1-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\).*/\1/p'   \
             | head -n1                                                                      \
             | cut -d. -f1                                                                   \
-            | xargs -rI{} expr {} - 11                                                      \
+            | xargs -rI{} expr {} - 12                                                      \
             | grep '^[0-9]' >/dev/null
         then
             printf '\033[33m[WARNING] Found compiler "%s" with insufficient version.\033[0m' "clang$ver" >&2

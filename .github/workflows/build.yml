@@ -19,7 +19,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20230512
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20240104
     steps:
     - uses: actions/checkout@v3
     - uses: ./.github/actions/ci-lint-env-setup
@@ -47,7 +47,7 @@ jobs:
   tidy:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20230512
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20240104
     steps:
     - uses: actions/checkout@v3
     - uses: ./.github/actions/ci-lint-env-setup
@@ -60,13 +60,13 @@ jobs:
     - name: Check diff
       run: export HOME=/root && git --no-pager diff --exit-code
 
-  llvm11-debian11:
+  llvm12-ubuntu2004:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230512
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20240104
     env:
-      CC: clang-11
-      CXX: clang++-11
+      CC: clang-12
+      CXX: clang++-12
     steps:
     - uses: actions/checkout@v3
     - uses: ./.github/actions/ci-build-env-setup
@@ -79,28 +79,10 @@ jobs:
       run: export HOME=/root && make test OPT="--test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
-  llvm12-ubuntu2004:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20230512
-    env:
-      CC: clang-12
-      CXX: clang++-12
-    steps:
-    - uses: actions/checkout@v3
-    - uses: ./.github/actions/ci-build-env-setup
-      with:
-        key: ${{ github.job }}
-    - name: Build
-      run: export HOME=/root && make build OPT="-s"
-    - name: Test
-      run: export HOME=/root && make test OPT="--test_output=all -s"
-    - uses: ./.github/actions/ci-env-cleanup
-
   llvm13-debian11:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230512
+      image: ghcr.io/cyfitech/cris-build-debian11:20240104
     env:
       CC: clang-13
       CXX: clang++-13
@@ -115,10 +97,10 @@ jobs:
       run: export HOME=/root && make test OPT="--test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
-  llvm14-ubuntu2204:
+  llvm14-debian12:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20230512
+      image: ghcr.io/cyfitech/cris-build-debian12:20240104
     env:
       CC: clang-14
       CXX: clang++-14
@@ -133,13 +115,13 @@ jobs:
       run: export HOME=/root && make test OPT="--test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
-  gcc10-debian11:
+  llvm15-ubuntu2204:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230512
+      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20240104
     env:
-      CC: gcc-10
-      CXX: g++-10
+      CC: clang-15
+      CXX: clang++-15
     steps:
     - uses: actions/checkout@v3
     - uses: ./.github/actions/ci-build-env-setup
@@ -151,10 +133,29 @@ jobs:
       run: export HOME=/root && make test OPT="--test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
+  gcc10-debian11:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyfitech/cris-build-debian11:20240104
+    env:
+      CC: gcc-10
+      CXX: g++-10
+    steps:
+    - uses: actions/checkout@v3
+    - uses: ./.github/actions/ci-build-env-setup
+      with:
+        key: ${{ github.job }}
+    # Offline build with non-existing proxy on 53 (DNS/UDP).
+    - name: Build
+      run: export HOME=/root && make build HTTPS_PROXY='http://127.0.0.1:53' OPT="-s"
+    - name: Test
+      run: export HOME=/root && make test OPT="--test_output=all -s"
+    - uses: ./.github/actions/ci-env-cleanup
+
   gcc10-ubuntu2004:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20230512
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20240104
     env:
       CC: gcc-10
       CXX: g++-10
@@ -172,12 +173,28 @@ jobs:
   gcc11-ubuntu2204:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20230512
+      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20240104
     env:
-      # Cannot use gcc-12 because of https://github.com/protocolbuffers/protobuf/issues/9948 (requires protobuf v3.21.0 or gcc 12.2)
-      # https://github.com/protocolbuffers/protobuf/pull/10118 is needed for upgrading protobuf
       CC: gcc-11
       CXX: g++-11
+    steps:
+    - uses: actions/checkout@v3
+    - uses: ./.github/actions/ci-build-env-setup
+      with:
+        key: ${{ github.job }}
+    - name: Build
+      run: export HOME=/root && make build OPT="-s"
+    - name: Test
+      run: export HOME=/root && make test OPT="--test_output=all -s"
+    - uses: ./.github/actions/ci-env-cleanup
+
+  gcc12-debian12:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyfitech/cris-build-debian12:20240104
+    env:
+      CC: gcc-12
+      CXX: g++-12
     steps:
     - uses: actions/checkout@v3
     - uses: ./.github/actions/ci-build-env-setup
@@ -192,7 +209,7 @@ jobs:
   asan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230512
+      image: ghcr.io/cyfitech/cris-build-debian11:20240104
     env:
       CC: clang-13
       CXX: clang++-13
@@ -208,7 +225,7 @@ jobs:
   ubsan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230512
+      image: ghcr.io/cyfitech/cris-build-debian11:20240104
     env:
       CC: clang-13
       CXX: clang++-13
@@ -224,7 +241,7 @@ jobs:
   tsan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20230512
+      image: ghcr.io/cyfitech/cris-build-debian11:20240104
     env:
       CC: clang-13
       CXX: clang++-13
