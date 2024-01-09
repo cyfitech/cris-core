@@ -195,7 +195,7 @@ RUN set -e; \
                 auto{conf{,-archive},make,point} \
                 axel \
                 bash-completion \
-                $( [ "_$CRIS_IMG_ARCH" != '_amd64' ] || echo 'bazel=6.2.*')\
+                $( [ "_$CRIS_IMG_ARCH" != '_amd64' ] || echo 'bazel=6.4.*')\
                 bc \
                 bind9-dnsutils \
                 binutils \
@@ -244,6 +244,8 @@ RUN set -e; \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[024]\.04$' -e'^debian\-1[12]$'>/dev/null || echo llvm-13{,-tools} {clang{,-{format,tidy,tools}},lld}-13) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$'  -e'^debian\-12$'   >/dev/null || echo llvm-14{,-tools} {clang{,-{format,tidy,tools}},lld}-14) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$'  -e'^debian\-12$'   >/dev/null || echo llvm-15{,-tools} {clang{,-{format,tidy,tools}},lld}-15) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-24\.04$'     -e'^debian\-12$'   >/dev/null || echo llvm-16{,-tools} {clang{,-{format,tidy,tools}},lld}-16) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-24\.04$'                        >/dev/null || echo llvm-17{,-tools} {clang{,-{format,tidy,tools}},lld}-17) \
                 locales \
                 locate \
                 lshw \
@@ -372,7 +374,7 @@ RUN set -e; \
         esac)"; \
     if [ "_$CRIS_IMG_ARCH" = '_arm64' ] ; then \
         BAZEL_INSTALL_DIR='/usr/local/bin'; \
-        BAZEL_VERSION='6.2.0'; \
+        BAZEL_VERSION='6.4.0'; \
         for retry in $(seq 30 -1 1); do \
             curl \
                 -fsSL \
