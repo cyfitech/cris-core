@@ -1,12 +1,21 @@
 CRIS_CXXOPTS = [
     "-Wall",
     "-Wconversion",
-    "-Werror",
     "-Wextra",
     "-Wshadow",
     "-g3",
     "-fno-sanitize-recover=all",
-]
+] + select({
+    # Our targeted platform is Linux so we treat warnings as errors on Linux.
+    #
+    # For other platforms, there may be warnings because of the CI-uncovered toolchains/libs,
+    # we disbale the errors so that the developers may try it on different platforms without
+    # the bothering of fixing random warnings.
+    "@platforms//os:linux": [
+        "-Werror",
+    ],
+    "//conditions:default": [],
+})
 
 CRIS_LINKOPTS = [
     "-Wall",
@@ -36,5 +45,10 @@ def cris_cc_binary(**attrs):
 
 def cris_cc_test(**attrs):
     if "linkstatic" not in attrs:
-        attrs["linkstatic"] = False
+        # Mac OS must use static link.
+        # See https://github.com/cyfitech/cris-core/issues/239
+        attrs["linkstatic"] = select({
+            "@platforms//os:macos": True,
+            "//conditions:default": False,
+        })
     native.cc_test(**__add_opts(attrs))
