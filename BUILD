@@ -37,6 +37,15 @@ cris_cc_library (
     ],
 )
 
+# Note: Only link this to executable directly.
+cris_cc_library (
+    name = "supp",
+    srcs = glob(["src/supp/**/*.cpp"]),
+    hdrs = glob(["src/supp/**/*.h"]),
+    include_prefix = "cris/core",
+    strip_include_prefix = "src",
+)
+
 cris_cc_library (
     name = "sched",
     srcs = glob(["src/sched/**/*.cc"]),
