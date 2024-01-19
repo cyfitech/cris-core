@@ -5,6 +5,7 @@ cris_cc_library(
     srcs = ["cris_benchmark_main.cc"],
     deps = [
         "//:signal",
+        "//:supp",
         "//:utils",
     ],
     linkopts = ["-lbenchmark"],
