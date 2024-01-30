@@ -21,7 +21,7 @@ jobs:
     container:
       image: ghcr.io/cyfitech/cris-build-ubuntu2004:20240125
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-lint-env-setup
       with:
         key: ${{ github.job }}
@@ -49,7 +49,7 @@ jobs:
     container:
       image: ghcr.io/cyfitech/cris-build-ubuntu2004:20240125
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-lint-env-setup
       with:
         key: ${{ github.job }}
@@ -68,7 +68,7 @@ jobs:
       CC: clang-12
       CXX: clang++-12
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
@@ -87,7 +87,7 @@ jobs:
       CC: clang-13
       CXX: clang++-13
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
@@ -105,7 +105,7 @@ jobs:
       CC: clang-14
       CXX: clang++-14
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
@@ -123,7 +123,7 @@ jobs:
       CC: clang-15
       CXX: clang++-15
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
@@ -141,7 +141,7 @@ jobs:
       CC: gcc-10
       CXX: g++-10
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
@@ -160,7 +160,7 @@ jobs:
       CC: gcc-10
       CXX: g++-10
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
@@ -178,7 +178,7 @@ jobs:
       CC: gcc-11
       CXX: g++-11
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
@@ -196,7 +196,7 @@ jobs:
       CC: gcc-12
       CXX: g++-12
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
@@ -214,7 +214,7 @@ jobs:
       CC: clang-13
       CXX: clang++-13
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
@@ -230,7 +230,7 @@ jobs:
       CC: clang-13
       CXX: clang++-13
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}
@@ -246,7 +246,7 @@ jobs:
       CC: clang-13
       CXX: clang++-13
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-build-env-setup
       with:
         key: ${{ github.job }}

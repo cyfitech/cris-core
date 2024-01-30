@@ -25,7 +25,7 @@ runs:
       echo 'CRIS_CACHE_PATHS<<EOF' >> "$GITHUB_ENV"
       printf "%s" "${{ inputs.cache_paths }}" >> "$GITHUB_ENV"
       echo 'EOF' >> "$GITHUB_ENV"
-  - uses: actions/cache@v3
+  - uses: actions/cache@v4
   # PR should not save to shared cache.
     if: ${{ always() && inputs.enable_cache == 'true' && github.event_name != 'pull_request' && ! cancelled() }}
     with:
@@ -41,7 +41,7 @@ runs:
         ${{ inputs.key }}:${{ steps.date.outputs.date-7 }}
         ${{ inputs.key }}:${{ steps.date.outputs.date-8 }}
         ${{ inputs.key }}:${{ steps.date.outputs.date-9 }}
-  - uses: actions/cache/restore@v3
+  - uses: actions/cache/restore@v4
     if: ${{ always() && inputs.enable_cache == 'true' && github.event_name == 'pull_request' && ! cancelled() }}
     with:
       path: ${{ env.CRIS_CACHE_PATHS }}
