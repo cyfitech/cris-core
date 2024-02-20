@@ -334,6 +334,22 @@ RUN set -e; \
             black \
             flake8 \
             isort \
+            mypy \
+        && break; \
+        echo "Retrying... $(expr "$attempt" - 1) chance(s) left."; \
+    done; \
+    for attempt in $(seq "$PIP_MAX_ATTEMPT" -1 0); do \
+        [ "$attempt" -gt 0 ]; \
+        sudo PIP_INDEX_URL="$PIP_INDEX_URL" python3 -m pip install -U $PIP_MAYBE_BREAK_SYSTEM_PACKAGES \
+            matplotlib \
+            numba \
+            numpy \
+            pandas \
+            pytest \
+            pytest-xdist \
+            scikit_learn \
+            scipy \
+            torch \
         && break; \
         echo "Retrying... $(expr "$attempt" - 1) chance(s) left."; \
     done; \
