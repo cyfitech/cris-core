@@ -102,7 +102,7 @@ jobs:
     - name: Fetch submodules
       run: |
         GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
-    - uses: docker/setup-qemu-action@v2
+    - uses: docker/setup-qemu-action@v3
     - name: Build
       env:
         ARCH: ${{ steps.docker-build-config.outputs.ARCH }}
@@ -221,7 +221,7 @@ jobs:
     - name: Fetch submodules
       run: |
         GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
-    - uses: docker/setup-qemu-action@v2
+    - uses: docker/setup-qemu-action@v3
     - name: Build
       env:
         ARCH: ${{ steps.docker-build-config.outputs.ARCH }}
@@ -340,7 +340,7 @@ jobs:
     - name: Fetch submodules
       run: |
         GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
-    - uses: docker/setup-qemu-action@v2
+    - uses: docker/setup-qemu-action@v3
     - name: Build
       env:
         ARCH: ${{ steps.docker-build-config.outputs.ARCH }}
@@ -459,7 +459,7 @@ jobs:
     - name: Fetch submodules
       run: |
         GIT_SSH_COMMAND='ssh -vvv' git submodule update --init --jobs 10 --recursive
-    - uses: docker/setup-qemu-action@v2
+    - uses: docker/setup-qemu-action@v3
     - name: Build
       env:
         ARCH: ${{ steps.docker-build-config.outputs.ARCH }}
