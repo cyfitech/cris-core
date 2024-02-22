@@ -264,6 +264,7 @@ RUN set -e; \
                 pkg-config \
                 privoxy \
                 procps \
+                proxychains4 \
                 pv \
                 python3{,-pip} \
                 rng-tools5 \
