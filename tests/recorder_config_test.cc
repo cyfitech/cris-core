@@ -146,7 +146,7 @@ TEST_F(RecordConfigTest, RecorderConfigTestInvalid) {
         // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
         EXPECT_DEATH(
             recorder_config_file.Get<RecorderConfig>("recorder"),
-            "\"period_sec\" is required. The JSON field referenced does not exist in this object.");
+            R"("period_sec" is required. NO_SUCH_FIELD)");
     }
 
     {
@@ -161,9 +161,7 @@ TEST_F(RecordConfigTest, RecorderConfigTestInvalid) {
 
         // EXPECT_DEATH contains `goto`.
         // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
-        EXPECT_DEATH(
-            recorder_config_file.Get<RecorderConfig>("recorder"),
-            "Expect a string for \"record_dir\". The JSON element does not have the requested type.");
+        EXPECT_DEATH(recorder_config_file.Get<RecorderConfig>("recorder"), "Expect a string for \"record_dir\"");
     }
 }
 
@@ -227,9 +225,7 @@ TEST_F(RecordConfigTest, RollingConfigNonStringFail) {
             }
         })");
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
-    EXPECT_DEATH(
-        recorder_config_file.Get<RecorderConfig>("recorder"),
-        R"(Expect a string for "rolling". The JSON element does not have the requested type.)");
+    EXPECT_DEATH(recorder_config_file.Get<RecorderConfig>("recorder"), R"(Expect a string for "rolling")");
 }
 
 TEST_F(RecordConfigTest, RollingConfigByUnknownFail) {
@@ -256,7 +252,7 @@ TEST_F(RecordConfigTest, RollingConfigBySizeInvalidSizeLimitTypeFail) {
     // NOLINTNEXTLINE(cppcoreguidelines-avoid-goto,hicpp-avoid-goto,-warnings-as-errors)
     EXPECT_DEATH(
         recorder_config_file.Get<RecorderConfig>("recorder"),
-        R"(Expect a non-zero positive integer for "size_limit_mb". The JSON element does not have the requested type.)");
+        R"(Expect a non-zero positive integer for "size_limit_mb")");
 }
 
 TEST_F(RecordConfigTest, RollingConfigBySizeZeroSizeLimitFail) {
