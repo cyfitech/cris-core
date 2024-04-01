@@ -122,6 +122,9 @@ class TimerSection {
 
     static std::unique_ptr<TimerReport> GetAllReports(bool clear);
 
+    // Max number of sections to create.
+    static constexpr std::size_t kMaxCapacity = 8192;
+
    private:
     std::string                                          name_;
     [[PRIVATE_MAYBE_UNUSED]] std::size_t                 collector_index_{0};
