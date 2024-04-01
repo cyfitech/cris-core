@@ -433,7 +433,7 @@ TimerSection* TimerSection::SubSection(const std::string& name) {
     }
 
     const std::size_t collector_idx = collector_index_count.fetch_add(1);
-    std::unique_lock  lock(shared_mtx_);
+    std::lock_guard   lock(shared_mtx_);
     if (collector_idx >= TimerStatCollector::kCollectorSize) {
         LOG(ERROR) << __func__ << ": Timer Is Full. Too Many Sections Are Created. "
                    << "Ignored \"" << name << "\".";
