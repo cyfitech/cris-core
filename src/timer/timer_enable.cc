@@ -21,7 +21,7 @@
 
 namespace cris::core {
 
-// 0 is reserved as an "empty" collector.
+static constexpr std::size_t       kEmptyCollectorIndex = 0;
 constinit std::atomic<std::size_t> TimerSection::collector_index_count{1};
 
 // Number of duration buckets in each Collector/Total Entry
@@ -60,7 +60,7 @@ static_assert(kBucketUpperNsec[kTimerEntryBucketNum - 1] > 10000 * std::nano::de
 
 class TimerStatCollector {
    public:
-    static constexpr std::size_t kCollectorSize = 8192;
+    static constexpr std::size_t kCollectorSize = TimerSection::kMaxCapacity;
 
     TimerStatCollector();
 
@@ -390,6 +390,11 @@ TimerSection* TimerSection::GetMainSection() {
     return &main_section;
 }
 
+static TimerSection* GetDummySection() {
+    static TimerSection dummy("Dummy", kEmptyCollectorIndex, {});
+    return &dummy;
+}
+
 TimerSection::TimerSection(const std::string& name, std::size_t collector_index, CtorPermission)
     : name_(name)
     , collector_index_(collector_index) {
@@ -427,10 +432,15 @@ TimerSection* TimerSection::SubSection(const std::string& name) {
         }
     }
 
-    std::unique_lock lock(shared_mtx_);
-    auto             insert = subsections_.emplace(
-        name,
-        std::make_unique<TimerSection>(name, collector_index_count.fetch_add(1), CtorPermission()));
+    const std::size_t collector_idx = collector_index_count.fetch_add(1);
+    std::unique_lock  lock(shared_mtx_);
+    if (collector_idx >= TimerStatCollector::kCollectorSize) {
+        LOG(ERROR) << __func__ << ": Timer Is Full. Too Many Sections Are Created. "
+                   << "Ignored \"" << name << "\".";
+        return GetDummySection();
+    }
+    const auto insert =
+        subsections_.emplace(name, std::make_unique<TimerSection>(name, collector_idx, CtorPermission()));
     return insert.first->second.get();
 }
 

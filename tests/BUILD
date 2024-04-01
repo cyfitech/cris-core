@@ -234,6 +234,15 @@ cris_cc_test (
 )
 
 cris_cc_test (
+    name = "timer_full_test",
+    srcs = ["timer_full_test.cc"],
+    deps = [
+        "//:timer",
+        "@cris-core//tests:cris_gtest_main",
+    ],
+)
+
+cris_cc_test (
     name = "simple_timer_test",
     srcs = ["simple_timer_test.cc"],
     deps = [
