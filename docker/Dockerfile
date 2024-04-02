@@ -342,6 +342,7 @@ RUN set -e; \
     for attempt in $(seq "$PIP_MAX_ATTEMPT" -1 0); do \
         [ "$attempt" -gt 0 ]; \
         sudo PIP_INDEX_URL="$PIP_INDEX_URL" python3 -m pip install -U $PIP_MAYBE_BREAK_SYSTEM_PACKAGES \
+            h5py \
             matplotlib \
             numba \
             numpy \
@@ -351,6 +352,7 @@ RUN set -e; \
             scikit_learn \
             scipy \
             torch \
+            xgboost \
         && break; \
         echo "Retrying... $(expr "$attempt" - 1) chance(s) left."; \
     done; \
