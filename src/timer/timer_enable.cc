@@ -137,10 +137,17 @@ TimerStatCollector::CollectorList& TimerStatCollector::GetCollectorList() {
 }
 
 TimerStatCollector& TimerStatCollector::GetCollector() {
-    static thread_local auto* const collector = []() {
+    // This unique_ptr does not manage the ownership of the collector, but free the collector
+    // from the list when the thread exits.
+    static const auto colllector_deleter = [](TimerStatCollector* collector) {
+        GetCollectorList().LockAndThen([collector](auto& collectors) {
+            std::erase_if(collectors, [collector](const auto& item) { return item.get() == collector; });
+        });
+    };
+    static thread_local const std::unique_ptr<TimerStatCollector, decltype(colllector_deleter)> collector([]() {
         return GetCollectorList().LockAndThen(
             [](auto& collectors) { return collectors.emplace_back(new TimerStatCollector()).get(); });
-    }();
+    }());
     return *collector;
 }
 
