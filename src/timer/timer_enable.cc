@@ -140,6 +140,7 @@ TimerStatCollector& TimerStatCollector::GetCollector() {
     // This unique_ptr does not manage the ownership of the collector, but free the collector
     // from the list when the thread exits.
     static const auto colllector_deleter = [](TimerStatCollector* collector) {
+        GetTotalStats().Merge(collector->Collect(/*clear = */ true));
         GetCollectorList().LockAndThen([collector](auto& collectors) {
             std::erase_if(collectors, [collector](const auto& item) { return item.get() == collector; });
         });
