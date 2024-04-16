@@ -19,7 +19,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20240225
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20240416
     steps:
     - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-lint-env-setup
@@ -47,7 +47,7 @@ jobs:
   tidy:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20240225
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20240416
     steps:
     - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-lint-env-setup
@@ -63,7 +63,7 @@ jobs:
   llvm12-ubuntu2004:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20240225
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20240416
     env:
       CC: clang-12
       CXX: clang++-12
@@ -82,7 +82,7 @@ jobs:
   llvm13-debian11:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20240225
+      image: ghcr.io/cyfitech/cris-build-debian11:20240416
     env:
       CC: clang-13
       CXX: clang++-13
@@ -100,7 +100,7 @@ jobs:
   llvm14-debian12:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian12:20240225
+      image: ghcr.io/cyfitech/cris-build-debian12:20240416
     env:
       CC: clang-14
       CXX: clang++-14
@@ -118,7 +118,7 @@ jobs:
   llvm15-ubuntu2204:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20240225
+      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20240416
     env:
       CC: clang-15
       CXX: clang++-15
@@ -136,7 +136,7 @@ jobs:
   gcc10-debian11:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20240225
+      image: ghcr.io/cyfitech/cris-build-debian11:20240416
     env:
       CC: gcc-10
       CXX: g++-10
@@ -155,7 +155,7 @@ jobs:
   gcc10-ubuntu2004:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20240225
+      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20240416
     env:
       CC: gcc-10
       CXX: g++-10
@@ -173,7 +173,7 @@ jobs:
   gcc11-ubuntu2204:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20240225
+      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20240416
     env:
       CC: gcc-11
       CXX: g++-11
@@ -191,7 +191,7 @@ jobs:
   gcc12-debian12:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian12:20240225
+      image: ghcr.io/cyfitech/cris-build-debian12:20240416
     env:
       CC: gcc-12
       CXX: g++-12
@@ -209,7 +209,7 @@ jobs:
   asan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20240225
+      image: ghcr.io/cyfitech/cris-build-debian11:20240416
     env:
       CC: clang-13
       CXX: clang++-13
@@ -225,7 +225,7 @@ jobs:
   ubsan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20240225
+      image: ghcr.io/cyfitech/cris-build-debian11:20240416
     env:
       CC: clang-13
       CXX: clang++-13
@@ -241,7 +241,7 @@ jobs:
   tsan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20240225
+      image: ghcr.io/cyfitech/cris-build-debian11:20240416
     env:
       CC: clang-13
       CXX: clang++-13
