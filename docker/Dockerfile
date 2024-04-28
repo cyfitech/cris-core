@@ -191,7 +191,7 @@ RUN set -e; \
                 cmake{,-curses-gui} \
                 coreutils \
                 curl \
-                default-libmysqlclient-dev libmariadb-dev \
+                default-libmysqlclient-dev \
                 diffutils \
                 dos2unix \
                 dstat \
