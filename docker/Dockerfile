@@ -69,29 +69,13 @@ RUN set -e; \
         esac)"; \
     . <(sed 's/^\(..*\)/export DISTRO_\1/' '/etc/os-release'); \
     case "$DISTRO_ID-$DISTRO_VERSION_ID" in \
-    'debian-12') \
-        export DEB_SRC_LIST=/etc/apt/sources.list; \
-        export DEB_SRC_DEFAULT_LIST=/etc/apt/sources.list.d/debian.sources; \
-        if [ ! -e "$DEB_SRC_LIST" ] && [ -e "$DEB_SRC_DEFAULT_LIST" ]; then \
-            sudo rm -f "$DEB_SRC_DEFAULT_LIST"; \
-            echo 'deb http://deb.debian.org/debian bookworm main contrib non-free'                        >> "$DEB_SRC_LIST"; \
-            echo 'deb-src http://deb.debian.org/debian bookworm main contrib non-free'                    >> "$DEB_SRC_LIST"; \
-            echo 'deb http://deb.debian.org/debian-security/ bookworm-security main contrib non-free'     >> "$DEB_SRC_LIST"; \
-            echo 'deb-src http://deb.debian.org/debian-security/ bookworm-security main contrib non-free' >> "$DEB_SRC_LIST"; \
-            echo 'deb http://deb.debian.org/debian bookworm-updates main contrib non-free'                >> "$DEB_SRC_LIST"; \
-            echo 'deb-src http://deb.debian.org/debian bookworm-updates main contrib non-free'            >> "$DEB_SRC_LIST"; \
-            for attempt in $(seq "$DEB_MAX_ATTEMPT" -1 0); do \
-                [ "$attempt" -gt 0 ]; \
-                ( \
-                    set -e; \
-                    sudo apt-get update -y; \
-                    sudo apt-get upgrade -y; \
-                ) && break; \
-                echo "Retrying... $(expr "$attempt" - 1) chance(s) left."; \
-            done; \
-        fi; \
-        ;; \
     'debian-'*) \
+        [ ! -e '/etc/apt/sources.list.d/debian.sources' ] \
+        || [ -e '/etc/apt/sources.list' ] \
+        || printf 'Types: deb deb-src\nURIs: http://deb.debian.org/debian%s\nSuites: %s\nComponents: main contrib non-free non-free-firmware\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n\n' \
+            'debian'          "$DISTRO_VERSION_CODENAME $DISTRO_VERSION_CODENAME-updates" \
+            'debian-security' "$DISTRO_VERSION_CODENAME-security" \
+        | sudo tee '/etc/apt/sources.list.d/debian.sources'; \
         for attempt in $(seq "$DEB_MAX_ATTEMPT" -1 0); do \
             [ "$attempt" -gt 0 ]; \
             ( \
@@ -207,6 +191,7 @@ RUN set -e; \
                 cmake{,-curses-gui} \
                 coreutils \
                 curl \
+                default-libmysqlclient-dev libmariadb-dev \
                 diffutils \
                 dos2unix \
                 dstat \
