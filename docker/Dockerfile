@@ -72,7 +72,7 @@ RUN set -e; \
     'debian-'*) \
         [ ! -e '/etc/apt/sources.list.d/debian.sources' ] \
         || [ -e '/etc/apt/sources.list' ] \
-        || printf 'Types: deb deb-src\nURIs: http://deb.debian.org/debian%s\nSuites: %s\nComponents: main contrib non-free non-free-firmware\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n\n' \
+        || printf 'Types: deb deb-src\nURIs: http://deb.debian.org/%s\nSuites: %s\nComponents: main contrib non-free non-free-firmware\nSigned-By: /usr/share/keyrings/debian-archive-keyring.gpg\n\n' \
             'debian'          "$DISTRO_VERSION_CODENAME $DISTRO_VERSION_CODENAME-updates" \
             'debian-security' "$DISTRO_VERSION_CODENAME-security" \
         | sudo tee '/etc/apt/sources.list.d/debian.sources'; \
