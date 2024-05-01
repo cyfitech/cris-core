@@ -6,7 +6,7 @@ export MKDIR = mkdir -p
 export RM = rm -rf
 export REALPATH = $(shell [ "_$(OS)" != '_Darwin' ] || printf g)realpath
 
-export DOCKER_IMAGE ?= cajunhotpot/cris-build-debian11:20240416
+export DOCKER_IMAGE ?= cajunhotpot/cris-build-debian11:20240501
 
 export PYTHON_EXECUTABLE ?= python3
 
