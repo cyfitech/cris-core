@@ -29,9 +29,24 @@ RUN set -e; \
     esac; \
     truncate -s0 ~/.bash_history;
 
+# - On Ubuntu 24.04 dstat/pcp cannot be installed noninteractively after
+#   installed software-properties-common.
+#   Install it first as a workaround.
+#   https://bugs.launchpad.net/ubuntu/+source/pcp/+bug/2064784
 RUN set -e; \
     export DEB_MAX_ATTEMPT=10; \
     . <(sed 's/^\(..*\)/export DISTRO_\1/' '/etc/os-release'); \
+    case "$DISTRO_ID-$DISTRO_VERSION_ID" in \
+    'ubuntu-24.04') \
+        for attempt in $(seq "$DEB_MAX_ATTEMPT" -1 0); do \
+            [ "$attempt" -gt 0 ]; \
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+                dstat \
+            && break; \
+            echo "Retrying... $(expr "$attempt" - 1) chance(s) left."; \
+        done; \
+        ;; \
+    esac; \
     case "$DISTRO_ID-$DISTRO_VERSION_ID" in \
     'debian-'* | 'linuxmint-'* | 'ubuntu-'*) \
         for attempt in $(seq "$DEB_MAX_ATTEMPT" -1 0); do \
@@ -218,6 +233,7 @@ RUN set -e; \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^debian\-11$'                      >/dev/null || echo libc++{,abi}-11-dev lldb-11) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-20\.04$'                  >/dev/null || echo libc++{,abi}-12-dev lldb-12) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$' -e'^debian\-12$' >/dev/null || echo libc++{,abi}-14-dev lldb-14) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-24\.04$'                  >/dev/null || echo libc++{,abi}-18-dev lldb-18) \
                 liblz4-dev liblz4-tool \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-20\.04$' >/dev/null || echo libomp-10-dev libomp5-10) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^debian\-11$'     >/dev/null || echo libomp-13-dev libomp5-13) \
@@ -231,6 +247,7 @@ RUN set -e; \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$'  -e'^debian\-12$'   >/dev/null || echo llvm-15{,-tools} {clang{,-{format,tidy,tools}},lld}-15) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-24\.04$'     -e'^debian\-12$'   >/dev/null || echo llvm-16{,-tools} {clang{,-{format,tidy,tools}},lld}-16) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-24\.04$'                        >/dev/null || echo llvm-17{,-tools} {clang{,-{format,tidy,tools}},lld}-17) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-24\.04$'                        >/dev/null || echo llvm-18{,-tools} {clang{,-{format,tidy,tools}},lld}-18) \
                 locales \
                 locate \
                 lshw \
@@ -294,7 +311,12 @@ RUN set -e; \
 
 # [PEP 668](https://peps.python.org/pep-0668/) disallows installing pip packages directly to the base environment.
 # However, there are no viable alternatives, so we set `--break-system-package` as a workaround.
+#
+# HACK: In Ubuntu 24.04, the RECORD file of `wheel` was dropped so it is not upgradable.
+# We added `-I` to override the preinstalled version.
+# https://bugs.launchpad.net/ubuntu/+source/wheel/+bug/2063151
 RUN set -e; \
+    . <(sed 's/^\(..*\)/export DISTRO_\1/' '/etc/os-release'); \
     PIP_MAYBE_BREAK_SYSTEM_PACKAGES="$(set -e; \
         OPT="--break-system-packages"; \
         python3 -m pip install --help \
@@ -305,6 +327,17 @@ RUN set -e; \
         || true)"; \
     PIP_INDEX_URL="$(ROOT_DIR=/etc/roaster/scripts . /etc/roaster/scripts/geo/pip-mirror.sh >&2 && printf '%s' "$PIP_INDEX_URL")"; \
     export PIP_MAX_ATTEMPT=3; \
+    case "$DISTRO_ID-$DISTRO_VERSION_ID" in \
+    'ubuntu-24.04') \
+        for attempt in $(seq "$PIP_MAX_ATTEMPT" -1 0); do \
+            [ "$attempt" -gt 0 ]; \
+            sudo PIP_INDEX_URL="$PIP_INDEX_URL" python3 -m pip install -IU $PIP_MAYBE_BREAK_SYSTEM_PACKAGES \
+                wheel \
+            && break; \
+            echo "Retrying... $(expr "$attempt" - 1) chance(s) left."; \
+        done; \
+        ;; \
+    esac; \
     for attempt in $(seq "$PIP_MAX_ATTEMPT" -1 0); do \
         [ "$attempt" -gt 0 ]; \
         sudo PIP_INDEX_URL="$PIP_INDEX_URL" python3 -m pip install -U $PIP_MAYBE_BREAK_SYSTEM_PACKAGES \
