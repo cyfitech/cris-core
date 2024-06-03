@@ -25,8 +25,8 @@ if [ -d 'run' ] && [ -w 'run' ] || [ -w '.' ]; then
         build:rel   --config="lto"
         build:norel --config="nolto"
 
-        build:lto --copt="-flto"
-        build:lto --linkopt="-flto"
+        build:lto --copt="-flto=auto"
+        build:lto --linkopt="-flto=auto"
 
         build:nolto --copt="-fno-lto"
         build:nolto --linkopt="-fno-lto"
@@ -53,5 +53,15 @@ if printf '%s' "$gcc_version" | grep -q -e'^12\.'{1,2}'\.'; then
         # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105593
         build --copt=-Wno-maybe-uninitialized
         build --linkopt=-Wno-maybe-uninitialized
+________EOF
+fi
+
+# GCC 12 (at least up to 12.3) and above may have false alarm on dead code of libstdc++.
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
+if [ ! "Enable when necessary." ] && printf '%s' "$gcc_version" | grep -q -e'^'{{12,13}'\.'{0,1,2,3},'14\.'{0,1}}'\.'; then
+    cat << ________EOF | sed 's/^        //' >> run/toolchain.bazelrc
+
+        # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
+        build --copt=-Wno-restrict
 ________EOF
 fi
