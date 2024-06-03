@@ -155,7 +155,6 @@ cmake(
         "CMAKE_CXX_FLAGS" : "-Wno-fuse-ld-path",
         "CMAKE_POSITION_INDEPENDENT_CODE": "ON",
         "FMT_MASTER_PROJECT": "OFF",
-        "FMT_INSTALL": "ON",
     },
     out_static_libs = select({
         ":dbg_build":           ["libfmtd.a"],
