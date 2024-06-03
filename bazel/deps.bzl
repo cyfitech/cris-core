@@ -207,7 +207,23 @@ def cris_deps_libbacktrace(prefix = "."):
             name = "libbacktrace",
             path = prefix + "/external/libbacktrace",
             build_file_content = """
+load("@bazel_skylib//lib:selects.bzl", "selects")
 load("@rules_foreign_cc//foreign_cc:defs.bzl", "configure_make")
+
+config_setting(
+    name = "use_clang",
+    values = {
+        "compiler": "clang",
+    },
+)
+
+selects.config_setting_group(
+    name = "linux_use_clang",
+    match_all = [
+        "@platforms//os:linux",
+        "use_clang",
+    ]
+)
 
 filegroup(
     name = "all_content",
@@ -218,8 +234,16 @@ filegroup(
 configure_make(
     name = "libbacktrace",
     lib_source = ":all_content",
-    copts = ["-fno-lto"],
-    linkopts = ["-fno-lto"],
+    # Missing stack trace when using clang LTO.
+    # - https://github.com/cyfitech/cris-core/issues/95#issuecomment-1441056572
+    copts = select({
+            "linux_use_clang":      ["-fno-lto"],
+            "//conditions:default": [],
+        }),
+    linkopts = select({
+            "linux_use_clang":      ["-fno-lto"],
+            "//conditions:default": [],
+        }),
     visibility = ["//visibility:public"],
 )
             """,
