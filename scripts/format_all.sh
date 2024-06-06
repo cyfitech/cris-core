@@ -5,7 +5,7 @@ set -e
 cd "$(dirname "$0")/.."
 
 # Clang Format Auto Detection
-CLANG_FORMAT_DEFAULT_VERSION=12
+CLANG_FORMAT_DEFAULT_VERSION=16
 export CLANG_FORMAT="${CLANG_FORMAT:-$(set -e;                  \
         which "clang-format-$CLANG_FORMAT_DEFAULT_VERSION"      \
         || which "clang-$CLANG_FORMAT_DEFAULT_VERSION-format"   \

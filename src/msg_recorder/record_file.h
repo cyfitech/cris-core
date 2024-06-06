@@ -22,11 +22,11 @@ class RecordFileIterator {
 
     explicit RecordFileIterator(leveldb::Iterator* db_itr, const bool legacy);
 
-    RecordFileIterator(const RecordFileIterator&) = delete;
-    RecordFileIterator(RecordFileIterator&&)      = default;
+    RecordFileIterator(const RecordFileIterator&)            = delete;
+    RecordFileIterator(RecordFileIterator&&)                 = default;
     RecordFileIterator& operator=(const RecordFileIterator&) = delete;
-    RecordFileIterator& operator=(RecordFileIterator&&) = default;
-    ~RecordFileIterator()                               = default;
+    RecordFileIterator& operator=(RecordFileIterator&&)      = default;
+    ~RecordFileIterator()                                    = default;
 
     bool Valid() const;
 
@@ -52,11 +52,11 @@ class RecordFileReverseIterator {
 
     explicit RecordFileReverseIterator(leveldb::Iterator* db_itr, const bool legacy);
 
-    RecordFileReverseIterator(const RecordFileReverseIterator&) = delete;
-    RecordFileReverseIterator(RecordFileReverseIterator&&)      = default;
+    RecordFileReverseIterator(const RecordFileReverseIterator&)            = delete;
+    RecordFileReverseIterator(RecordFileReverseIterator&&)                 = default;
     RecordFileReverseIterator& operator=(const RecordFileReverseIterator&) = delete;
-    RecordFileReverseIterator& operator=(RecordFileReverseIterator&&) = default;
-    ~RecordFileReverseIterator()                                      = default;
+    RecordFileReverseIterator& operator=(RecordFileReverseIterator&&)      = default;
+    ~RecordFileReverseIterator()                                           = default;
 
     bool Valid() const;
 
@@ -85,10 +85,10 @@ class RecordFile {
 
     ~RecordFile();
 
-    RecordFile(const RecordFile&) = delete;
-    RecordFile(RecordFile&&)      = delete;
+    RecordFile(const RecordFile&)            = delete;
+    RecordFile(RecordFile&&)                 = delete;
     RecordFile& operator=(const RecordFile&) = delete;
-    RecordFile& operator=(RecordFile&&) = delete;
+    RecordFile& operator=(RecordFile&&)      = delete;
 
     void Write(std::string serialized_value);
 

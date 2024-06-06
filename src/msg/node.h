@@ -47,10 +47,10 @@ class CRNode {
 
     explicit CRNode(std::string name, std::shared_ptr<JobRunner> runner);
 
-    CRNode(const CRNode&) = delete;
-    CRNode(CRNode&&)      = delete;
+    CRNode(const CRNode&)            = delete;
+    CRNode(CRNode&&)                 = delete;
     CRNode& operator=(const CRNode&) = delete;
-    CRNode& operator=(CRNode&&) = delete;
+    CRNode& operator=(CRNode&&)      = delete;
 
     virtual ~CRNode();
 

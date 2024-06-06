@@ -23,10 +23,10 @@ Timeline::Event* Timeline::push(const char* const func) {
     }
     const auto tic   = GetTSCTick(aux);
     auto       event = make_unique<Event>(Event{
-        .beg  = tic,
-        .end  = tic,
-        .sess = sess_stack_.top(),
-        .func = func,
+              .beg  = tic,
+              .end  = tic,
+              .sess = sess_stack_.top(),
+              .func = func,
     });
     events_.push(event.get());
     const auto toc = GetTSCTick(aux);

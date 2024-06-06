@@ -10,12 +10,12 @@ class HybridSpinMutex {
    public:
     using Self = HybridSpinMutex;
 
-    HybridSpinMutex()            = default;
-    HybridSpinMutex(const Self&) = delete;
-    HybridSpinMutex(Self&&)      = delete;
+    HybridSpinMutex()                       = default;
+    HybridSpinMutex(const Self&)            = delete;
+    HybridSpinMutex(Self&&)                 = delete;
     HybridSpinMutex& operator=(const Self&) = delete;
-    HybridSpinMutex& operator=(Self&&) = delete;
-    ~HybridSpinMutex()                 = default;
+    HybridSpinMutex& operator=(Self&&)      = delete;
+    ~HybridSpinMutex()                      = default;
 
     void lock();
 
