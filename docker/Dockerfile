@@ -279,7 +279,10 @@ RUN set -e; \
 
 ENV LANG=en_US.UTF-8
 
-RUN set -e; \
+RUN set -ex; \
+    cat /proc/1/cgroup; \
+    cat /proc/1/mountinfo; \
+    cat /proc/1/mounts; \
     git clone https://github.com/xkszltl/roaster.git /etc/roaster/scripts; \
     truncate -s0 ~/.bash_history;
 
