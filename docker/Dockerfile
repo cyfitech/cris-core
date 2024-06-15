@@ -129,18 +129,6 @@ RUN set -e; \
         sudo rm -rf /var/lib/apt/lists/*; \
         ;; \
     esac; \
-    case "$DISTRO_ID-$DISTRO_VERSION_ID/$CRIS_IMG_ARCH" in \
-    'ubuntu-20.04/amd64') \
-        echo "deb http://archive.ubuntu.com/ubuntu/ $(lsb_release -cs)-proposed restricted main multiverse universe" \
-        | sudo tee /etc/apt/sources.list.d/ubuntu-$(lsb_release -cs)-proposed.list \
-        > /dev/null; \
-        ;; \
-    'ubuntu-20.04/'*) \
-        echo "deb http://ports.ubuntu.com/ubuntu-ports $(lsb_release -cs)-proposed restricted main multiverse universe" \
-        | sudo tee /etc/apt/sources.list.d/ubuntu-$(lsb_release -cs)-proposed.list \
-        > /dev/null; \
-        ;; \
-    esac; \
     if [ _"$DISTRO_ID" == '_ubuntu' ]; then \
         printf '%s\n' \
             '# Configure apt to allow selective installs of packages from proposed' \
@@ -410,7 +398,7 @@ RUN set -e; \
         esac)"; \
     if [ "_$CRIS_IMG_ARCH" = '_arm64' ] ; then \
         BAZEL_INSTALL_DIR='/usr/local/bin'; \
-        BAZEL_VERSION='6.4.0'; \
+        BAZEL_VERSION='6.5.0'; \
         for retry in $(seq 30 -1 1); do \
             curl \
                 -fsSL \
