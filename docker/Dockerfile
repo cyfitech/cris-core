@@ -212,9 +212,9 @@ RUN set -e; \
                 dstat \
                 expect \
                 findutils \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[024]\.04$' -e'^debian\-11' >/dev/null || echo g{cc,++}-10) \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$'  -e'^debian\-12' >/dev/null || echo g{cc,++}-11) \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$'  -e'^debian\-12' >/dev/null || echo g{cc,++}-12) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$' -e'^debian\-11' >/dev/null || echo g{cc,++}-10) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$' -e'^debian\-12' >/dev/null || echo g{cc,++}-11) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$' -e'^debian\-12' >/dev/null || echo g{cc,++}-12) \
                 gdb \
                 git{,-{extras,lfs}} \
                 gzip \
@@ -231,21 +231,20 @@ RUN set -e; \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$' >/dev/null || echo lib{asan8,tsan2}) \
                 lib{benchmark,boost-all,curl4-openssl,edit,eigen3,event,gflags,gmp,gtest,hdf5,hiredis,hwloc,leveldb,lmdb,lzma,mpfr,mpc,ncurses5,rocksdb,snappy,ssl,tbb}-dev \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^debian\-11$'                      >/dev/null || echo libc++{,abi}-11-dev lldb-11) \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-20\.04$'                  >/dev/null || echo libc++{,abi}-12-dev lldb-12) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$' -e'^debian\-12$' >/dev/null || echo libc++{,abi}-14-dev lldb-14) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-24\.04$'                  >/dev/null || echo libc++{,abi}-18-dev lldb-18) \
                 liblz4-dev liblz4-tool \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-20\.04$' >/dev/null || echo libomp-10-dev libomp5-10) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^debian\-11$'     >/dev/null || echo libomp-13-dev libomp5-13) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$' >/dev/null || echo libomp-14-dev libomp5-14) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^debian\-12$'     >/dev/null || echo libomp-16-dev libomp5-16) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-24\.04$' >/dev/null || echo libomp-18-dev libomp5-18) \
                 libpapi-dev papi-tools \
                 libtool \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[02]\.04$'  -e'^debian\-11$'   >/dev/null || echo llvm-11{,-tools} {clang{,-{format,tidy,tools}},lld}-11) \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[02]\.04$'                     >/dev/null || echo llvm-12{,-tools} {clang{,-{format,tidy,tools}},lld}-12) \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[02]\.04$'  -e'^debian\-1[12]$'>/dev/null || echo llvm-13{,-tools} {clang{,-{format,tidy,tools}},lld}-13) \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$'  -e'^debian\-12$'   >/dev/null || echo llvm-14{,-tools} {clang{,-{format,tidy,tools}},lld}-14) \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$'  -e'^debian\-12$'   >/dev/null || echo llvm-15{,-tools} {clang{,-{format,tidy,tools}},lld}-15) \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-24\.04$'     -e'^debian\-12$'   >/dev/null || echo llvm-16{,-tools} {clang{,-{format,tidy,tools}},lld}-16) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$'    -e'^debian\-11$'    >/dev/null || echo llvm-11{,-tools} {clang{,-{format,tidy,tools}},lld}-11) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$'    -e'^debian\-1[12]$' >/dev/null || echo llvm-13{,-tools} {clang{,-{format,tidy,tools}},lld}-13) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$' -e'^debian\-12$'    >/dev/null || echo llvm-14{,-tools} {clang{,-{format,tidy,tools}},lld}-14) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$' -e'^debian\-12$'    >/dev/null || echo llvm-15{,-tools} {clang{,-{format,tidy,tools}},lld}-15) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-24\.04$'    -e'^debian\-1[12]$' >/dev/null || echo llvm-16{,-tools} {clang{,-{format,tidy,tools}},lld}-16) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-24\.04$'                        >/dev/null || echo llvm-17{,-tools} {clang{,-{format,tidy,tools}},lld}-17) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-24\.04$'                        >/dev/null || echo llvm-18{,-tools} {clang{,-{format,tidy,tools}},lld}-18) \
                 locales \
