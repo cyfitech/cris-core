@@ -118,34 +118,21 @@ RUN set -e; \
     esac; \
     case "$DISTRO_ID-$DISTRO_VERSION_ID/$CRIS_IMG_ARCH" in \
     'debian-'*'/amd64' | 'linuxmint-'*'/amd64' | 'ubuntu-'*'/amd64') \
+        [ -e '/etc/apt/keyrings' ] || ! sudo mkdir -m 755 '/etc/apt/keyrings'; \
         curl --retry "$DEB_MAX_ATTEMPT" --retry-connrefused --retry-delay 3 -fsSL 'https://storage.googleapis.com/bazel-apt/doc/apt-key.pub.gpg' \
-        | gpg --dearmor \
-        | sudo tee /etc/apt/trusted.gpg.d/bazel.gpg \
+        | sudo tee /etc/apt/keyrings/bazel.asc \
         >/dev/null; \
-        echo "deb [arch=amd64] https://storage.googleapis.com/bazel-apt stable jdk1.8" \
+        echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bazel.asc] https://storage.googleapis.com/bazel-apt stable jdk1.8" \
         | sudo tee /etc/apt/sources.list.d/bazel.list; \
         sudo apt-get autoremove -y; \
         sudo apt-get clean; \
         sudo rm -rf /var/lib/apt/lists/*; \
         ;; \
     esac; \
-    if [ _"$DISTRO_ID" == '_ubuntu' ]; then \
-        printf '%s\n' \
-            '# Configure apt to allow selective installs of packages from proposed' \
-            'Package: *' \
-            "Pin: release a=$(lsb_release -cs)-proposed" \
-            'Pin-Priority: 400' \
-        | sudo tee /etc/apt/preferences.d/proposed-updates \
-        > /dev/null; \
-    fi; \
     truncate -s0 ~/.bash_history;
 
 FROM bootstrap as dev
 
-# Known issues:
-# - MKL on Ubuntu 20.04 is too strict on libomp version.
-#   Pinned explicitly to work around.
-#   https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=963991
 RUN set -e; \
     export DEB_MAX_ATTEMPT=10; \
     export CRIS_IMG_ARCH="$(set -e; \
