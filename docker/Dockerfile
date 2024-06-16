@@ -118,46 +118,21 @@ RUN set -e; \
     esac; \
     case "$DISTRO_ID-$DISTRO_VERSION_ID/$CRIS_IMG_ARCH" in \
     'debian-'*'/amd64' | 'linuxmint-'*'/amd64' | 'ubuntu-'*'/amd64') \
+        [ -e '/etc/apt/keyrings' ] || ! sudo mkdir -m 755 '/etc/apt/keyrings'; \
         curl --retry "$DEB_MAX_ATTEMPT" --retry-connrefused --retry-delay 3 -fsSL 'https://storage.googleapis.com/bazel-apt/doc/apt-key.pub.gpg' \
-        | gpg --dearmor \
-        | sudo tee /etc/apt/trusted.gpg.d/bazel.gpg \
+        | sudo tee /etc/apt/keyrings/bazel.asc \
         >/dev/null; \
-        echo "deb [arch=amd64] https://storage.googleapis.com/bazel-apt stable jdk1.8" \
+        echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/bazel.asc] https://storage.googleapis.com/bazel-apt stable jdk1.8" \
         | sudo tee /etc/apt/sources.list.d/bazel.list; \
         sudo apt-get autoremove -y; \
         sudo apt-get clean; \
         sudo rm -rf /var/lib/apt/lists/*; \
         ;; \
     esac; \
-    case "$DISTRO_ID-$DISTRO_VERSION_ID/$CRIS_IMG_ARCH" in \
-    'ubuntu-20.04/amd64') \
-        echo "deb http://archive.ubuntu.com/ubuntu/ $(lsb_release -cs)-proposed restricted main multiverse universe" \
-        | sudo tee /etc/apt/sources.list.d/ubuntu-$(lsb_release -cs)-proposed.list \
-        > /dev/null; \
-        ;; \
-    'ubuntu-20.04/'*) \
-        echo "deb http://ports.ubuntu.com/ubuntu-ports $(lsb_release -cs)-proposed restricted main multiverse universe" \
-        | sudo tee /etc/apt/sources.list.d/ubuntu-$(lsb_release -cs)-proposed.list \
-        > /dev/null; \
-        ;; \
-    esac; \
-    if [ _"$DISTRO_ID" == '_ubuntu' ]; then \
-        printf '%s\n' \
-            '# Configure apt to allow selective installs of packages from proposed' \
-            'Package: *' \
-            "Pin: release a=$(lsb_release -cs)-proposed" \
-            'Pin-Priority: 400' \
-        | sudo tee /etc/apt/preferences.d/proposed-updates \
-        > /dev/null; \
-    fi; \
     truncate -s0 ~/.bash_history;
 
 FROM bootstrap as dev
 
-# Known issues:
-# - MKL on Ubuntu 20.04 is too strict on libomp version.
-#   Pinned explicitly to work around.
-#   https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=963991
 RUN set -e; \
     export DEB_MAX_ATTEMPT=10; \
     export CRIS_IMG_ARCH="$(set -e; \
@@ -212,9 +187,9 @@ RUN set -e; \
                 dstat \
                 expect \
                 findutils \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[024]\.04$' -e'^debian\-11' >/dev/null || echo g{cc,++}-10) \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$'  -e'^debian\-12' >/dev/null || echo g{cc,++}-11) \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$'  -e'^debian\-12' >/dev/null || echo g{cc,++}-12) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$' -e'^debian\-11' >/dev/null || echo g{cc,++}-10) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$' -e'^debian\-12' >/dev/null || echo g{cc,++}-11) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$' -e'^debian\-12' >/dev/null || echo g{cc,++}-12) \
                 gdb \
                 git{,-{extras,lfs}} \
                 gzip \
@@ -231,21 +206,20 @@ RUN set -e; \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$' >/dev/null || echo lib{asan8,tsan2}) \
                 lib{benchmark,boost-all,curl4-openssl,edit,eigen3,event,gflags,gmp,gtest,hdf5,hiredis,hwloc,leveldb,lmdb,lzma,mpfr,mpc,ncurses5,rocksdb,snappy,ssl,tbb}-dev \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^debian\-11$'                      >/dev/null || echo libc++{,abi}-11-dev lldb-11) \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-20\.04$'                  >/dev/null || echo libc++{,abi}-12-dev lldb-12) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$' -e'^debian\-12$' >/dev/null || echo libc++{,abi}-14-dev lldb-14) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-24\.04$'                  >/dev/null || echo libc++{,abi}-18-dev lldb-18) \
                 liblz4-dev liblz4-tool \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-20\.04$' >/dev/null || echo libomp-10-dev libomp5-10) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^debian\-11$'     >/dev/null || echo libomp-13-dev libomp5-13) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$' >/dev/null || echo libomp-14-dev libomp5-14) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^debian\-12$'     >/dev/null || echo libomp-16-dev libomp5-16) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-24\.04$' >/dev/null || echo libomp-18-dev libomp5-18) \
                 libpapi-dev papi-tools \
                 libtool \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[02]\.04$'  -e'^debian\-11$'   >/dev/null || echo llvm-11{,-tools} {clang{,-{format,tidy,tools}},lld}-11) \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[02]\.04$'                     >/dev/null || echo llvm-12{,-tools} {clang{,-{format,tidy,tools}},lld}-12) \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[02]\.04$'  -e'^debian\-1[12]$'>/dev/null || echo llvm-13{,-tools} {clang{,-{format,tidy,tools}},lld}-13) \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$'  -e'^debian\-12$'   >/dev/null || echo llvm-14{,-tools} {clang{,-{format,tidy,tools}},lld}-14) \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$'  -e'^debian\-12$'   >/dev/null || echo llvm-15{,-tools} {clang{,-{format,tidy,tools}},lld}-15) \
-                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-24\.04$'     -e'^debian\-12$'   >/dev/null || echo llvm-16{,-tools} {clang{,-{format,tidy,tools}},lld}-16) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$'    -e'^debian\-11$'    >/dev/null || echo llvm-11{,-tools} {clang{,-{format,tidy,tools}},lld}-11) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-22\.04$'    -e'^debian\-1[12]$' >/dev/null || echo llvm-13{,-tools} {clang{,-{format,tidy,tools}},lld}-13) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$' -e'^debian\-12$'    >/dev/null || echo llvm-14{,-tools} {clang{,-{format,tidy,tools}},lld}-14) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-2[24]\.04$' -e'^debian\-12$'    >/dev/null || echo llvm-15{,-tools} {clang{,-{format,tidy,tools}},lld}-15) \
+                $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-24\.04$'    -e'^debian\-1[12]$' >/dev/null || echo llvm-16{,-tools} {clang{,-{format,tidy,tools}},lld}-16) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-24\.04$'                        >/dev/null || echo llvm-17{,-tools} {clang{,-{format,tidy,tools}},lld}-17) \
                 $(! echo "$DISTRO_ID-$DISTRO_VERSION_ID" | grep -e'^ubuntu\-24\.04$'                        >/dev/null || echo llvm-18{,-tools} {clang{,-{format,tidy,tools}},lld}-18) \
                 locales \
@@ -411,7 +385,7 @@ RUN set -e; \
         esac)"; \
     if [ "_$CRIS_IMG_ARCH" = '_arm64' ] ; then \
         BAZEL_INSTALL_DIR='/usr/local/bin'; \
-        BAZEL_VERSION='6.4.0'; \
+        BAZEL_VERSION='6.5.0'; \
         for retry in $(seq 30 -1 1); do \
             curl \
                 -fsSL \
