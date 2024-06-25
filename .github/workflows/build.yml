@@ -19,7 +19,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20240501
+      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20240603
     steps:
     - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-lint-env-setup
@@ -47,7 +47,7 @@ jobs:
   tidy:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20240501
+      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20240603
     steps:
     - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-lint-env-setup
@@ -60,13 +60,13 @@ jobs:
     - name: Check diff
       run: export HOME=/root && git --no-pager diff --exit-code
 
-  llvm12-ubuntu2004:
+  llvm13-debian11:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20240501
+      image: ghcr.io/cyfitech/cris-build-debian11:20240603
     env:
-      CC: clang-12
-      CXX: clang++-12
+      CC: clang-13
+      CXX: clang++-13
     steps:
     - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-build-env-setup
@@ -79,46 +79,10 @@ jobs:
       run: export HOME=/root && make test OPT="--test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
-  llvm13-debian11:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20240501
-    env:
-      CC: clang-13
-      CXX: clang++-13
-    steps:
-    - uses: actions/checkout@v4
-    - uses: ./.github/actions/ci-build-env-setup
-      with:
-        key: ${{ github.job }}
-    - name: Build
-      run: export HOME=/root && make build OPT="-s"
-    - name: Test
-      run: export HOME=/root && make test OPT="--test_output=all -s"
-    - uses: ./.github/actions/ci-env-cleanup
-
-  llvm14-debian12:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/cyfitech/cris-build-debian12:20240501
-    env:
-      CC: clang-14
-      CXX: clang++-14
-    steps:
-    - uses: actions/checkout@v4
-    - uses: ./.github/actions/ci-build-env-setup
-      with:
-        key: ${{ github.job }}
-    - name: Build
-      run: export HOME=/root && make build OPT="-s"
-    - name: Test
-      run: export HOME=/root && make test OPT="--test_output=all -s"
-    - uses: ./.github/actions/ci-env-cleanup
-
   llvm15-ubuntu2204:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20240501
+      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20240603
     env:
       CC: clang-15
       CXX: clang++-15
@@ -133,10 +97,46 @@ jobs:
       run: export HOME=/root && make test OPT="--test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
+  llvm16-debian12:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyfitech/cris-build-debian12:20240603
+    env:
+      CC: clang-16
+      CXX: clang++-16
+    steps:
+    - uses: actions/checkout@v4
+    - uses: ./.github/actions/ci-build-env-setup
+      with:
+        key: ${{ github.job }}
+    - name: Build
+      run: export HOME=/root && make build OPT="-s"
+    - name: Test
+      run: export HOME=/root && make test OPT="--test_output=all -s"
+    - uses: ./.github/actions/ci-env-cleanup
+
+  llvm18-ubuntu2404:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyfitech/cris-build-ubuntu2404:20240603
+    env:
+      CC: clang-18
+      CXX: clang++-18
+    steps:
+    - uses: actions/checkout@v4
+    - uses: ./.github/actions/ci-build-env-setup
+      with:
+        key: ${{ github.job }}
+    - name: Build
+      run: export HOME=/root && make build OPT="-s"
+    - name: Test
+      run: export HOME=/root && make test OPT="--test_output=all -s"
+    - uses: ./.github/actions/ci-env-cleanup
+
   gcc10-debian11:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20240501
+      image: ghcr.io/cyfitech/cris-build-debian11:20240603
     env:
       CC: gcc-10
       CXX: g++-10
@@ -152,28 +152,10 @@ jobs:
       run: export HOME=/root && make test OPT="--test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
-  gcc10-ubuntu2004:
-    runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2004:20240501
-    env:
-      CC: gcc-10
-      CXX: g++-10
-    steps:
-    - uses: actions/checkout@v4
-    - uses: ./.github/actions/ci-build-env-setup
-      with:
-        key: ${{ github.job }}
-    - name: Build
-      run: export HOME=/root && make build OPT="-s"
-    - name: Test
-      run: export HOME=/root && make test OPT="--test_output=all -s"
-    - uses: ./.github/actions/ci-env-cleanup
-
   gcc11-ubuntu2204:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20240501
+      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20240603
     env:
       CC: gcc-11
       CXX: g++-11
@@ -191,7 +173,7 @@ jobs:
   gcc12-debian12:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian12:20240501
+      image: ghcr.io/cyfitech/cris-build-debian12:20240603
     env:
       CC: gcc-12
       CXX: g++-12
@@ -206,11 +188,31 @@ jobs:
       run: export HOME=/root && make test OPT="--test_output=all -s"
     - uses: ./.github/actions/ci-env-cleanup
 
+  gcc13-ubuntu2404:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/cyfitech/cris-build-ubuntu2404:20240603
+    env:
+      CC: gcc-13
+      CXX: g++-13
+    steps:
+    - uses: actions/checkout@v4
+    - uses: ./.github/actions/ci-build-env-setup
+      with:
+        key: ${{ github.job }}
+    - name: Build
+      run: export HOME=/root && make build OPT="-s"
+    - name: Test
+      run: export HOME=/root && make test OPT="--test_output=all -s"
+    - uses: ./.github/actions/ci-env-cleanup
+
   asan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20240501
+      image: ghcr.io/cyfitech/cris-build-debian12:20240603
     env:
+      # TODO(xkszltl): Upgrade when the timeline memleak issues are fixed.
+      # Issue: https://github.com/cyfitech/cris-core/issues/269
       CC: clang-13
       CXX: clang++-13
     steps:
@@ -225,10 +227,10 @@ jobs:
   ubsan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20240501
+      image: ghcr.io/cyfitech/cris-build-debian12:20240603
     env:
-      CC: clang-13
-      CXX: clang++-13
+      CC: clang-16
+      CXX: clang++-16
     steps:
     - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-build-env-setup
@@ -241,10 +243,10 @@ jobs:
   tsan:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-debian11:20240501
+      image: ghcr.io/cyfitech/cris-build-debian12:20240603
     env:
-      CC: clang-13
-      CXX: clang++-13
+      CC: clang-16
+      CXX: clang++-16
     steps:
     - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-build-env-setup
