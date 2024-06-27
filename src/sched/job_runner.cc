@@ -32,10 +32,10 @@ class JobRunnerWorker {
 
     explicit JobRunnerWorker(JobRunner* runner, std::size_t idx);
 
-    JobRunnerWorker(const JobRunnerWorker&) = delete;
-    JobRunnerWorker(JobRunnerWorker&&)      = delete;
+    JobRunnerWorker(const JobRunnerWorker&)            = delete;
+    JobRunnerWorker(JobRunnerWorker&&)                 = delete;
     JobRunnerWorker& operator=(const JobRunnerWorker&) = delete;
-    JobRunnerWorker& operator=(JobRunnerWorker&&) = delete;
+    JobRunnerWorker& operator=(JobRunnerWorker&&)      = delete;
 
     ~JobRunnerWorker();
 
@@ -70,10 +70,10 @@ class JobAliveToken {
 
     ~JobAliveToken();
 
-    JobAliveToken(const JobAliveToken&) = delete;
-    JobAliveToken(JobAliveToken&&)      = delete;
+    JobAliveToken(const JobAliveToken&)            = delete;
+    JobAliveToken(JobAliveToken&&)                 = delete;
     JobAliveToken& operator=(const JobAliveToken&) = delete;
-    JobAliveToken& operator=(JobAliveToken&&) = delete;
+    JobAliveToken& operator=(JobAliveToken&&)      = delete;
 
    private:
     std::weak_ptr<JobRunnerStrand> strand_weak_;

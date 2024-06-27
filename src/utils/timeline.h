@@ -72,11 +72,11 @@ class Timeline {
        public:
         using Self = Session;
 
-        Session()            = delete;
-        Session(const Self&) = delete;
-        Session(Self&&)      = delete;
+        Session()                    = delete;
+        Session(const Self&)         = delete;
+        Session(Self&&)              = delete;
         Self& operator=(const Self&) = delete;
-        Self& operator=(Self&&) = delete;
+        Self& operator=(Self&&)      = delete;
 
         explicit Session(const char* const sess) { start(sess); }
 
@@ -87,11 +87,11 @@ class Timeline {
        public:
         using Self = LocalSession;
 
-        LocalSession()            = delete;
-        LocalSession(const Self&) = delete;
-        LocalSession(Self&&)      = delete;
+        LocalSession()               = delete;
+        LocalSession(const Self&)    = delete;
+        LocalSession(Self&&)         = delete;
         Self& operator=(const Self&) = delete;
-        Self& operator=(Self&&) = delete;
+        Self& operator=(Self&&)      = delete;
 
         explicit LocalSession(const char* const sess) { start(sess); }
 
@@ -105,11 +105,11 @@ class Timeline {
        public:
         using Self = Region;
 
-        Region()            = delete;
-        Region(const Self&) = delete;
-        Region(Self&&)      = delete;
+        Region()                     = delete;
+        Region(const Self&)          = delete;
+        Region(Self&&)               = delete;
         Self& operator=(const Self&) = delete;
-        Self& operator=(Self&&) = delete;
+        Self& operator=(Self&&)      = delete;
 
         explicit Region(const char* const func) : event_(push(func)) {}
 

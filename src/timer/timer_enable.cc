@@ -67,7 +67,7 @@ class TimerStatCollector {
     TimerStatCollector(const TimerStatCollector& another);
 
     TimerStatCollector& operator=(const TimerStatCollector&) = delete;
-    TimerStatCollector& operator=(TimerStatCollector&&) = delete;
+    TimerStatCollector& operator=(TimerStatCollector&&)      = delete;
 
     ~TimerStatCollector() = default;
 

@@ -19,7 +19,7 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/cyfitech/cris-build-ubuntu2204:20240603
+      image: ghcr.io/cyfitech/cris-build-ubuntu2404:20240603
     steps:
     - uses: actions/checkout@v4
     - uses: ./.github/actions/ci-lint-env-setup

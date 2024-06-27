@@ -20,10 +20,10 @@ class ConfigTest : public testing::Test {
 
     ~ConfigTest() override { fs::remove(test_config_path_); }
 
-    ConfigTest(const ConfigTest&) = delete;
-    ConfigTest(ConfigTest&&)      = delete;
+    ConfigTest(const ConfigTest&)            = delete;
+    ConfigTest(ConfigTest&&)                 = delete;
     ConfigTest& operator=(const ConfigTest&) = delete;
-    ConfigTest& operator=(ConfigTest&&) = delete;
+    ConfigTest& operator=(ConfigTest&&)      = delete;
 
     ConfigFile MakeConfigFile(std::string content) const {
         std::ofstream config_file(test_config_path_);
@@ -94,8 +94,8 @@ struct NonCopyableType {
     NonCopyableType(const Self&) = delete;
     NonCopyableType(Self&&)      = default;
     Self& operator=(const Self&) = delete;
-    Self& operator=(Self&&) = default;
-    ~NonCopyableType()      = default;
+    Self& operator=(Self&&)      = default;
+    ~NonCopyableType()           = default;
 
     std::string Str() const { return std::to_string(value_); }
 

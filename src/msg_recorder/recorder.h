@@ -34,10 +34,10 @@ class MessageRecorder : public CRNamedNode<MessageRecorder> {
 
     explicit MessageRecorder(RecorderConfig recorder_config, std::shared_ptr<JobRunner> runner);
 
-    MessageRecorder(const MessageRecorder&) = delete;
-    MessageRecorder(MessageRecorder&&)      = delete;
+    MessageRecorder(const MessageRecorder&)            = delete;
+    MessageRecorder(MessageRecorder&&)                 = delete;
     MessageRecorder& operator=(const MessageRecorder&) = delete;
-    MessageRecorder& operator=(MessageRecorder&&) = delete;
+    MessageRecorder& operator=(MessageRecorder&&)      = delete;
 
     ~MessageRecorder() override;
 

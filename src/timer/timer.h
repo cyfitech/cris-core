@@ -75,8 +75,8 @@ class TimerSession {
 
     TimerSession(TimerSession&& session);
 
-    TimerSession(const TimerSession&) = delete;
-    TimerSession& operator=(const TimerSession&) = delete;
+    TimerSession(const TimerSession&)               = delete;
+    TimerSession& operator=(const TimerSession&)    = delete;
     TimerSession& operator=(TimerSession&& session) = delete;
 
     ~TimerSession();
@@ -98,10 +98,10 @@ class TimerSection {
     // cannot be constructed externally.
     TimerSection(const std::string& name, std::size_t collector_index, CtorPermission);
 
-    TimerSection(const TimerSection&) = delete;
-    TimerSection(TimerSection&&)      = delete;
+    TimerSection(const TimerSection&)            = delete;
+    TimerSection(TimerSection&&)                 = delete;
     TimerSection& operator=(const TimerSection&) = delete;
-    TimerSection& operator=(TimerSection&&) = delete;
+    TimerSection& operator=(TimerSection&&)      = delete;
 
     ~TimerSection() = default;
 
