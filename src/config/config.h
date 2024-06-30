@@ -151,7 +151,6 @@ std::string ConfigDataGetStringRep(const std::pair<T1, T2>& data) {
 }
 
 template<ConfigDataType data_t>
-    // clang-format off
     requires(!std::same_as<data_t, std::string>) && requires(data_t data) {
         std::accumulate(
             data.begin(),
@@ -159,7 +158,6 @@ template<ConfigDataType data_t>
             std::declval<std::string>(),
             std::declval<std::function<std::string(std::string, const typename data_t::value_type&)>>());
     }
-// clang-format on
 std::string ConfigDataGetStringRep(const data_t& data) {
     return std::accumulate(
                data.begin(),

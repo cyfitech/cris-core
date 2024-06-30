@@ -42,10 +42,10 @@ class JobRunner : public std::enable_shared_from_this<JobRunner> {
 
     ~JobRunner();
 
-    JobRunner(const Self&) = delete;
-    JobRunner(Self&&)      = delete;
+    JobRunner(const Self&)       = delete;
+    JobRunner(Self&&)            = delete;
     Self& operator=(const Self&) = delete;
-    Self& operator=(Self&&) = delete;
+    Self& operator=(Self&&)      = delete;
 
     using job_t = std::function<void()>;
 
