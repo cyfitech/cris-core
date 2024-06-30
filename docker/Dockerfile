@@ -286,8 +286,8 @@ RUN set -e; \
 # [PEP 668](https://peps.python.org/pep-0668/) disallows installing pip packages directly to the base environment.
 # However, there are no viable alternatives, so we set `--break-system-package` as a workaround.
 #
-# HACK: In Ubuntu 24.04, the RECORD file of `wheel` was dropped so it is not upgradable.
-# We added `-I` to override the preinstalled version.
+# HACK: In Ubuntu 24.04, the RECORD file of some packages like `wheel` and `pip` was dropped
+# so it is not upgradable. We added `-I` to override the preinstalled version.
 # https://bugs.launchpad.net/ubuntu/+source/wheel/+bug/2063151
 RUN set -e; \
     . <(sed 's/^\(..*\)/export DISTRO_\1/' '/etc/os-release'); \
@@ -306,6 +306,7 @@ RUN set -e; \
         for attempt in $(seq "$PIP_MAX_ATTEMPT" -1 0); do \
             [ "$attempt" -gt 0 ]; \
             sudo PIP_INDEX_URL="$PIP_INDEX_URL" python3 -m pip install -IU $PIP_MAYBE_BREAK_SYSTEM_PACKAGES \
+                pip \
                 wheel \
             && break; \
             echo "Retrying... $(expr "$attempt" - 1) chance(s) left."; \
