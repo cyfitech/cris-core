@@ -3,6 +3,9 @@ build --copt="-DSIMDJSON_EXCEPTIONS=0"
 build --cxxopt="-std=c++20"
 build -c opt
 
+# Disable Bzlmod because of offline build.
+build --enable_bzlmod=false
+
 try-import %workspace%/run/toolchain.bazelrc
 
 build:_zlib64 --copt="-D_FILE_OFFSET_BITS=64"
