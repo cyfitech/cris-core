@@ -52,7 +52,7 @@ unsigned long long GetTSCTick([[maybe_unused]] unsigned& aux) {
 #if defined(_CR_USE_MACH_TIME)
     return mach_absolute_time();
 #elif defined(_CR_USE_RDTSC)
-    /* TODO(xkszltl) RDTSCP is serialized, making it a more robust choice than RDTSC.
+    /* TODO(xkszltl): RDTSCP is serialized, making it a more robust choice than RDTSC.
      * However it is not supported by Linux docker on macOS (via VM internally).
      * Disable it statically until we have better idea for cheap runtime checks.
      */
