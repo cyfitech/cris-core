@@ -20,7 +20,9 @@ all: ci
 
 .PHONY: pull
 pull:
-	$$([ -w '/var/run/docker.sock' ] || echo sudo) docker pull '$(DOCKER_IMAGE)'
+	set -e;                                                                 \
+	sudo_docker="$$([ -w '/var/run/docker.sock' ] || [ -w "$$HOME/Library/Containers/com.docker.docker/Data/docker-cli.sock" ] || echo sudo) docker";   \
+	$$sudo_docker pull '$(DOCKER_IMAGE)';
 
 .PHONY: env
 env:
@@ -30,7 +32,7 @@ env:
 	|| repo="$$($(REALPATH) -e "$$(git rev-parse --git-dir)" | sed 's/$$/\//' | sed 's/\(.*\)\/\.git\/.*/\1/')";    \
 	[ "$$repo" ] || repo="$$(pwd)";                                         \
 	vol_cache="cache_$$(tr '[:punct:]' '_' <<< '$(DOCKER_IMAGE)')";         \
-	sudo_docker="$$([ -w '/var/run/docker.sock' ] || echo sudo) docker";    \
+	sudo_docker="$$([ -w '/var/run/docker.sock' ] || [ -w "$$HOME/Library/Containers/com.docker.docker/Data/docker-cli.sock" ] || echo sudo) docker";   \
 	for prefix in {bazel,ccache,pip}_; do                                   \
 	    $$sudo_docker volume ls -qf name="^$$prefix$$vol_cache"'$$'         \
 	    | grep . >/dev/null                                                 \
@@ -157,7 +159,7 @@ sync: scripts/bazel_pull.sh
 .PHONY: docker
 docker: docker/Dockerfile
 	set -e;                                                                 \
-	sudo_docker="$$([ -w '/var/run/docker.sock' ] || echo sudo) docker";    \
+	sudo_docker="$$([ -w '/var/run/docker.sock' ] || [ -w "$$HOME/Library/Containers/com.docker.docker/Data/docker-cli.sock" ] || echo sudo) docker";   \
 	$$sudo_docker build                                                     \
 	    --no-cache                                                          \
 	    --pull                                                              \
@@ -168,7 +170,7 @@ docker: docker/Dockerfile
 .PHONY: cacheclean
 cacheclean:
 	set -e;                                                                     \
-	sudo_docker="$$([ -w '/var/run/docker.sock' ] || echo sudo) docker";        \
+	sudo_docker="$$([ -w '/var/run/docker.sock' ] || [ -w "$$HOME/Library/Containers/com.docker.docker/Data/docker-cli.sock" ] || echo sudo) docker";   \
 	echo '$(DOCKER_IMAGE)' 'cajunhotpot/cris-build'                             \
 	| tr '[:punct:]' '_'                                                        \
 	| xargs -rn1                                                                \
