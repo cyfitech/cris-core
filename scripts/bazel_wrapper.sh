@@ -16,12 +16,14 @@ fi
 BAZEL_CMD="$1"
 shift
 
-# Need to set PATH instead of CC because Bazel does not like '/'s in the CC value.
+# - Need to set PATH instead of CC because Bazel does not like '/'s in the CC value.
+# - Whitelist ccache dir in Bazel sandbox.
+#   https://ccache.dev/manual/latest.html#config_cache_dir
 PATH="$([ ! "$CC"  ] || dirname  "$CC" ):$([ ! "$CXX" ] || dirname "$CXX"):$PATH"   \
 CC="$(  [ ! "$CC"  ] || basename "$CC" )"                                           \
 CXX="$( [ ! "$CXX" ] || basename "$CXX")"                                           \
 bazel "$BAZEL_CMD"                                                                  \
-    --experimental_ui_max_stdouterr_bytes=-1				            \
+    --experimental_ui_max_stdouterr_bytes=-1                                        \
     --sandbox_writable_path="$(set -e;                                              \
         which ccache >/dev/null 2>&1                                                \
         && ccache --show-config 2>/dev/null                                         \
@@ -44,6 +46,16 @@ bazel "$BAZEL_CMD"                                                              
         which ccache >/dev/null 2>&1                                                \
         && [ "$HOME" ]                                                              \
         && printf '%s/.ccache' "$HOME"                                              \
+        || printf '/dev/null')"                                                     \
+    --sandbox_writable_path="$(set -e;                                              \
+        which ccache >/dev/null 2>&1                                                \
+        && [ "$HOME" ]                                                              \
+        && printf '%s/.cache/ccache' "$HOME"                                        \
+        || printf '/dev/null')"                                                     \
+    --sandbox_writable_path="$(set -e;                                              \
+        which ccache >/dev/null 2>&1                                                \
+        && [ "$HOME" ]                                                              \
+        && printf '%s/Library/Caches/ccache' "$HOME"                                \
         || printf '/dev/null')"                                                     \
     --sandbox_writable_path="$(set -e;                                              \
         which ccache >/dev/null 2>&1                                                \
