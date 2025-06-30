@@ -189,6 +189,7 @@ cmake(
         "BUILD_SHARED_LIBS": "OFF",
         "CMAKE_C_FLAGS" : "-Wno-fuse-ld-path",
         "CMAKE_CXX_FLAGS" : "-Wno-fuse-ld-path",
+        "CMAKE_POSITION_INDEPENDENT_CODE": "ON",
         "SIMDJSON_DEVELOPER_MODE": "OFF",
         "SIMDJSON_EXCEPTIONS": "OFF",
     },
