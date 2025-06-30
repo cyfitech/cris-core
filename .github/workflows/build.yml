@@ -56,7 +56,7 @@ jobs:
     - name: Config
       run: export HOME=/root && git config --global --add safe.directory "$(pwd)"
     - name: Run tidy
-      run: export HOME=/root && make -j tidy -o lint
+      run: export HOME=/root && make -j tidy -o lint OPT='--verbose_failures'
     - name: Check diff
       run: export HOME=/root && git --no-pager diff --exit-code
 
