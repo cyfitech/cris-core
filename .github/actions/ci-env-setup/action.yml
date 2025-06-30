@@ -62,7 +62,7 @@ runs:
       set -xe
       export HOME=/root
       ccache -M 1GiB -o compression=true -o compression_level=5
-      ccache -svx
+      ccache -psvx
       git config --global --add safe.directory "$(pwd)"
       mkdir -p ~/{.cache/{bazel,ccache,pip},.ccache}
   - name: Auth

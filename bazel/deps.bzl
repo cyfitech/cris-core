@@ -186,11 +186,12 @@ cmake(
     name = "libsimdjson",
     lib_source = ":all_content",
     cache_entries = {
+        "BUILD_SHARED_LIBS": "OFF",
         "CMAKE_C_FLAGS" : "-Wno-fuse-ld-path",
         "CMAKE_CXX_FLAGS" : "-Wno-fuse-ld-path",
-        "SIMDJSON_BUILD_STATIC": "ON",
+        "CMAKE_POSITION_INDEPENDENT_CODE": "ON",
+        "SIMDJSON_DEVELOPER_MODE": "OFF",
         "SIMDJSON_EXCEPTIONS": "OFF",
-        "SIMDJSON_JUST_LIBRARY": "ON",
     },
     generate_args = [
         "-G Ninja",
