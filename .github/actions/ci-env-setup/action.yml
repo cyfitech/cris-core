@@ -65,6 +65,7 @@ runs:
       ccache -psvx
       git config --global --add safe.directory "$(pwd)"
       mkdir -p ~/{.cache/{bazel,ccache,pip},.ccache}
+      env
   - name: Auth
     shell: bash
     run: |
