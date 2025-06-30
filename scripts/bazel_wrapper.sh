@@ -40,6 +40,16 @@ bazel "$BAZEL_CMD"                                                              
         | head -n1                                                                  \
         | grep .                                                                    \
         || printf '/dev/null')"                                                     \
+    --sandbox_writable_path="$(set -e;                                              \
+        which ccache >/dev/null 2>&1                                                \
+        && [ "$HOME" ]                                                              \
+        && printf '%s/.ccache' "$HOME"                                              \
+        || printf '/dev/null')"                                                     \
+    --sandbox_writable_path="$(set -e;                                              \
+        which ccache >/dev/null 2>&1                                                \
+        && [ "$XDG_CACHE_HOME" ]                                                    \
+        && printf '%s/ccache' "$XDG_CACHE_HOME"                                     \
+        || printf '/dev/null')"                                                     \
     "$@"
 
 ! which ccache >/dev/null 2>&1 || ccache -s >&2
