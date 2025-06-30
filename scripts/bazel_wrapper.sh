@@ -45,21 +45,25 @@ bazel "$BAZEL_CMD"                                                              
     --sandbox_writable_path="$(set -e;                                              \
         which ccache >/dev/null 2>&1                                                \
         && [ "$HOME" ]                                                              \
+        && [ -e "$HOME/.ccache" ]                                                   \
         && printf '%s/.ccache' "$HOME"                                              \
         || printf '/dev/null')"                                                     \
     --sandbox_writable_path="$(set -e;                                              \
         which ccache >/dev/null 2>&1                                                \
         && [ "$HOME" ]                                                              \
+        && [ -e "$HOME/.cache/ccache" ]                                             \
         && printf '%s/.cache/ccache' "$HOME"                                        \
         || printf '/dev/null')"                                                     \
     --sandbox_writable_path="$(set -e;                                              \
         which ccache >/dev/null 2>&1                                                \
         && [ "$HOME" ]                                                              \
+        && [ -e "$HOME/Library/Caches/ccache" ]                                     \
         && printf '%s/Library/Caches/ccache' "$HOME"                                \
         || printf '/dev/null')"                                                     \
     --sandbox_writable_path="$(set -e;                                              \
         which ccache >/dev/null 2>&1                                                \
         && [ "$XDG_CACHE_HOME" ]                                                    \
+        && [ -e "$XDG_CACHE_HOME/ccache" ]                                          \
         && printf '%s/ccache' "$XDG_CACHE_HOME"                                     \
         || printf '/dev/null')"                                                     \
     "$@"
