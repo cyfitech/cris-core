@@ -31,6 +31,7 @@ bazel "$BAZEL_CMD"                                                              
         | sed 's/[[:space:]]*$//'                                                   \
         | sed -n 's/^cache_dir[[:space:]]*=[[:space:]]*//pi'                        \
         | head -n1                                                                  \
+        | xargs -rI{} find {} -maxdepth 0 2>/dev/null                               \
         | grep .                                                                    \
         || printf '/dev/null')"                                                     \
     --sandbox_writable_path="$(set -e;                                              \
@@ -40,6 +41,7 @@ bazel "$BAZEL_CMD"                                                              
         | sed 's/[[:space:]]*$//'                                                   \
         | sed -n 's/^temporary_dir[[:space:]]*=[[:space:]]*//pi'                    \
         | head -n1                                                                  \
+        | xargs -rI{} find {} -maxdepth 0 2>/dev/null                               \
         | grep .                                                                    \
         || printf '/dev/null')"                                                     \
     --sandbox_writable_path="$(set -e;                                              \
